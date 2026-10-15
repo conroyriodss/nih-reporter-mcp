@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nih-reporter-mcp"
+version = "0.1.0"
+description = "MCP server for NIH RePORTER grant-funding data"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.0.0",
+]
+
+[project.scripts]
+nih-reporter-mcp = "nih_reporter_mcp.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nih_reporter_mcp"]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.4"]

@@ -1,0 +1,22 @@
+{
+  "description": "Exact criteria sent to the NIH RePORTER v2 projects/search endpoint for the demonstration fixture cohort.",
+  "endpoint": "https://api.reporter.nih.gov/v2/projects/search",
+  "criteria": {
+    "advanced_text_search": {
+      "operator": "and",
+      "search_field": "all",
+      "search_text": "CRISPR sickle cell"
+    },
+    "fiscal_years": [
+      2024
+    ]
+  },
+  "include_fields": [
+    "ApplId",
+    "SubprojectId",
+    "AwardAmount",
+    "CoreProjectNum",
+    "FiscalYear"
+  ],
+  "note": "This is a small cohort (< 500 contributing records) chosen so source_record_ids is complete and not capped."
+}

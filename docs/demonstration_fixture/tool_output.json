@@ -1,0 +1,82 @@
+{
+  "label": "demonstration-fixture",
+  "summary": {
+    "topic": "CRISPR sickle cell",
+    "fiscal_years": [
+      2024
+    ],
+    "total_matching_projects": 38,
+    "projects_aggregated": 37,
+    "complete": true,
+    "total_award_amount_usd": 19790134.0,
+    "funding_basis": "whole_award",
+    "records_with_missing_amount": 0,
+    "deduped_count": 0,
+    "subproject_excluded_count": 1,
+    "counting_unit": "funding_basis=whole_award: subproject records excluded, appl_ids deduplicated, missing amounts excluded (not zeroed). This total counts each parent award once.",
+    "note": "Total is exact: every matching project was aggregated, none had missing amounts."
+  },
+  "provenance": {
+    "retrieved_at": "2026-10-15T20:37:30.023550+00:00",
+    "query_criteria": {
+      "advanced_text_search": {
+        "operator": "and",
+        "search_field": "all",
+        "search_text": "CRISPR sickle cell"
+      },
+      "fiscal_years": [
+        2024
+      ]
+    },
+    "total_matching": 38,
+    "records_aggregated": 37,
+    "complete": true,
+    "pages_fetched": 1,
+    "deduped_count": 0,
+    "subproject_excluded_count": 1,
+    "records_with_missing_amount": 0,
+    "funding_basis": "whole_award",
+    "source_api": "https://api.reporter.nih.gov/v2/projects/search",
+    "source_record_ids": [
+      11189414,
+      11189427,
+      10917350,
+      10922546,
+      10827103,
+      10905723,
+      10908700,
+      10929941,
+      10760297,
+      10877295,
+      10771309,
+      10867474,
+      10796848,
+      10911966,
+      10876342,
+      10999595,
+      10843188,
+      10913609,
+      11013163,
+      10813016,
+      10747883,
+      10849327,
+      10900650,
+      11179930,
+      11004909,
+      10821108,
+      10917383,
+      10947873,
+      10808443,
+      10817959,
+      10756130,
+      10815708,
+      10837898,
+      10914937,
+      11139766,
+      10916761,
+      10843746
+    ],
+    "id_conflicts": []
+  },
+  "reproduction_note": "To reproduce: (1) POST query_criteria to source_api and paginate all pages (offset in steps of 500 up to the record retrieval cap). (2) Exclude any record whose subproject_id is non-null. (3) Deduplicate by appl_id. (4) Exclude records whose award_amount is null (these are reported separately in records_with_missing_amount, not counted as $0). (5) Sum award_amount over the remaining records. The contributing appl_ids are listed in source_record_ids; records_aggregated gives the true contributing count."
+}

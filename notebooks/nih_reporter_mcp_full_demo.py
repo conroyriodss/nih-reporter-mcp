@@ -59,10 +59,15 @@ print(f"\nProject source copied to {WORKDIR}/src")
 
 # Original monolithic server source has been refactored into:
 #   src/nih_reporter_mcp/config.py    - constants + SPENDING_CATEGORIES
-#   src/nih_reporter_mcp/models.py    - 9 Pydantic models
+#   src/nih_reporter_mcp/models.py    - Pydantic models
 #   src/nih_reporter_mcp/utils.py     - HTTP client, pagination, criteria builder
 #   src/nih_reporter_mcp/app.py       - FastMCP entry point
-#   src/nih_reporter_mcp/tools/*.py   - 8 tool files + 2 stubs (register(mcp) pattern)
+#   src/nih_reporter_mcp/tools/*.py   - 13 tool files + 2 stubs (register(mcp) pattern)
+#     Tools: search_projects, summarize_funding, funding_trend, org_profile,
+#            investigator, overlap_check, study_section_workload, recent_awards,
+#            evidence_bundle, explain_health_topic, project_by_id, publications,
+#            publication_details
+#     Stubs: clinical_trials_lookup, usaspending_comparison
 
 # COMMAND ----------
 
@@ -124,6 +129,7 @@ with open(log_path) as f:
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 10
 import asyncio
 from fastmcp import Client
 import nest_asyncio
@@ -143,7 +149,7 @@ async def check_tools():
 
 tool_names = run_async(check_tools())
 print("Registered tools:", tool_names)
-assert len(tool_names) == 8, f"Expected 8 tools, got {len(tool_names)}"
+assert len(tool_names) == 13, f"Expected 13 tools, got {len(tool_names)}"
 print("\nOK -- server is live and fully registered.")
 
 # COMMAND ----------
@@ -152,7 +158,7 @@ print("\nOK -- server is live and fully registered.")
 
 # COMMAND ----------
 
-# DBTITLE 1,Smoke tests (9 checks)
+# DBTITLE 1,Smoke tests (18 checks)
 async def smoke_tests():
     results = []
 
@@ -174,11 +180,11 @@ async def smoke_tests():
         await check("Exact-total pagination (CRISPR FY2023 == 1,739 projects)", t1)
 
         async def t2():
-            r = await c.call_tool("summarize_funding_by_topic", {"topic": "cancer", "fiscal_years": [2023]})
+            r = await c.call_tool("summarize_funding_by_topic", {"topic": "cancer", "fiscal_years": [2023], "funding_basis": "all_records"})
             d = r.data
             return (not d.complete and d.projects_aggregated == 10000,
                     f"complete={d.complete}, aggregated={d.projects_aggregated}, total_matching={d.total_matching_projects}")
-        await check("10,000-record ceiling honestly flagged (not silently truncated)", t2)
+        await check("10,000-record retrieval cap honestly flagged (not silently truncated)", t2)
 
         async def t3():
             r = await c.call_tool("organization_funding_profile",
@@ -192,7 +198,7 @@ async def smoke_tests():
             r = await c.call_tool("summarize_funding_by_topic",
                                    {"spending_category": "long covid", "fiscal_years": [2023]})
             d = r.data
-            return (d.total_award_amount_usd < 300_000_000,
+            return (50_000_000 < d.total_award_amount_usd < 300_000_000,
                     f"RCDC category total=${d.total_award_amount_usd:,.0f} vs free-text total=$891,742,057 (same query)")
         await check("Official RCDC category vs free-text search: documented divergence", t4)
 
@@ -216,11 +222,17 @@ async def smoke_tests():
         async def t7():
             r1 = await c.call_tool("search_funded_projects",
                                     {"topic": "CRISPR gene editing", "fiscal_years": [2023], "limit": 1})
-            r2 = await c.call_tool("summarize_funding_by_topic",
-                                    {"topic": "CRISPR gene editing", "fiscal_years": [2023]})
-            match = r1.data.total_matching_projects == r2.data.total_matching_projects
-            return (match, f"{r1.data.total_matching_projects} vs {r2.data.total_matching_projects}")
-        await check("Cross-tool consistency (search vs summarize agree on totals)", t7)
+            r_whole = await c.call_tool("summarize_funding_by_topic",
+                                    {"topic": "CRISPR gene editing", "fiscal_years": [2023], "funding_basis": "whole_award"})
+            r_all = await c.call_tool("summarize_funding_by_topic",
+                                    {"topic": "CRISPR gene editing", "fiscal_years": [2023], "funding_basis": "all_records"})
+            totals_match = r1.data.total_matching_projects == r_whole.data.total_matching_projects == r_all.data.total_matching_projects
+            whole_lower = r_whole.data.total_award_amount_usd < r_all.data.total_award_amount_usd
+            return (totals_match and whole_lower,
+                    f"matching={r1.data.total_matching_projects}, "
+                    f"whole=${r_whole.data.total_award_amount_usd:,.0f} < all=${r_all.data.total_award_amount_usd:,.0f}, "
+                    f"subprojects_excluded={r_whole.data.subproject_excluded_count}")
+        await check("Cross-tool consistency + whole_award < all_records (dedup works)", t7)
 
         async def t8():
             r = await c.call_tool("funding_trend_by_year",
@@ -242,6 +254,95 @@ async def smoke_tests():
             return (avg_calls <= 1.5, f"avg_tool_calls_per_run={avg_calls:.1f} (regression threshold: 1.5)")
         await check("Tool-call efficiency regression guard (docstring fix should keep this near 1.0)", t9)
 
+        async def t10():
+            r = await c.call_tool("check_investigator_overlap",
+                                   {"last_name": "Collins", "first_name": "Francis"})
+            d = r.data
+            return (isinstance(d.total_active_awards, int) and d.total_active_awards >= 0,
+                    f"total_active_awards={d.total_active_awards}, flagged={len(d.flagged_awards)}")
+        await check("check_investigator_overlap runs end-to-end and returns valid structure", t10)
+
+        async def t11():
+            r1 = await c.call_tool("check_investigator_overlap", {"last_name": "Au", "first_name": "Rhoda"})
+            r2 = await c.call_tool("check_investigator_overlap",
+                                   {"last_name": "Au", "first_name": "Rhoda", "exclude_project_num": "U19AG068753"})
+            return (r2.data.total_active_awards < r1.data.total_active_awards,
+                    f"without exclusion: {r1.data.total_active_awards}, with exclusion: {r2.data.total_active_awards}")
+        await check("exclude_project_num strictly reduces the result count", t11)
+
+        async def t12():
+            r = await c.call_tool("study_section_workload",
+                                   {"topic": "CRISPR gene editing", "fiscal_years": [2023]})
+            d = r.data
+            section_sum = sum(s.project_count for s in d.sections)
+            return (len(d.sections) > 0 and section_sum <= d.total_projects,
+                    f"sections={len(d.sections)}, section_project_sum={section_sum}, total_projects={d.total_projects}")
+        await check("study_section_workload groups projects correctly, counts reconcile", t12)
+
+        async def t13():
+            r = await c.call_tool("search_recent_awards", {"limit": 5})
+            d = r.data
+            has_awards = len(d.awards) > 0
+            respects_limit = d.returned > 0 and d.returned <= 5
+            all_have_url = all(hasattr(a, 'reporter_url') and a.reporter_url for a in d.awards)
+            return (has_awards and respects_limit and all_have_url,
+                    f"returned={d.returned}, total_matching={d.total_matching}, has_awards={has_awards}, all_have_url={all_have_url}")
+        await check("search_recent_awards returns valid results respecting limit", t13)
+
+        async def t14():
+            r = await c.call_tool("summarize_funding_by_topic",
+                                   {"topic": "CRISPR gene editing", "fiscal_years": [2023], "include_provenance": True})
+            d = r.data
+            has_prov = d.provenance is not None
+            basis_stated = "whole_award" in d.counting_unit.lower() or "whole_award" in d.funding_basis
+            agg = d.provenance.records_aggregated if has_prov else 0
+            sub_excl = d.subproject_excluded_count
+            return (has_prov and basis_stated and agg >= 1400 and sub_excl > 0,
+                    f"provenance={has_prov}, basis={d.funding_basis}, aggregated={agg}, subproject_excluded={sub_excl}")
+        await check("Provenance populated and counting-unit trap documented", t14)
+
+        async def t15():
+            r = await c.call_tool("export_evidence_bundle",
+                                   {"topic": "sickle cell disease", "fiscal_years": [2023], "label": "SCD FY23"})
+            d = r.data
+            has_ids = len(d.provenance.source_record_ids) > 0
+            has_repro = "reproduce" in d.reproduction_note.lower()
+            return (has_ids and has_repro,
+                    f"source_ids={len(d.provenance.source_record_ids)}, has_repro_note={has_repro}")
+        await check("export_evidence_bundle returns inspectable source record IDs", t15)
+
+        async def t16():
+            r = await c.call_tool("explain_health_topic", {"topic": "diabetes"})
+            d = r.data
+            return (d.found and d.summary is not None and len(d.summary) > 50,
+                    f"found={d.found}, summary_len={len(d.summary) if d.summary else 0}")
+        await check("explain_health_topic returns a MedlinePlus summary for a common condition", t16)
+
+        async def t17():
+            r = await c.call_tool("explain_health_topic", {"topic": "zzznotarealcondition999"})
+            d = r.data
+            return (d.found is False and "no" in d.note.lower(),
+                    f"found={d.found}, note={d.note[:80]}")
+        await check("explain_health_topic handles no-match cleanly (not an error)", t17)
+
+        async def t18():
+            import time as _t
+            w1 = await c.call_tool("summarize_funding_by_topic",
+                                    {"topic": "CRISPR gene editing", "fiscal_years": [2023], "funding_basis": "whole_award"})
+            a1 = await c.call_tool("summarize_funding_by_topic",
+                                    {"topic": "CRISPR gene editing", "fiscal_years": [2023], "funding_basis": "all_records"})
+            t0 = _t.monotonic()
+            w2 = await c.call_tool("summarize_funding_by_topic",
+                                    {"topic": "CRISPR gene editing", "fiscal_years": [2023], "funding_basis": "whole_award"})
+            warm_lat = _t.monotonic() - t0
+            whole_stable = w1.data.total_award_amount_usd == w2.data.total_award_amount_usd
+            bases_differ = w1.data.total_award_amount_usd != a1.data.total_award_amount_usd
+            return (whole_stable and bases_differ,
+                    f"whole_award stable={whole_stable}, whole!=all_records={bases_differ} "
+                    f"(${w1.data.total_award_amount_usd:,.0f} vs ${a1.data.total_award_amount_usd:,.0f}), "
+                    f"warm_latency={warm_lat:.2f}s")
+        await check("Cache preserves correctness and never collides whole_award with all_records", t18)
+
     return results
 
 
@@ -258,7 +359,8 @@ for name, ok, detail in results:
     print(f"[{mark}] {name}")
     print(f"       {detail}")
 print("-" * 78)
-print(f"TOTAL: {passed}/{len(results)} passed")
+total = len(results)
+print(f"TOTAL: {passed}/{total} passed")
 print("=" * 78)
 
 # COMMAND ----------
@@ -526,8 +628,9 @@ run_async(run_agent(
 # MAGIC
 # MAGIC Question 4 is the centerpiece: it forces the model to call
 # MAGIC `summarize_funding_by_topic` twice (once by official category, once by
-# MAGIC free-text) and compare the results unprompted -- the clearest evidence
-# MAGIC of genuine multi-tool reasoning over live government data.
+# MAGIC free-text) and compare the results -- the question explicitly asks for the
+# MAGIC comparison, and the agent correctly selects both tool paths to
+# MAGIC surface the RCDC-vs-free-text divergence.
 
 # COMMAND ----------
 
@@ -598,16 +701,32 @@ print("=" * 78)
 # MAGIC
 # MAGIC What this notebook demonstrates end-to-end:
 # MAGIC
-# MAGIC * A working MCP server over live NIH RePORTER data (8 goal-oriented tools,
-# MAGIC   3 prompts, 2 resources, 2 custom HTTP routes)
-# MAGIC * 9/9 automated smoke tests passing against live data — including a
-# MAGIC   `spending_category` regression test and a tool-call efficiency guard
+# MAGIC * A working MCP server over live NIH RePORTER data (v0.10.0: 13 goal-oriented tools,
+# MAGIC   9 audience-tailored prompts, 2 resources, 2 custom HTTP routes, 3 upstream
+# MAGIC   APIs: RePORTER, NCBI E-utilities, MedlinePlus)
+# MAGIC * **Correct funding aggregation**: subproject records excluded by default
+# MAGIC   (whole_award mode), appl_id dedup, missing amounts tracked not zeroed.
+# MAGIC   CRISPR FY2023 corrected from $921M (all_records) to $837M (whole_award);
+# MAGIC   naive sum overstated corrected figure by 10.1%.
+# MAGIC * **Response caching + parallelism** (v0.9.0): 15-minute TTL cache on
+# MAGIC   `post_json` reduces warm-path latency from 4–6s to ~0.02s (>100x).
+# MAGIC   `funding_trend_by_year` fires all years via `asyncio.gather`.
+# MAGIC   Cache correctness proven: same basis returns identical results cold vs
+# MAGIC   warm; different bases never collide (t18).
+# MAGIC * 18/18 automated smoke tests (quick mode: 5 in \~8s; full parallel: 17+t9
+# MAGIC   in \~90s) passing against live data — covering pagination, ceiling
+# MAGIC   flagging, input validation, injection handling, investigator overlap,
+# MAGIC   study section grouping, recent awards, provenance/counting-unit
+# MAGIC   transparency, evidence bundle export, MedlinePlus health-topic
+# MAGIC   lookup (positive match + no-match handling), tool-call efficiency,
+# MAGIC   whole_award vs all_records dedup verification, and cache correctness
 # MAGIC * Widget-driven model selection filtered to chat-capable endpoints, with
 # MAGIC   reasoning-tier incompatibility directly demonstrable
 # MAGIC * Tool-call observability: per-tool latency, success rate, and session summary
 # MAGIC * A Databricks-hosted LLM autonomously selecting and chaining tools — full
 # MAGIC   4-question demo completes in \~6 tool calls total after the search_funded_projects
 # MAGIC   docstring fix eliminated redundant near-duplicate re-querying
-# MAGIC * An unprompted multi-tool comparison (official RCDC category vs. free-text
-# MAGIC   search) that surfaces a genuine, documented finding about how NIH's own
-# MAGIC   categorized spending differs from naive keyword search
+# MAGIC * A multi-tool comparison (official RCDC category vs. free-text search),
+# MAGIC   triggered by an explicitly comparative demo question, that surfaces a
+# MAGIC   genuine, documented finding about how NIH's own categorized spending
+# MAGIC   differs from naive keyword search

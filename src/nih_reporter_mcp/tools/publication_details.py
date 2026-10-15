@@ -10,6 +10,8 @@ import httpx
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
+from nih_reporter_mcp.utils import ALLOWED_HOSTS_EUTILS, validate_host
+
 EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 ESUMMARY_URL = f"{EUTILS_BASE}/esummary.fcgi"
 EUTILS_MIN_INTERVAL = 0.34  # ~3 req/sec without an API key; stay just under
@@ -53,6 +55,8 @@ async def _eutils_get(params: dict) -> dict:
         _eutils_last_call_at = time.monotonic()
 
     max_response_bytes = 10 * 1024 * 1024  # 10 MB safety cap
+
+    validate_host(ESUMMARY_URL, ALLOWED_HOSTS_EUTILS, "E-utilities")
 
     async with httpx.AsyncClient(
         timeout=EUTILS_TIMEOUT,

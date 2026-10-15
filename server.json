@@ -1,12 +1,12 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "nih-reporter-mcp",
-  "description": "Query NIH and other HHS-agency research grant funding via live RePORTER data. 8 goal-oriented tools: search projects, summarize funding, year-by-year trends, organization profiles, investigator portfolios, publications, direct project lookup, and PubMed citation resolution via NCBI E-utilities.",
+  "description": "Query NIH and other HHS-agency research grant funding via live RePORTER data. 13 goal-oriented tools and 9 audience-tailored prompts (program officer, citizen scientist, and general analyst). Tools: search projects, summarize funding (with opt-in provenance), year-by-year trends, organization profiles (with opt-in provenance), investigator portfolios, investigator overlap/duplication check, study section workload analysis, recent awards tracking, evidence bundle export (inspectable audit trail), plain-language health-topic explanations from MedlinePlus (English/Spanish), publications, direct project lookup, and PubMed citation resolution via NCBI E-utilities.",
   "repository": {
-    "url": "https://github.com/GSA-TTS/10x-mcp-server-nih-reporter",
+    "url": "https://github.com/conroyriodss/nih-reporter-mcp",
     "source": "github"
   },
-  "version": "0.1.0",
+  "version": "0.10.0",
   "remotes": [
     {
       "type": "streamable-http",

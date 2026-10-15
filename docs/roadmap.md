@@ -2,8 +2,8 @@
 
 ## Done
 
-- **8 tools**: 7 RePORTER-native (search, exact-total summarization, year-over-year trends, org profiles, investigator portfolios, direct ID lookup, publication linking) + 1 cross-API (PubMed citation resolution via NCBI E-utilities)
-- **3 prompts**: `funding_overview`, `institution_report`, `compare_rcdc_vs_freetext` — reusable prompt templates that guide an LLM through multi-step analyses
+- **13 tools**: 9 RePORTER-native (search, exact-total summarization with opt-in provenance, year-over-year trends, org profiles with opt-in provenance, investigator portfolios, investigator overlap/duplication check, funded-project distribution by study section, recent awards tracking, direct ID lookup) + 1 cross-API (PubMed citation resolution via NCBI E-utilities) + 1 hybrid (publication linking) + 1 audit (evidence bundle export with full provenance, source record IDs, and reproduction note) + 1 consumer health (plain-language health-topic explanations from MedlinePlus in English/Spanish via NLM Web Search)
+- **9 prompts** across 3 audiences (general/analyst, program officer, citizen scientist): `funding_overview`, `institution_report`, `compare_rcdc_vs_freetext`, `research_landscape_summary`, `portfolio_brief`, `other_support_review` (public funded-award screening), `investment_to_outputs`, `explain_funding_landscape`, `follow_the_evidence` — reusable prompt templates that compose the same tools with audience-appropriate framing and boundary language
 - **2 resources**: `nih-reporter://spending-categories` (browsable RCDC category lookup table), `nih-reporter://server-info` (version, constraints, upstream API metadata)
 - **2 custom HTTP routes**: `/health` (liveness probe for load balancers / Databricks Apps) and `/version` (capability report with tool/prompt/resource counts)
 - Full pagination for exact totals (not a single-page estimate)
@@ -12,7 +12,13 @@
 - Client-side active/inactive filtering (upstream criterion confirmed unreliable when combined with fiscal-year filters — see `docs/findings.md` #6)
 - SSRF hardening on all outbound HTTP clients (`follow_redirects=False`, `trust_env=False`, 10 MB response-size cap) — defense-in-depth matching the [official template's hardening bar](https://github.com/GSA-TTS/mcp-hackathon-template)
 - Input-size guards: fiscal_years capped at 20 per call, agencies/org_names at 20 items
-- 9-assertion automated eval suite against live data, with hard invariants and drift-tolerant thresholds correctly distinguished
+- Provenance and counting-unit transparency: every aggregating response includes a `counting_unit` field documenting the parent/subproject double-counting assumption; opt-in `Provenance` object with query criteria, source record IDs, and timing for full auditability
+- Audience-specific prompt sets: 9 prompts across 3 audiences (general/analyst,
+  program officer, citizen scientist) composing the same tools with different
+  framing and boundary language
+- 18-assertion automated eval suite against live data (17 standalone + t9 LLM agent-efficiency in notebook), with hard invariants and drift-tolerant thresholds correctly distinguished
+- 5 correctness-against-ground-truth tests (`tests/test_correctness.py`) proving funding arithmetic matches independently hand-computed reference values to the dollar
+- 7 synthetic oracle tests + 21 security tests (`tests/test_counting.py`, `tests/test_security.py`)
 - Measured, regression-guarded LLM agent tool-selection accuracy (100% across 8 held-out questions) and tool-call efficiency (mean 1.0 calls/question after a documented tool-description fix)
 - Reasoning-vs-chat-completion model endpoint compatibility documented and handled
 

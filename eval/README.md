@@ -4,12 +4,18 @@ The hackathon template intentionally ships no eval harness, leaving it to each t
 
 ## What's tested, and why each category matters
 
-**Functional smoke tests** (`eval/smoke_tests.py` standalone or Cell 12 of the companion notebook) — 9 assertions against a live server instance, split into two kinds, deliberately distinguished:
+**Functional smoke tests** (`eval/smoke_tests.py` standalone or Cell 12 of the companion notebook) — 18 assertions against a live server instance. Three run modes:
 
-- *Hard invariants*: behaviors that should never change regardless of live data drift (the 10,000-record ceiling triggers `complete=False`, not silent truncation; a SQL-injection-style input produces a clean error, not a leaked traceback; two tools querying the same criteria agree on totals).
-- *Drift-tolerant assertions*: live NIH data changes as new awards post, so exact-equality checks against specific dollar figures would eventually fail for reasons unrelated to a real regression. These use a percentage tolerance band instead (see `within_tolerance()` helper).
+- **Quick mode** (`--quick`, \~8s): 5 single-call tests (t3, t5, t6, t10, t13) — no full pagination. Intended for fast iteration during development.
+- **Full parallel mode** (default, \~60–90s): all 17 standalone tests (t1–t8, t10–t18) run concurrently via `asyncio.gather`, with 90s per-test timeouts. Wall-clock time is bounded by the slowest concurrent test.
+- **Full sequential mode** (`--sequential`, \~100s): same 17 tests run one at a time. Useful for debugging or avoiding API rate-limit pressure.
 
-**Tool-selection accuracy** — a battery of 8 natural-language questions, each with one clearly-expected tool, run against a live Databricks-hosted LLM with all 8 tools available via function-calling. Scores whether the model picks the correct tool, independent of whether its final written answer is well-phrased. Result as of last run: 100% (8/8).
+Tests are split into two kinds, deliberately distinguished:
+
+- *Hard invariants*: behaviors that should never change regardless of live data drift (the 10,000-record retrieval cap triggers `complete=False`, not silent truncation; a SQL-injection-style input produces a clean error, not a leaked traceback; two tools querying the same criteria agree on totals).
+- *Drift-tolerant assertions*: live NIH data changes as new awards post, so exact-equality checks against specific dollar figures would eventually fail for reasons unrelated to a real regression. These use structural checks instead (nonzero values, correct ordering, count reconciliation).
+
+**Tool-selection accuracy** — a battery of 8 natural-language questions, each with one clearly-expected tool, run against a live Databricks-hosted LLM with all 13 tools available via function-calling. Scores whether the model picks the correct tool, independent of whether its final written answer is well-phrased. Result as of last run: 100% (8/8).
 
 **Tool-call efficiency regression guard** — a specific, previously-observed failure mode (an LLM agent re-querying near-identical phrasings believing minor rewording changes results) is now a permanent assertion: the same question run 3 times must average ≤1.5 tool calls. See `docs/findings.md` #8 for the full before/after measurement that motivated this.
 
@@ -17,17 +23,58 @@ The hackathon template intentionally ships no eval harness, leaving it to each t
 
 ## Running the suite
 
-**Standalone** (t1–t8, no LLM required):
+**Quick** (5 tests, ~15s, no LLM required):
 
 ```bash
 uv run python main.py &
 sleep 5
+uv run python eval/smoke_tests.py --quick
+```
+
+**Full parallel** (17 tests, \~60–90s, no LLM required):
+
+```bash
 uv run python eval/smoke_tests.py
 ```
 
-**Full suite including t9** (requires Databricks Foundation Model API access): use the companion Databricks notebook (`notebook-merged`). Cells 1–10 copy the project source, start the MCP server, and confirm registration. Cell 12 executes all 9 assertions including the LLM agent-efficiency regression guard.
+**Full sequential** (17 tests, \~100s, no LLM required):
+
+```bash
+uv run python eval/smoke_tests.py --sequential
+```
+
+**Full suite including t9** (requires Databricks Foundation Model API access): use the companion Databricks notebook (`notebook-merged`). Cells 1–10 copy the project source, start the MCP server, and confirm registration. Cell 12 executes all 18 assertions including the LLM agent-efficiency regression guard.
 
 For the LLM-driven tool-selection and efficiency tests, see `notebook-merged` sections 10–13 — these run interactively since they need Databricks model endpoints.
+
+## Correctness against independent ground truth
+
+**Funding arithmetic tests** (`tests/test_correctness.py`, 5 tests) — proves the v0.8.0 counting fix produces correct funding totals by comparing tool output against independently-fetched, hand-computed reference values. Every assertion uses the `whole_award` basis (the corrected default), not the inflated `all_records` figures. Requires a running MCP server.
+
+```bash
+# Via pytest:
+PYTHONPATH=src pytest tests/test_correctness.py -v
+
+# Standalone:
+MCP_URL=http://localhost:8000/mcp python tests/test_correctness.py
+```
+
+The five tests:
+
+1. **Ground-truth exact match** — a small cohort ("CRISPR sickle cell" FY2024, 38 records) was independently fetched via direct API call, and the whole_award total hand-computed by applying the same rules the code enforces (exclude subprojects, dedupe appl_ids, exclude null amounts). The tool's output must match **to the dollar** ($19,790,134). Fixture data in `tests/fixtures/`.
+2. **Double-counting proof** — U19AG068753 FY2024 (a confirmed multi-component grant) has 1 parent ($5.13M) + 7 subprojects (sum $5.13M). The test verifies `all_records` ($10.26M) > `whole_award` ($5.13M), and the delta **exactly** equals the summed subproject amounts — proving the fix removes real double-counted dollars.
+3. **Provenance reproducibility** — calls `export_evidence_bundle`, takes its `source_record_ids`, re-fetches those records via direct API, applies whole_award rules independently, and confirms the re-computed total reproduces the tool's reported total exactly.
+4. **Missing-amount honesty** — verifies that records with null `award_amount` are tracked (`records_with_missing_amount > 0`), excluded from the total (not zeroed to $0), and the result is not claimed as "exact".
+5. **Cross-tool basis consistency** — for a subproject-bearing topic, `whole_award` is strictly less than `all_records` with nonzero `subproject_excluded_count`.
+
+**Synthetic oracle tests** (`tests/test_counting.py`, 5 pass + 2 xfail) — unit tests against synthetic data with known oracle values, verifying `aggregate_funding()` directly without the MCP server. No network required.
+
+**Before/after quantification** (see `docs/findings.md` #13):
+
+| Topic (FY2023) | Naive sum | Corrected | Overstatement (delta/corrected) |
+|---|---:|---:|---:|
+| CRISPR gene editing | $921.5M | $837.0M | 10.1% |
+| Alzheimer's disease | $4,685.3M | $4,020.9M | 16.5% |
 
 ## Known gaps in current coverage
 

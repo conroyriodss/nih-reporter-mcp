@@ -11,13 +11,18 @@ To add a tool:
 from __future__ import annotations
 
 from nih_reporter_mcp.tools import (
+    evidence_bundle,
+    explain_health_topic,
     funding_trend,
     investigator,
     org_profile,
+    overlap_check,
     project_by_id,
     publication_details,
     publications,
+    recent_awards,
     search_projects,
+    study_section_workload,
     summarize_funding,
 )
 
@@ -32,6 +37,11 @@ def register_tools(mcp) -> None:
     investigator.register(mcp)
     publications.register(mcp)
     publication_details.register(mcp)
+    overlap_check.register(mcp)
+    study_section_workload.register(mcp)
+    recent_awards.register(mcp)
+    evidence_bundle.register(mcp)
+    explain_health_topic.register(mcp)
 
 
 __all__ = ["register_tools"]

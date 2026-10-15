@@ -9,7 +9,7 @@ from pydantic import Field
 
 from nih_reporter_mcp.config import PROJECTS_SEARCH
 from nih_reporter_mcp.models import InvestigatorPortfolio
-from nih_reporter_mcp.utils import INCLUDE_FIELDS, build_criteria, post_json, to_summary, validate_fiscal_years, validate_topic
+from nih_reporter_mcp.utils import INCLUDE_FIELDS, aggregate_funding, build_criteria, post_json, to_summary, validate_fiscal_years, validate_string_length, validate_topic
 
 
 def register(mcp: FastMCP) -> None:
@@ -22,6 +22,8 @@ def register(mcp: FastMCP) -> None:
     ) -> InvestigatorPortfolio:
         """Look up the funded research portfolio for a named principal investigator."""
         last_name = validate_topic(last_name)
+        if first_name:
+            first_name = validate_string_length(first_name, "first_name")
         fiscal_years = validate_fiscal_years(fiscal_years)
 
         pi_entry = {"first_name": first_name or "", "last_name": last_name, "any_name": ""}
@@ -37,16 +39,26 @@ def register(mcp: FastMCP) -> None:
         total = (data.get("meta") or {}).get("total", 0)
         results = data.get("results") or []
         projects = [to_summary(r) for r in results]
-        total_award_returned = sum(p.award_amount or 0 for p in projects)
+
+        # Apply whole_award rules to the dollar total (exclude subprojects,
+        # deduplicate) so the sum is correct even when the returned page
+        # contains both a parent and its children.
+        agg = aggregate_funding(results, funding_basis="whole_award")
 
         note = (f"Showing all {total} matching project(s)." if total <= len(projects) else
                 f"Showing the {len(projects)} largest of {total} matching projects.")
         if not first_name:
             note += " No first_name given -- results may include multiple people sharing this surname."
+        if agg.subproject_excluded_count > 0:
+            note += (f" {agg.subproject_excluded_count} subproject record(s) "
+                     "excluded from the dollar total (parent awards already "
+                     "include subproject funding).")
 
         return InvestigatorPortfolio(
             investigator_query=f"{first_name + ' ' if first_name else ''}{last_name}",
             fiscal_years=fiscal_years, total_matching_projects=total, returned=len(projects),
-            truncated=total > len(projects), total_award_amount_usd_returned=round(total_award_returned, 2),
+            truncated=total > len(projects), total_award_amount_usd_returned=round(agg.total_award, 2),
+            records_with_missing_amount=agg.records_with_missing_amount,
+            subproject_excluded_count=agg.subproject_excluded_count,
             projects=projects, note=note,
         )

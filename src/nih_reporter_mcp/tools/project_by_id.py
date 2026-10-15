@@ -9,7 +9,7 @@ from pydantic import Field
 
 from nih_reporter_mcp.config import PROJECTS_SEARCH
 from nih_reporter_mcp.models import SearchResult
-from nih_reporter_mcp.utils import INCLUDE_FIELDS, build_criteria, post_json, to_summary
+from nih_reporter_mcp.utils import INCLUDE_FIELDS, build_criteria, post_json, to_summary, validate_string_length
 
 
 def register(mcp: FastMCP) -> None:
@@ -21,6 +21,10 @@ def register(mcp: FastMCP) -> None:
         """Look up one or more specific NIH/HHS projects directly by ID."""
         if not appl_id and not core_project_num:
             raise ValueError("Provide either appl_id or core_project_num.")
+        if core_project_num:
+            core_project_num = validate_string_length(
+                core_project_num, "core_project_num",
+            )
 
         payload = {
             "criteria": build_criteria(

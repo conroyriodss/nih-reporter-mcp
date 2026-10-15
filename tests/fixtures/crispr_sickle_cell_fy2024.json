@@ -1,0 +1,331 @@
+{
+  "_comment": "Ground-truth fixture for test_correctness.py",
+  "_query": {
+    "topic": "CRISPR sickle cell",
+    "fiscal_years": [
+      2024
+    ]
+  },
+  "_retrieved_at": "2026-10-15T18:36:08.539765+00:00",
+  "_hand_computed_whole_award": 19790134.0,
+  "_total_records": 38,
+  "_rule": "exclude subproject_id != null, dedupe appl_id, exclude null award_amount",
+  "meta": {
+    "search_id": "usXaHSEN-U6CDXc7VnIfEQ",
+    "total": 38,
+    "offset": 0,
+    "limit": 500,
+    "sort_field": null,
+    "sort_order": "ASC",
+    "sorted_by_relevance": true,
+    "properties": {
+      "URL": "https:/reporter.nih.gov/search/usXaHSEN-U6CDXc7VnIfEQ/projects"
+    }
+  },
+  "results": [
+    {
+      "appl_id": 11004909,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 300000,
+      "core_project_num": "R43HL174204",
+      "project_title": "In vivo Sickle Cell Disease Gene Therapy Using a Novel Virus Like Particle"
+    },
+    {
+      "appl_id": 10876342,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 632319,
+      "core_project_num": "R01HL169761",
+      "project_title": "Deciphering unintended large gene modifications in gene editing for sickle cell disease"
+    },
+    {
+      "appl_id": 11139766,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 78410,
+      "core_project_num": "R01HL169761",
+      "project_title": "Deciphering unintended large gene modifications in gene editing for sickle cell disease"
+    },
+    {
+      "appl_id": 10916761,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 42336,
+      "core_project_num": "R01HL169761",
+      "project_title": "Deciphering unintended large gene modifications in gene editing for sickle cell disease"
+    },
+    {
+      "appl_id": 10747883,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 402500,
+      "core_project_num": "R01HL147028",
+      "project_title": "Developing next generation synthetic nucleic acid analogous for sickle cell disease gene editing"
+    },
+    {
+      "appl_id": 10821108,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 293319,
+      "core_project_num": "R41GM153041",
+      "project_title": "Developing novel Type 1 CRISPR tools for gene editing therapy"
+    },
+    {
+      "appl_id": 11013163,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 422713,
+      "core_project_num": "R01HL161361",
+      "project_title": "CRISPR-based transistors for high throughput multiplexed monitoring of CRISPR-based editing efficiency for Sickle cell disease"
+    },
+    {
+      "appl_id": 10756130,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 191250,
+      "core_project_num": "R21HL166178",
+      "project_title": "Precise in vivo gene editing of HSPC for the treatment of genetic hematologic diseases"
+    },
+    {
+      "appl_id": 10929941,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 750647,
+      "core_project_num": "R01HL098032",
+      "project_title": "Omics, mice and men: Development of precision transfusion medicine"
+    },
+    {
+      "appl_id": 10815708,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 166860,
+      "core_project_num": "K08DK129716",
+      "project_title": "Cellular Signaling Pathways in the Regulation of Fetal Hemoglobin for Treatment of Sickle Cell Disease"
+    },
+    {
+      "appl_id": 10771309,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 669586,
+      "core_project_num": "R01HL119479",
+      "project_title": "Regulation of Hemoglobin Switching"
+    },
+    {
+      "appl_id": 10914937,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 125280,
+      "core_project_num": "K01OD032455",
+      "project_title": "Investigating oviductal gene editing delivered via extracellular vesicles as a novel contraceptive"
+    },
+    {
+      "appl_id": 10900650,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 373824,
+      "core_project_num": "R01DK134516",
+      "project_title": "DEGRADATION OF BCL11A PROTEIN FOR HbF REACTIVATION"
+    },
+    {
+      "appl_id": 11179930,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 320508,
+      "core_project_num": "ZIAHG200403",
+      "project_title": "Examining the Equitable Integration of Genomics in Health Care and Society"
+    },
+    {
+      "appl_id": 11189414,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 2194965,
+      "core_project_num": "ZIAAI001150",
+      "project_title": "Nitric Oxide and Endothelial Function in Patients with Malaria"
+    },
+    {
+      "appl_id": 11189427,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 1432986,
+      "core_project_num": "ZIAAI001185",
+      "project_title": "Roles of RNA-binding Proteins in Programming Gene Expression in Mammals"
+    },
+    {
+      "appl_id": 10808443,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 217890,
+      "core_project_num": "R21EB034346",
+      "project_title": "Next generation of delivery platform for Prime editors based on an RNA vector for Sickle cell disease: the \u201call-in-one\u201d vector"
+    },
+    {
+      "appl_id": 10843746,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 33892,
+      "core_project_num": "F30HL164007",
+      "project_title": "Development of novel fetal hemoglobin inducers using targeted protein degradation"
+    },
+    {
+      "appl_id": 10947873,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 220488,
+      "core_project_num": "R21AI185498",
+      "project_title": "Human Genetic Variation Regulating Cellular Susceptibility to Zika Virus"
+    },
+    {
+      "appl_id": 10913609,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 446729,
+      "core_project_num": "R01HL170115",
+      "project_title": "The dissection of non-canonical cis-regulatory elements downstream of beta-globin locus in the fetal hemoglobin gene regulation"
+    },
+    {
+      "appl_id": 10867474,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 662949,
+      "core_project_num": "R01HL165247",
+      "project_title": "Targeted conditioning to maximize prenatal HSC engraftment for SCD"
+    },
+    {
+      "appl_id": 10827103,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 889998,
+      "core_project_num": "R01HL172489",
+      "project_title": "In vivo hematopoietic stem cell genetic modification by viral particles"
+    },
+    {
+      "appl_id": 10908700,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 760457,
+      "core_project_num": "R01HL170629",
+      "project_title": "Chemotherapy-free cure of hemoglobin disorders through base editing"
+    },
+    {
+      "appl_id": 10760297,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 728713,
+      "core_project_num": "R01HL136135",
+      "project_title": "Multiplex base/prime editors for in vivo selection of modified HSPCs in hemoglobinopathy"
+    },
+    {
+      "appl_id": 10813016,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 415031,
+      "core_project_num": "R01DK134936",
+      "project_title": "Investigating PUM1 mediated post-transcriptional regulation of human hemoglobin switching and erythropoiesis"
+    },
+    {
+      "appl_id": 10905723,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 802221,
+      "core_project_num": "R01HG013618",
+      "project_title": "Computational tools for precision genome editing"
+    },
+    {
+      "appl_id": 10817959,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 196250,
+      "core_project_num": "R21NS130250",
+      "project_title": "Role of neuronal hemoglobin in chronic stress-induced mitochondrial adaptation in hippocampal PV interneurons"
+    },
+    {
+      "appl_id": 10837898,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 158328,
+      "core_project_num": "K08DK128571",
+      "project_title": "Regulation of hemoglobin production in normal and disease states"
+    },
+    {
+      "appl_id": 10911966,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 644784,
+      "core_project_num": "R01HL130040",
+      "project_title": "In Vivo Hematopoietic Stem Cell Gene Therapy of Beta-Thalassemia and Sickle Cell Disease"
+    },
+    {
+      "appl_id": 10992993,
+      "subproject_id": "9946",
+      "fiscal_year": 2024,
+      "award_amount": 472999,
+      "core_project_num": "P50HD096723",
+      "project_title": "Project III"
+    },
+    {
+      "appl_id": 10849327,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 395537,
+      "core_project_num": "R01AR082858",
+      "project_title": "Genetic editing and cell therapy for correction of CLCN7 mutations in osteopetrosis"
+    },
+    {
+      "appl_id": 10917350,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 1159340,
+      "core_project_num": "U01HL163983",
+      "project_title": "Novel therapeutic gene editing to induce fetal hemoglobin for sickle cell disease"
+    },
+    {
+      "appl_id": 10877295,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 684002,
+      "core_project_num": "R01HL166271",
+      "project_title": "Inflammatory caspase activation in sickle cell disease"
+    },
+    {
+      "appl_id": 10999595,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 531109,
+      "core_project_num": "R01AR084841",
+      "project_title": "Technologies to enable safe and effective gene editing in skeletal muscle"
+    },
+    {
+      "appl_id": 10922546,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 1036415,
+      "core_project_num": "R44GM146471",
+      "project_title": "10k: A platform for immersive science education"
+    },
+    {
+      "appl_id": 10843188,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 479100,
+      "core_project_num": "U01AI176471",
+      "project_title": "Ultra-sensitive, unbiased, high-throughput, biochemical CHANGE-seq genome-wide activity and gRNA sequencing assays for therapeutic genome editing INDs"
+    },
+    {
+      "appl_id": 10796848,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 658954,
+      "core_project_num": "R01HL167513",
+      "project_title": "Targeting ZNF410 for HbF reactivation"
+    },
+    {
+      "appl_id": 10917383,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "award_amount": 270444,
+      "core_project_num": "R25GM146240",
+      "project_title": "Mystery of the Crooked Cell 2.0: CityLab's Next Generation SocioscientificApproach to Gene Editing"
+    }
+  ]
+}

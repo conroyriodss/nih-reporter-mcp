@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastmcp import FastMCP
 from pydantic import Field
 
-from nih_reporter_mcp.config import MAX_RESULT_SET, PAGE_SIZE, resolve_spending_category
-from nih_reporter_mcp.models import FundingSummary
-from nih_reporter_mcp.utils import AGG_FIELDS, build_criteria, paginate_all, validate_fiscal_years, validate_topic
+from typing import Literal
+
+from nih_reporter_mcp.config import MAX_RESULT_SET, resolve_spending_category
+from nih_reporter_mcp.models import COUNTING_UNIT_ALL, COUNTING_UNIT_WHOLE, FundingSummary, Provenance
+from nih_reporter_mcp.utils import AGG_FIELDS, MAX_PROVENANCE_IDS, aggregate_funding, build_criteria, paginate_all, validate_fiscal_years, validate_topic
 
 
 def register(mcp: FastMCP) -> None:
@@ -20,6 +23,8 @@ def register(mcp: FastMCP) -> None:
         agencies: Annotated[list[str] | None, Field(description="Limit to agency/IC abbreviations, e.g. ['NCI'].")] = None,
         spending_category: Annotated[str | int | None, Field(description="NIH official RCDC spending category -- name (e.g. 'Alzheimer's Disease', 'Cancer', 'Long COVID') or numeric ID. More authoritative than free-text for official totals.")] = None,
         active_only: Annotated[bool | None, Field(description="If true, active projects only (client-side filtered). If false, inactive only. Omit for all.")] = None,
+        funding_basis: Annotated[str, Field(description="'whole_award' (default, excludes subproject records to avoid double-counting) or 'all_records' (legacy, sums every record including subprojects).")] = "whole_award",
+        include_provenance: Annotated[bool, Field(description="If true, attach a full Provenance audit trail (heavier payload).")] = False,
     ) -> FundingSummary:
         """Quantify total NIH/HHS investment in a research topic (oversight view).
         Paginates through ALL matching projects (up to 10,000) for an exact total."""
@@ -30,37 +35,71 @@ def register(mcp: FastMCP) -> None:
         fiscal_years = validate_fiscal_years(fiscal_years)
         category_id = resolve_spending_category(spending_category) if spending_category else None
 
+        criteria = build_criteria(
+            topic=topic, fiscal_years=fiscal_years, agencies=agencies,
+            spending_categories=[category_id] if category_id else None,
+        )
+        if funding_basis not in ("whole_award", "all_records"):
+            raise ValueError("funding_basis must be 'whole_award' or 'all_records'.")
+
         base_payload = {
-            "criteria": build_criteria(
-                topic=topic, fiscal_years=fiscal_years, agencies=agencies,
-                spending_categories=[category_id] if category_id else None,
-            ),
-            "include_fields": AGG_FIELDS + (["IsActive"] if active_only is not None else []),
+            "criteria": criteria,
+            "include_fields": AGG_FIELDS
+                + (["IsActive"] if active_only is not None else []),
             "sort_field": "award_amount",
             "sort_order": "desc",
         }
-        results, total, complete = await paginate_all(base_payload)
+        results, total, complete, pages_fetched, appl_ids = await paginate_all(base_payload)
 
         if active_only is not None:
             results = [r for r in results if r.get("is_active") == active_only]
 
-        total_award = sum(r.get("award_amount") or 0 for r in results)
+        agg = aggregate_funding(results, funding_basis=funding_basis)
         orgs = {(r.get("organization") or {}).get("org_name") for r in results if (r.get("organization") or {}).get("org_name")}
         ics = {(r.get("agency_ic_admin") or {}).get("abbreviation") for r in results if (r.get("agency_ic_admin") or {}).get("abbreviation")}
-        pages_fetched = (len(results) + PAGE_SIZE - 1) // PAGE_SIZE if results else 0
 
-        note = ("Total is exact: every matching project was aggregated." if complete else
-                f"Only the top {len(results)} of {total} matching projects were aggregated "
-                f"(hit RePORTER's {MAX_RESULT_SET}-record retrieval ceiling). Narrow the query for an exact figure.")
+        exact = complete and agg.records_with_missing_amount == 0
+        note = ("Total is exact: every matching project was aggregated, none had missing amounts." if exact else "")
+        if not complete:
+            note = (f"Only the top {len(results)} of {total} matching projects were aggregated "
+                    f"(hit RePORTER's {MAX_RESULT_SET}-record retrieval ceiling). Narrow the query for an exact figure.")
+        if agg.records_with_missing_amount > 0:
+            note += (f" {agg.records_with_missing_amount} record(s) had no funding amount on "
+                     "file and are excluded from the total (not counted as $0).")
         if active_only is None:
             note += " Includes both active and expired/inactive projects across all time."
         else:
             note += f" Filtered client-side to active_only={active_only}; total_matching_projects is the unfiltered count."
 
+        counting_unit = COUNTING_UNIT_WHOLE if funding_basis == "whole_award" else COUNTING_UNIT_ALL
+
+        prov = None
+        if include_provenance:
+            prov = Provenance(
+                retrieved_at=datetime.now(timezone.utc).isoformat(),
+                query_criteria=criteria,
+                total_matching=total,
+                records_aggregated=agg.contributing_count,
+                complete=complete,
+                pages_fetched=pages_fetched,
+                deduped_count=agg.deduped_count,
+                subproject_excluded_count=agg.subproject_excluded_count,
+                records_with_missing_amount=agg.records_with_missing_amount,
+                funding_basis=funding_basis,
+                source_record_ids=agg.contributing_ids[:MAX_PROVENANCE_IDS],
+                id_conflicts=agg.id_conflicts,
+            )
+
         return FundingSummary(
             topic=topic or f"spending_category:{spending_category}",
-            fiscal_years=fiscal_years, total_matching_projects=total, projects_aggregated=len(results),
-            complete=complete, total_award_amount_usd=round(total_award, 2),
+            fiscal_years=fiscal_years, total_matching_projects=total,
+            projects_aggregated=agg.contributing_count,
+            complete=complete, total_award_amount_usd=agg.total_award,
+            funding_basis=funding_basis,
+            records_with_missing_amount=agg.records_with_missing_amount,
+            deduped_count=agg.deduped_count,
+            subproject_excluded_count=agg.subproject_excluded_count,
             distinct_organizations=len(orgs), distinct_administering_ics=len(ics),
-            pages_fetched=pages_fetched, note=note,
+            pages_fetched=pages_fetched, counting_unit=counting_unit,
+            provenance=prov, note=note,
         )

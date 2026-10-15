@@ -22,9 +22,42 @@ Rather than wrapping RePORTER's raw REST endpoints 1:1, every tool here is desig
 | `funding_trend_by_year` | Year-by-year funding trend for a topic or spending category |
 | `organization_funding_profile` | Funding profile for a named institution, with exact-name matching by default to avoid silently combining similarly-named institutions |
 | `investigator_portfolio` | Funded portfolio for a named researcher |
+| `check_investigator_overlap` | Screens an investigator's publicly funded NIH awards for candidate overlap as input to Other Support review (pending, non-NIH, and unpublished support are not visible), with explicit project exclusion so the application under review is omitted |
+| `study_section_workload` | Summarizes the distribution of funded projects across scientific review study sections — shows funded outcomes only (unfunded/pending applications are not in RePORTER), useful for seeing which panels handle funded projects in a given research area |
+| `search_recent_awards` | Most recently added award records sorted by date added to RePORTER — useful for program officers tracking what's newly funded. Honestly notes that database recency can lag actual award notice dates |
+| `export_evidence_bundle` | Inspectable audit trail for any funding claim: returns the summary, full provenance (query criteria, source record IDs, timing), counting-unit disclaimer, and a reproduction note |
+| `explain_health_topic` | Plain-language health-topic explanation from MedlinePlus (NIH/NLM consumer health service), in English or Spanish. Gives non-expert audiences authoritative background on a condition alongside funding data |
 | `get_project_by_id` | Direct lookup by application ID or core project number |
 | `list_publications_for_project` | PubMed IDs linked to a project |
 | `get_publication_details` | Resolves PubMed IDs into full citations (title, journal, authors) via NCBI E-utilities — closes the gap left by RePORTER's publications endpoint, which returns bare IDs only |
+
+## Prompts
+
+Reusable prompt templates that compose the tools above into multi-step analyst workflows. One evidence base, two audiences:
+
+### General / Analyst
+
+| Prompt | Purpose |
+|---|---|
+| `funding_overview` | Total investment, top institutions, and top investigators for a topic — a complete funding snapshot in one pass |
+| `institution_report` | Deep dive into a single institution's funded portfolio across a topic area |
+| `compare_rcdc_vs_freetext` | Head-to-head comparison of an official NIH spending category total vs. a free-text keyword search — surfaces the documented divergence between the two methods |
+| `research_landscape_summary` | Competitive landscape for a research idea: total investment, trend direction, most prominent funded groups, with an explicit NIH-only scope disclaimer |
+
+### Program Officer
+
+| Prompt | Purpose |
+|---|---|
+| `portfolio_brief` | Reproducible cohort brief with IC/mechanism breakdown, free-text vs RCDC framing, evidence bundle with source_record_ids, and explicit counting-unit caveat |
+| `other_support_review` | Screen an investigator's publicly funded NIH awards for candidate overlap as input to Other Support review, with boundary statement that this is a public-record screening tool (pending, non-NIH, and unpublished support are not visible) |
+| `investment_to_outputs` | Investment-to-outputs dossier: project details, linked publications, citation metadata. Labels grant-paper links as source_reported; does not attribute publications to specific funding years |
+
+### Citizen Scientist
+
+| Prompt | Purpose |
+|---|---|
+| `explain_funding_landscape` | Plain-language funding overview for non-experts: defines jargon, clarifies institutional geography, distinguishes planned from reported research, includes NIH-only scope disclaimer |
+| `follow_the_evidence` | Lay-reader narrative of a funded project: what was the question, who studied it, what was published, in everyday language |
 
 See [`docs/findings.md`](docs/findings.md) for documented data-quality discoveries made during development (several are directly relevant to anyone else building on this API) and [`docs/roadmap.md`](docs/roadmap.md) for planned future tools.
 
@@ -43,15 +76,17 @@ No API key or authentication is required for the underlying NIH RePORTER or NCBI
 
 ## Evaluation
 
-9 automated assertions against live RePORTER data (not mocked), covering exact-total correctness, the 10,000-record ceiling, organization-name disambiguation, a documented RCDC-category-vs-free-text divergence, input validation, and injection-style input handling. Also includes a measured, reproducible LLM agent-efficiency improvement (tool-call count per question: 2.0 avg / stdev 1.7 → 1.0 avg / stdev 0.0, attributable to a single tool-description clarification, model held constant). See [`eval/README.md`](eval/README.md) for how to run the suite and [`docs/findings.md`](docs/findings.md) for the full writeup of what was found and fixed.
+18 automated assertions against live RePORTER data (not mocked), covering exact-total correctness, the 10,000-record retrieval cap, organization-name disambiguation, RCDC-category-vs-free-text divergence, input validation, injection-style input handling, investigator overlap/exclusion logic, study-section grouping reconciliation, recent-awards sort validation, provenance/counting-unit transparency, evidence-bundle export inspection, whole_award vs all_records dedup verification, cache correctness, and MedlinePlus health-topic lookup. Also includes a measured, reproducible LLM agent-efficiency improvement (tool-call count per question: 2.0 avg / stdev 1.7 → 1.0 avg / stdev 0.0, attributable to a single tool-description clarification, model held constant). 5 additional correctness tests (`tests/test_correctness.py`) prove funding arithmetic against independently-derived ground truth. See [`eval/README.md`](eval/README.md) for how to run the suite and [`docs/findings.md`](docs/findings.md) for the full writeup of what was found and fixed.
 
 ```bash
 uv run python main.py &
 sleep 5
-uv run python eval/smoke_tests.py   # t1–t8 standalone; t9 requires notebook
+uv run python eval/smoke_tests.py               # full parallel (~60-90s)
+uv run python eval/smoke_tests.py --quick        # quick: 5 tests (~8s)
+uv run python eval/smoke_tests.py --sequential   # full sequential (~100s)
 ```
 
-The full 9-test suite (including t9, the LLM agent-efficiency regression guard) runs inside the companion Databricks notebook (`notebook-merged`).
+The `--quick` flag runs only single-call tests (no full pagination) for fast iteration. The default full mode runs all 17 tests concurrently with per-test timeouts; `--sequential` runs them one at a time (useful for debugging or avoiding API rate-limit pressure). The full 18-test suite (including t9, the LLM agent-efficiency regression guard) runs inside the companion Databricks notebook (`notebook-merged`).
 
 ## Known limitations
 

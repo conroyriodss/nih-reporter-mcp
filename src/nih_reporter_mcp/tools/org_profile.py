@@ -7,9 +7,11 @@ from typing import Annotated
 from fastmcp import FastMCP
 from pydantic import Field
 
+from datetime import datetime, timezone
+
 from nih_reporter_mcp.config import MAX_RESULT_SET
-from nih_reporter_mcp.models import OrgProfile
-from nih_reporter_mcp.utils import AGG_FIELDS, build_criteria, paginate_all, to_summary, validate_fiscal_years, validate_topic
+from nih_reporter_mcp.models import COUNTING_UNIT_ALL, COUNTING_UNIT_WHOLE, OrgProfile, Provenance
+from nih_reporter_mcp.utils import AGG_FIELDS, aggregate_funding, build_criteria, paginate_all, to_summary, validate_fiscal_years, validate_topic
 
 
 def register(mcp: FastMCP) -> None:
@@ -18,6 +20,8 @@ def register(mcp: FastMCP) -> None:
         organization_name: Annotated[str, Field(description="Institution name, e.g. 'Johns Hopkins University'.")],
         fiscal_years: Annotated[list[int] | None, Field(description="Restrict to these fiscal years.")] = None,
         exact_match: Annotated[bool, Field(description="If true (default), exact name match to avoid combining similarly-named institutions.")] = True,
+        funding_basis: Annotated[str, Field(description="'whole_award' (default) or 'all_records'.")] = "whole_award",
+        include_provenance: Annotated[bool, Field(description="If true, attach a full Provenance audit trail.")] = False,
     ) -> OrgProfile:
         """Build a funding profile for a named institution."""
         organization_name = validate_topic(organization_name)
@@ -29,16 +33,20 @@ def register(mcp: FastMCP) -> None:
         else:
             criteria_kwargs["org_names"] = [organization_name]
 
+        criteria = build_criteria(**criteria_kwargs)
         base_payload = {
-            "criteria": build_criteria(**criteria_kwargs),
+            "criteria": criteria,
             "include_fields": AGG_FIELDS + ["ProjectTitle", "CoreProjectNum", "ApplId", "PrincipalInvestigators"],
             "sort_field": "award_amount",
             "sort_order": "desc",
         }
-        results, total, complete = await paginate_all(base_payload)
+        if funding_basis not in ("whole_award", "all_records"):
+            raise ValueError("funding_basis must be 'whole_award' or 'all_records'.")
+
+        results, total, complete, pages_fetched, appl_ids = await paginate_all(base_payload)
 
         matched_orgs = sorted({(r.get("organization") or {}).get("org_name") for r in results if (r.get("organization") or {}).get("org_name")})
-        total_award = sum(r.get("award_amount") or 0 for r in results)
+        agg = aggregate_funding(results, funding_basis=funding_basis)
 
         ic_counts: dict[str, int] = {}
         for r in results:
@@ -59,10 +67,35 @@ def register(mcp: FastMCP) -> None:
         else:
             note = f"Hit the {MAX_RESULT_SET}-record safety cap; totals are a partial lower bound."
 
+        counting_unit = COUNTING_UNIT_WHOLE if funding_basis == "whole_award" else COUNTING_UNIT_ALL
+
+        prov = None
+        if include_provenance:
+            prov = Provenance(
+                retrieved_at=datetime.now(timezone.utc).isoformat(),
+                query_criteria=criteria,
+                total_matching=total,
+                records_aggregated=agg.contributing_count,
+                complete=complete,
+                pages_fetched=pages_fetched,
+                deduped_count=agg.deduped_count,
+                subproject_excluded_count=agg.subproject_excluded_count,
+                records_with_missing_amount=agg.records_with_missing_amount,
+                funding_basis=funding_basis,
+                source_record_ids=agg.contributing_ids[:500],
+                id_conflicts=agg.id_conflicts,
+            )
+
         return OrgProfile(
             organization_query=organization_name, matched_org_names=matched_orgs,
             fiscal_years=fiscal_years, total_matching_projects=total,
-            projects_aggregated=len(results), complete=complete,
-            total_award_amount_usd=round(total_award, 2), top_administering_ics=top_ics,
-            sample_projects=sample, note=note,
+            projects_aggregated=agg.contributing_count, complete=complete,
+            total_award_amount_usd=agg.total_award,
+            funding_basis=funding_basis,
+            records_with_missing_amount=agg.records_with_missing_amount,
+            deduped_count=agg.deduped_count,
+            subproject_excluded_count=agg.subproject_excluded_count,
+            top_administering_ics=top_ics,
+            sample_projects=sample, counting_unit=counting_unit,
+            provenance=prov, note=note,
         )

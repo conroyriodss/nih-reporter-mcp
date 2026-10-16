@@ -17,7 +17,7 @@ Tests are split into two kinds, deliberately distinguished:
 
 **Tool-selection accuracy** — a battery of 8 natural-language questions (`TOOL_SELECTION_CASES`), each with one clearly-expected tool, run against live Databricks-hosted LLMs with all 13 tools available via function-calling. Scores whether the model picks the correct first tool, independent of whether its final written answer is well-phrased.
 
-**Multi-model eval (§14a–c, notebook-only):** The same 8 cases are run across 3 models from different families (GPT, Claude, Llama) to verify tool descriptions are agent-agnostic. This requires live Databricks serving endpoints and runs only in the notebook — it is not part of the pytest suite. See `docs/findings.md` #14 for results and analysis. As of 2026-10-16: 22/24 trials correct (92%), with 7/8 cases unanimous across all 3 models.
+**Multi-model eval (§14a–c, notebook-only):** The same 8 cases are run across 3 models from different families (GPT, Claude, Llama) to verify tool descriptions are agent-agnostic. This requires live Databricks serving endpoints and runs only in the notebook — it is not part of the pytest suite. See `docs/findings.md` #14 for results and analysis. As of 2026-10-16: 22/24 trials correct (92%), with 6/8 cases unanimous across all 3 models.
 
 **Tool-selection determinism (§14d, notebook-only):** 3 representative questions each run 5 times on GPT-5-5. Measures whether tool SELECTION is stable across repeats (distinct from the call-count efficiency guard in §13). As of 2026-10-16: 3/3 stable, zero flickers. See `docs/findings.md` #15.
 
@@ -81,10 +81,10 @@ The six tests:
 | Topic (FY2023) | Naive sum | Corrected | Overstatement (delta/corrected) |
 |---|---:|---:|---:|
 | CRISPR gene editing | $921.5M | $837.0M | 10.1% |
-| Alzheimer's disease | $4,685.2M | $4,020.8M | 16.5% |
+| Alzheimer's disease | $4,685.3M | $4,020.9M | 16.5% |
 
 ## Known gaps in current coverage
 
 - No automated test exercises `get_publication_details` against a PMID known to be withdrawn or embargoed (manually verified the `not_found` path works, not yet scripted).
-- Tool-selection accuracy was measured on 8 questions chosen to map cleanly to one tool each; genuinely ambiguous questions (where two tools could reasonably apply) are covered qualitatively in the adversarial transcripts but not scored numerically. The multi-model eval (§14) surfaced one such ambiguity: Q5 ("What grants does Francis Collins currently hold?") — GPT-5-5 chose `check_investigator_overlap` instead of `investigator_portfolio`, exposing a description-clarity opportunity between two tools with overlapping input schemas.
+- Tool-selection accuracy was measured on 8 questions chosen to map cleanly to one tool each; genuinely ambiguous questions (where two tools could reasonably apply) are covered qualitatively in the adversarial transcripts but not scored numerically. The multi-model eval (§14) surfaced one such ambiguity: Q5 ("What grants does Francis Collins currently hold?") — GPT-5-5 chose `check_investigator_overlap` and Llama chose `get_project_by_id` instead of `investigator_portfolio`, exposing a description-clarity opportunity between tools with overlapping input schemas.
 - All live-data assertions depend on NIH RePORTER's API being reachable and consistent at test time; no mock/fixture-based fallback exists if the upstream API is down during CI.

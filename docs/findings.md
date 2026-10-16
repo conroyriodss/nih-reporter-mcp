@@ -127,7 +127,7 @@ A separate frozen fixture (`docs/demonstration_fixture_double_counting/`, U19AG0
 | Topic (FY2023) | all_records (naive) | whole_award (corrected) | Delta | Overstatement (delta/corrected) | Subprojects excluded | Missing amounts |
 |---|---:|---:|---:|---:|---:|---:|
 | CRISPR gene editing | $921,543,173 | $836,981,580 | $84,561,593 | 10.1% | 226 | 7 |
-| Alzheimer’s disease | $4,685,171,333 | $4,020,817,715 | $664,353,618 | 16.5% | 931 | 133 |
+| Alzheimer’s disease | $4,685,253,389 | $4,020,899,771 | $664,353,618 | 16.5% | 931 | 133 |
 
 The Alzheimer’s overstatement (16.5%) is larger than CRISPR’s (10.1%) because NIH Alzheimer’s research includes more multi-component grants (U19, P01, etc.) whose subprojects inflate the naive sum by a greater proportion.
 
@@ -149,13 +149,13 @@ Additional correctness evidence (`tests/test_correctness.py`, 5 tests):
 |---|---|---|
 | databricks-gpt-5-5 | 7/8 (88%) | Q5: chose `check_investigator_overlap` instead of `investigator_portfolio` |
 | databricks-claude-sonnet-4-6 | 8/8 (100%) | — |
-| databricks-meta-llama-3-3-70b-instruct | 8/8 (100%) | — |
+| databricks-meta-llama-3-3-70b-instruct | 7/8 (88%) | Q5: chose `get_project_by_id` instead of `investigator_portfolio` |
 
-Overall: **23/24 (96%)** correct across all trials. 7/8 cases had unanimous agreement across all 3 models.
+Overall: **22/24 (92%)** correct across all trials. 6/8 cases had unanimous agreement across all 3 models.
 
-**Q5 disagreement analysis:** "What grants does Francis Collins currently hold?" — GPT-5-5 selected `check_investigator_overlap` (which also searches by PI name but is designed for overlap/conflict detection, not portfolio listing). Both tools accept `last_name`/`first_name` and return grant lists, so the confusion is understandable. The `investigator_portfolio` description could be strengthened to emphasize it is the primary PI lookup tool. Claude and Llama both chose correctly, suggesting the descriptions are adequate but not perfectly unambiguous for this edge case.
+**Q5 disagreement analysis:** "What grants does Francis Collins currently hold?" — GPT-5-5 selected `check_investigator_overlap` (designed for overlap/conflict detection, not portfolio listing) and Llama selected `get_project_by_id` (a single-project lookup, wrong cardinality for a portfolio question). Only Claude selected the correct `investigator_portfolio`. All three tools accept PI-related inputs, so the confusion is understandable. The `investigator_portfolio` description could be strengthened to emphasize it is the primary PI lookup tool.
 
-**Why it matters:** The tool descriptions are written once, in the MCP server, and consumed by any model. This finding confirms they are model-agnostic — accuracy is stable across GPT, Claude, and Llama families with no model-specific tuning. The single miss is a description-clarity issue (two tools with overlapping input schemas), not a model-specific failure.
+**Why it matters:** The tool descriptions are written once, in the MCP server, and consumed by any model. This finding confirms they are model-agnostic — accuracy is stable across GPT, Claude, and Llama families with no model-specific tuning. The two misses are description-clarity issues (tools with overlapping input schemas), not model-specific failures.
 
 **Notebook reference:** `notebook-merged`, §14a–c (cells 31–34). Requires live model access — notebook-only, not in pytest suite.
 
@@ -194,6 +194,6 @@ Overall: **24/24 (100%)** — every model generated valid arguments for every to
 
 **Observations:** Models differ in how many optional parameters they populate (GPT-5-5 tends to include more optional parameters like `funding_basis` and `include_provenance`; Claude and Llama generate more minimal argument sets), but all are structurally valid. No model produced unknown parameter names, type mismatches, or omitted required parameters.
 
-**Why it matters:** This is the named benchmark metric for the eval. A high argument validity rate confirms that the tool input schemas (types, required/optional distinction, enum constraints) are clear enough for models to generate correct invocations without trial-and-error. Combined with Finding 14 (tool-selection accuracy: 96%) and Finding 15 (determinism: 100%), these three metrics form a complete picture of tool-use quality.
+**Why it matters:** This is the named benchmark metric for the eval. A high argument validity rate confirms that the tool input schemas (types, required/optional distinction, enum constraints) are clear enough for models to generate correct invocations without trial-and-error. Combined with Finding 14 (tool-selection accuracy: 92%) and Finding 15 (determinism: 100%), these three metrics form a complete picture of tool-use quality.
 
 **Notebook reference:** `notebook-merged`, §14e (cell 36). Notebook-only (requires model access).

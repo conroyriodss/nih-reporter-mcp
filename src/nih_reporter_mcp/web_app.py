@@ -89,7 +89,8 @@ _REASONING_TAGS = {"sol", "luna", "terra", "astra"}
 try:
     from databricks.sdk import WorkspaceClient
     _ws = WorkspaceClient()
-    DB_HOST = f"https://{_ws.config.host}" if _ws.config.host else ""
+    _h = _ws.config.host or ""
+    DB_HOST = _h if _h.startswith("https://") else f"https://{_h}"
 except Exception:
     _ws = None
     DB_HOST = os.environ.get("DATABRICKS_HOST", "")

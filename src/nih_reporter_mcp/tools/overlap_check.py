@@ -10,12 +10,11 @@ from nih_reporter_mcp.utils import (
     validate_topic,
     validate_string_length,
     validate_fiscal_years,
-    post_json,
     to_summary,
     build_criteria,
+    paginate_all,
     INCLUDE_FIELDS,
 )
-from nih_reporter_mcp.config import PROJECTS_SEARCH
 
 
 class OverlapFlag(BaseModel):
@@ -32,6 +31,15 @@ class OverlapFlag(BaseModel):
 class OverlapCheckResult(BaseModel):
     investigator_query: str
     exclude_project_num: str | None
+    total_matching: int = Field(
+        description="Total matching records reported by the upstream API.",
+    )
+    complete: bool = Field(
+        description=(
+            "True when every matching record was retrieved and examined. "
+            "False when retrieval was truncated by the API's record ceiling."
+        ),
+    )
     total_active_awards: int
     flagged_awards: list[OverlapFlag]
     all_active_awards: list[ProjectSummary]
@@ -73,13 +81,15 @@ def register(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> OverlapCheckResult:
-        """Screen an investigator's publicly funded NIH awards for candidate
-        overlap, as a starting point for Other Support review.
+        """Active public-award inventory for overlap screening — lists an
+        investigator's currently active NIH awards as a starting point for
+        Other Support review.
 
-        SCOPE LIMITATION: This searches only publicly visible funded awards
-        in RePORTER. It cannot see pending applications, non-NIH/non-HHS
-        support, or unpublished awards. It is a public-record screening tool,
-        not a complete Other Support determination.
+        SCOPE LIMITATION: This is a public-record screening tool, NOT a
+        scientific-overlap or complete Other-Support determination.  It
+        searches only publicly visible funded awards in RePORTER. It cannot
+        see pending applications, non-NIH/non-HHS support, or unpublished
+        awards.
 
         Returns all currently active awards for the named investigator,
         explicitly excluding a given project number (typically the
@@ -107,19 +117,18 @@ def register(mcp: FastMCP) -> None:
             "last_name": last_name,
             "any_name": "",
         }
-        payload = {
+        base_payload = {
             "criteria": build_criteria(
                 pi_names=[pi_entry], fiscal_years=fiscal_years
             ),
             "include_fields": INCLUDE_FIELDS
             + ["IsActive", "ProjectStartDate", "ProjectEndDate"],
-            "offset": 0,
-            "limit": 100,
             "sort_field": "project_start_date",
             "sort_order": "desc",
         }
-        data = await post_json(PROJECTS_SEARCH, payload)
-        results = data.get("results") or []
+        results, total, complete, _pages, _ids = await paginate_all(
+            base_payload
+        )
 
         active = [
             r
@@ -145,14 +154,23 @@ def register(mcp: FastMCP) -> None:
                 )
             )
 
-        note = (
-            f"Found {len(active)} currently active award(s) for this investigator"
-            + (
-                f", excluding {exclude_project_num}"
-                if exclude_project_num
-                else ""
+        note_parts = [
+            f"Found {len(active)} currently active award(s) for this investigator",
+        ]
+        if exclude_project_num:
+            note_parts[0] += f", excluding {exclude_project_num}"
+        note_parts[0] += "."
+
+        if not complete:
+            note_parts.append(
+                f"WARNING: only {len(results)} of {total} matching records "
+                "could be retrieved (RePORTER retrieval ceiling). The true "
+                "active-award count may be higher — narrow the query "
+                "(e.g. add fiscal year or first name) for completeness."
             )
-            + ". This tool surfaces candidate overlapping support for human review; "
+
+        note_parts.append(
+            "This tool surfaces candidate overlapping support for human review; "
             "it does NOT determine actual scientific or budgetary duplication. "
             "Cross-reference award dates, direct costs, and specific aims manually. "
             "If no first_name was given, results may include multiple people "
@@ -160,15 +178,18 @@ def register(mcp: FastMCP) -> None:
             "review."
         )
         if not first_name:
-            note += (
-                " WARNING: no first_name provided; false-positive risk is elevated."
+            note_parts.append(
+                "WARNING: no first_name provided; false-positive risk is elevated."
             )
+        note = " ".join(note_parts)
 
         return OverlapCheckResult(
             investigator_query=(
                 f"{first_name + ' ' if first_name else ''}{last_name}"
             ),
             exclude_project_num=exclude_project_num,
+            total_matching=total,
+            complete=complete,
             total_active_awards=len(active),
             flagged_awards=flagged,
             all_active_awards=[to_summary(r) for r in active],

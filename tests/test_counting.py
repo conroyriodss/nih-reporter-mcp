@@ -181,8 +181,11 @@ def test_contributing_ids_post_exclusion():
 # ────────────────────────────────────────────────────────────────────────
 
 
-def test_page_boundary_completeness():
-    """Pages [A,B],[B] with total=3: distinct IDs (2) < total (3) → incomplete.
+def test_page_boundary_dedup_logic():
+    """Unit test for the completeness-detection logic itself (local
+    set-cardinality check, does NOT exercise the paginator).
+
+    Pages [A,B],[B] with total=3: distinct IDs (2) < total (3) → incomplete.
     Old logic (row count 3 >= 3) was fooled; new logic catches it."""
     all_results = [
         {"appl_id": 1, "award_amount": 100},   # page 1
@@ -253,6 +256,127 @@ def test_missing_amount_propagated():
     assert agg.records_with_missing_amount == 1
     assert agg.total_award == 500_000
     assert agg.contributing_ids == [601]  # 602 missing, not in contributing
+
+
+# ────────────────────────────────────────────────────────────────────────
+# Finding F: conflicting-duplicate must NEVER yield "exact"
+# ────────────────────────────────────────────────────────────────────────
+
+
+def test_conflicting_duplicate_blocks_exact_order_a():
+    """Conflicting appl_id ($100K then $200K) must NOT yield is_exact=True.
+    The conflict must surface regardless of provenance flag."""
+    records = [
+        _rec(701, 100_000),
+        _rec(701, 200_000),  # same ID, different amount
+    ]
+    agg = aggregate_funding(records, funding_basis="whole_award")
+    assert agg.total_award == 100_000  # first-wins
+    assert not agg.is_exact, "Conflicting duplicate must block is_exact"
+    assert agg.has_unresolved_conflicts
+    assert 701 in agg.id_conflicts
+
+
+def test_conflicting_duplicate_blocks_exact_order_b():
+    """Reversed ordering ($200K then $100K) must also block is_exact."""
+    records = [
+        _rec(701, 200_000),
+        _rec(701, 100_000),  # reversed
+    ]
+    agg = aggregate_funding(records, funding_basis="whole_award")
+    assert agg.total_award == 200_000  # first-wins
+    assert not agg.is_exact, "Conflicting duplicate must block is_exact (reversed)"
+    assert agg.has_unresolved_conflicts
+    assert 701 in agg.id_conflicts
+
+
+def test_conflicting_duplicate_blocks_exact_all_records():
+    """Conflict blocks is_exact in all_records mode too."""
+    records = [
+        _rec(701, 100_000),
+        _rec(701, 200_000),
+    ]
+    agg = aggregate_funding(records, funding_basis="all_records")
+    assert not agg.is_exact, "Conflicting duplicate must block is_exact (all_records)"
+    assert 701 in agg.id_conflicts
+
+
+def test_conflict_note_surfaces_without_provenance():
+    """Even without provenance, the conflict count is available in AggResult.
+    Tools must use agg.has_unresolved_conflicts to generate the note."""
+    records = [
+        _rec(801, 300_000),
+        _rec(801, 400_000),
+    ]
+    agg = aggregate_funding(records, funding_basis="whole_award")
+    # These are the fields a tool must check to generate its note:
+    assert agg.has_unresolved_conflicts
+    assert len(agg.id_conflicts) == 1
+    assert agg.records_with_missing_amount == 0
+    # The tool should NOT say "exact" because of the conflict:
+    assert not agg.is_exact
+
+
+def test_clean_records_yield_exact():
+    """Positive control: no conflicts, no missing, no orphans → is_exact=True."""
+    records = [
+        _rec(901, 500_000),
+        _rec(902, 300_000),
+    ]
+    agg = aggregate_funding(records, funding_basis="whole_award")
+    assert agg.is_exact
+    assert not agg.has_unresolved_conflicts
+    assert agg.records_with_missing_amount == 0
+    assert len(agg.orphan_children) == 0
+
+
+# ────────────────────────────────────────────────────────────────────────
+# Finding G: orphan children must block is_exact
+# ────────────────────────────────────────────────────────────────────────
+
+
+def test_orphan_only_cohort_not_exact():
+    """A cohort consisting only of orphan subprojects (whose parent is absent)
+    must yield $0 total, contributing_count=0, and is_exact=False."""
+    records = [
+        _rec(10992993, 472999, subproject_id=9946, core_project_num="P50HD096723"),
+    ]
+    agg = aggregate_funding(records, funding_basis="whole_award")
+    assert agg.total_award == 0
+    assert agg.contributing_count == 0
+    assert agg.subproject_excluded_count == 1
+    assert len(agg.orphan_children) == 1
+    assert 10992993 in agg.orphan_children
+    assert not agg.is_exact, "Orphan-only cohort must not be labeled exact"
+
+
+def test_orphan_alongside_parents_blocks_exact():
+    """Even when valid parent records contribute, orphan children still block
+    is_exact because the total may not reflect full topical investment."""
+    records = [
+        _rec(901, 500_000),  # valid parent, contributes
+        _rec(10992993, 472999, subproject_id=9946, core_project_num="P50HD096723"),
+    ]
+    agg = aggregate_funding(records, funding_basis="whole_award")
+    assert agg.total_award == 500_000  # only the parent counts
+    assert agg.contributing_count == 1
+    assert len(agg.orphan_children) == 1
+    assert not agg.is_exact, "Orphan children present must block is_exact"
+
+
+def test_non_orphan_subproject_does_not_block_exact():
+    """A subproject whose parent IS in the cohort is not an orphan.
+    Excluding it is correct double-counting prevention, not a warning."""
+    records = [
+        _rec(1001, 5_000_000, core_project_num="U19AG068753"),  # parent
+        _rec(1002, 2_000_000, subproject_id=1, core_project_num="U19AG068753"),  # child of parent
+        _rec(1003, 3_000_000, subproject_id=2, core_project_num="U19AG068753"),  # child of parent
+    ]
+    agg = aggregate_funding(records, funding_basis="whole_award")
+    assert agg.total_award == 5_000_000  # parent only
+    assert agg.subproject_excluded_count == 2
+    assert len(agg.orphan_children) == 0  # not orphans — parent is present
+    assert agg.is_exact  # no orphans, no conflicts, no missing
 
 
 # ────────────────────────────────────────────────────────────────────────

@@ -1,5 +1,7 @@
 # NIH RePORTER MCP Server
 
+[![CI](https://github.com/conroyriodss/nih-reporter-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/conroyriodss/nih-reporter-mcp/actions/workflows/ci.yml)
+
 An MCP (Model Context Protocol) server that gives AI agents goal-oriented access to live NIH grant funding data via [NIH RePORTER](https://reporter.nih.gov/), the authoritative public record of NIH and other HHS-agency research funding (~$42B/year across NIH, CDC, FDA, and ACF).
 
 Built for the [GSA MCP Server and AI Agent Government Hackathon](https://www.gsa.gov/artificial-intelligence/ai-community-of-practice/events-and-training/mcp-server-and-ai-agent-government-hackathon).
@@ -23,7 +25,7 @@ Rather than wrapping RePORTER's raw REST endpoints 1:1, every tool here is desig
 | `organization_funding_profile` | Funding profile for a named institution, with exact-name matching by default to avoid silently combining similarly-named institutions |
 | `investigator_portfolio` | Funded portfolio for a named researcher |
 | `check_investigator_overlap` | Screens an investigator's publicly funded NIH awards for candidate overlap as input to Other Support review (pending, non-NIH, and unpublished support are not visible), with explicit project exclusion so the application under review is omitted |
-| `study_section_workload` | Summarizes the distribution of funded projects across scientific review study sections — shows funded outcomes only (unfunded/pending applications are not in RePORTER), useful for seeing which panels handle funded projects in a given research area |
+| `funded_projects_by_study_section` | Distribution of funded projects across the peer-review study sections that evaluated them — shows funded outcomes only (unfunded/pending applications are not in RePORTER), useful for seeing which panels handle funded projects in a given research area |
 | `search_recent_awards` | Most recently added award records sorted by date added to RePORTER — useful for program officers tracking what's newly funded. Honestly notes that database recency can lag actual award notice dates |
 | `export_evidence_bundle` | Inspectable audit trail for any funding claim: returns the summary, full provenance (query criteria, source record IDs, timing), counting-unit disclaimer, and a reproduction note |
 | `explain_health_topic` | Plain-language health-topic explanation from MedlinePlus (NIH/NLM consumer health service), in English or Spanish. Gives non-expert audiences authoritative background on a condition alongside funding data |
@@ -76,9 +78,23 @@ No API key or authentication is required for the underlying NIH RePORTER or NCBI
 
 ## Evaluation
 
-18 automated assertions against live RePORTER data (not mocked), covering exact-total correctness, the 10,000-record retrieval cap, organization-name disambiguation, RCDC-category-vs-free-text divergence, input validation, injection-style input handling, investigator overlap/exclusion logic, study-section grouping reconciliation, recent-awards sort validation, provenance/counting-unit transparency, evidence-bundle export inspection, whole_award vs all_records dedup verification, cache correctness, and MedlinePlus health-topic lookup. Also includes a measured, reproducible LLM agent-efficiency improvement (tool-call count per question: 2.0 avg / stdev 1.7 → 1.0 avg / stdev 0.0, attributable to a single tool-description clarification, model held constant). 5 additional correctness tests (`tests/test_correctness.py`) prove funding arithmetic against independently-derived ground truth. See [`eval/README.md`](eval/README.md) for how to run the suite and [`docs/findings.md`](docs/findings.md) for the full writeup of what was found and fixed.
+Three test tiers, each runnable independently:
+
+**Model-free CI (GitHub Actions, every push/PR):** 75 pytest pass + 2 xfail across `test_counting` (synthetic aggregate_funding unit tests), `test_security` (host-allowlist and input-size guards), `test_prompt_contracts` (every prompt references only existing tools with correct parameter names), and `test_robustness::TestPartC` (mocked upstream failure handling: HTTP 500, 429 retry, timeout, oversized response, malformed JSON). No network, no server, no model access required.
+
+**Live-server integration (local, requires running MCP server):** 18 automated assertions against live RePORTER data (not mocked), covering exact-total correctness, the 10,000-record retrieval cap, organization-name disambiguation, RCDC-category-vs-free-text divergence, input validation, injection-style input handling, investigator overlap/exclusion logic, funded-project study-section distribution, recent-awards sort validation, provenance/counting-unit transparency, evidence-bundle export inspection, whole_award vs all_records dedup verification, cache correctness, and MedlinePlus health-topic lookup. Also includes a measured, reproducible LLM agent-efficiency improvement (tool-call count per question: 2.0 avg / stdev 1.7 → 1.0 avg / stdev 0.0, attributable to a single tool-description clarification, model held constant). 5 additional correctness tests (`tests/test_correctness.py`) prove funding arithmetic against independently-derived ground truth.
+
+**Multi-model agent eval (Databricks notebook only):** Tool-selection accuracy across 3 model families (GPT-5-5, Claude Sonnet 4-6, Llama 3.3 70B): 22/24 (92%). Determinism: 3/3 stable over 5 repeats. Argument validity: 24/24 (100%). See `notebook-merged` §14.
+
+See [`eval/README.md`](eval/README.md) for how to run each tier and [`docs/findings.md`](docs/findings.md) for the full writeup of 16 documented findings.
 
 ```bash
+# Model-free CI tests (no server needed)
+PYTHONPATH=src pytest tests/test_counting.py tests/test_security.py \
+  tests/test_prompt_contracts.py \
+  tests/test_robustness.py::TestPartC_MockedUpstreamFailures -v
+
+# Live-server smoke tests
 uv run python main.py &
 sleep 5
 uv run python eval/smoke_tests.py               # full parallel (~60-90s)

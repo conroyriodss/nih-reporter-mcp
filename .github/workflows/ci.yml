@@ -1,0 +1,81 @@
+# CI: Model-free deterministic test suites.
+#
+# Runs on every push and pull request. Covers the test suites that need
+# NO external services — no live NIH RePORTER API, no running MCP server,
+# no Databricks model-serving endpoints.
+#
+# WHAT RUNS HERE (deterministic, offline):
+#   - tests/test_counting.py    — synthetic-fixture unit tests for aggregate_funding()
+#   - tests/test_security.py    — host-allowlist and input-guard unit tests
+#   - tests/test_prompt_contracts.py — prompt-to-tool contract validation
+#   - tests/test_robustness.py::TestPartC_MockedUpstreamFailures
+#                               — mocked httpx tests for HTTP 500, 429, timeout, etc.
+#
+# WHAT IS EXCLUDED AND WHY:
+#
+#   tests/test_correctness.py
+#     Requires a running MCP server connected to the live NIH RePORTER API.
+#     The tests call tools via the MCP protocol and verify funding totals
+#     against independently-fetched ground truth. They would fail in CI
+#     because (a) no MCP server is running and (b) outbound calls to
+#     api.reporter.nih.gov may be blocked or flaky in GitHub-hosted runners.
+#     → Run locally or in the Databricks notebook (Cell 12, t1–t18).
+#
+#   tests/test_robustness.py (Parts A, B, D, E)
+#     Parts A/B/D/E are live-server integration tests that call tools
+#     through the MCP protocol against the real NIH RePORTER API. Part C
+#     (TestPartC_MockedUpstreamFailures) is the only server-free portion
+#     and IS included above.
+#     → Run Parts A/B/D/E locally with a running server.
+#
+#   eval/smoke_tests.py
+#     18-assertion smoke suite that exercises every tool against live NIH
+#     data. Depends on outbound HTTPS to api.reporter.nih.gov and on a
+#     running MCP server. Would be flaky/blocked in CI.
+#     → Run locally: uv run python eval/smoke_tests.py
+#
+#   notebook-merged §14 (multi-model agent evals)
+#     Tool-selection accuracy, determinism, and argument-validity evals
+#     require Databricks serving endpoints (GPT, Claude, Llama). These
+#     are notebook-only and cannot run outside the Databricks workspace.
+#     → Run in notebook-merged cells 31–36.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          pip install pytest httpx fastmcp pydantic
+
+      - name: Run model-free tests
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m pytest \
+            tests/test_counting.py \
+            tests/test_security.py \
+            tests/test_prompt_contracts.py \
+            tests/test_robustness.py::TestPartC_MockedUpstreamFailures \
+            -v --tb=short

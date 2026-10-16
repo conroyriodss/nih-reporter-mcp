@@ -109,19 +109,34 @@ def register(mcp: FastMCP) -> None:
             if (r.get("agency_ic_admin") or {}).get("abbreviation")
         }
 
-        exact = complete and agg.records_with_missing_amount == 0
-        note = (
-            "Total is exact: every matching project was aggregated, none had missing amounts."
-            if exact
-            else (
+        exact = complete and agg.is_exact
+        note_parts = []
+        if exact:
+            note_parts.append("Total is exact: every matching project was aggregated, none had missing amounts or unresolved conflicts.")
+        if not complete:
+            note_parts.append(
                 f"Only the top {len(results)} of {total} matching projects "
                 f"were aggregated (hit RePORTER's {MAX_RESULT_SET}-record "
-                "retrieval ceiling). Narrow the query for an exact figure."
+                "retrieval ceiling). Narrow the query for a complete figure."
             )
-        )
+        if agg.has_unresolved_conflicts:
+            note_parts.append(
+                f"{len(agg.id_conflicts)} application ID(s) appeared with "
+                "conflicting amounts across pages; first occurrence was counted. "
+                "Inspect id_conflicts in provenance."
+            )
+        if agg.orphan_children:
+            note_parts.append(
+                f"{len(agg.orphan_children)} excluded subproject(s) had no "
+                "corresponding parent record in the retrieved cohort; their "
+                "associated award-family investment may not be reflected in this total."
+            )
         if agg.records_with_missing_amount > 0:
-            note += (f" {agg.records_with_missing_amount} record(s) had no funding amount "
-                     "on file and are excluded from the total (not counted as $0).")
+            note_parts.append(
+                f"{agg.records_with_missing_amount} record(s) had no funding amount "
+                "on file and are excluded from the total (not counted as $0)."
+            )
+        note = " ".join(note_parts) if note_parts else ""
 
         counting_unit = COUNTING_UNIT_WHOLE if funding_basis == "whole_award" else COUNTING_UNIT_ALL
 

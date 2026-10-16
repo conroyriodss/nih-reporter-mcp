@@ -23,7 +23,7 @@ graph TB
             T7["get_project_publications"]
             T8["get_publication_details"]
             T9["check_investigator_overlap"]
-            T10["study_section_workload"]
+            T10["funded_projects_by_study_section"]
             T11["search_recent_awards"]
             T12["export_evidence_bundle"]
             T13["explain_health_topic"]

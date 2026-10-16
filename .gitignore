@@ -33,3 +33,6 @@ Thumbs.db
 
 # Databricks
 .databricks/
+
+# Test cache
+.pytest_cache/

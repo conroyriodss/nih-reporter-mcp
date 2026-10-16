@@ -133,10 +133,14 @@ def test_ground_truth_exact_match():
 # ── Test 2: Double-counting proof (U19AG068753) ───────────────────────
 
 
-def test_double_counting_proof():
-    """For a confirmed multi-component grant, whole_award < all_records
-    and the delta equals the summed subproject amounts — proving the fix
-    removes real double-counted dollars, not a cosmetic relabel."""
+def test_double_counting_arithmetic():
+    """Validates the double-counting arithmetic independently against raw
+    API data (does NOT call the production aggregate_funding tool).
+
+    For a confirmed multi-component grant, fetches records directly from
+    RePORTER and verifies that parent-only sum < all-records sum, and the
+    delta equals the summed subproject amounts — proving the fix removes
+    real double-counted dollars, not a cosmetic relabel."""
 
     async def _run():
         # (a) Raw fetch confirms multiple records for one core project
@@ -258,10 +262,12 @@ def test_missing_amount_honesty():
 # ── Test 5: Cross-tool basis consistency ───────────────────────────────
 
 
-def test_cross_tool_basis_consistency():
-    """For a subproject-bearing topic, whole_award is strictly less than
-    all_records.  This mirrors smoke test t7 but lives here as a
-    correctness guarantee rather than a regression check."""
+def test_funding_basis_consistency():
+    """Same tool (summarize_funding_by_topic), two funding_basis values:
+    for a subproject-bearing topic, whole_award is strictly less than
+    all_records.  Validates the single tool's two modes produce consistent,
+    expected results.  (Despite the name history, this tests one tool's
+    two modes, not two different tools.)"""
 
     async def _run():
         async with Client(MCP_URL) as c:
@@ -291,16 +297,65 @@ def test_cross_tool_basis_consistency():
     asyncio.run(_run())
 
 
+# ── Test 6: Overlap check completeness flag ────────────────────────────
+
+
+def test_overlap_completeness_flag():
+    """check_investigator_overlap now returns `complete` and
+    `total_matching`, honestly stating whether every matching record was
+    examined.  This is a correctness requirement: without it, a truncated
+    result could present zero active awards when some were simply not
+    retrieved.  Pagination is exercised by the same paginate_all codepath
+    already tested in test_counting; this test validates the overlap tool's
+    integration of that path and the presence of the new fields."""
+
+    async def _run():
+        async with Client(MCP_URL) as c:
+            r = await c.call_tool("check_investigator_overlap", {
+                "last_name": "Au", "first_name": "Rhoda",
+            })
+        d = r.data
+
+        # New fields must be present and correctly typed
+        assert isinstance(d.complete, bool), (
+            f"complete must be bool, got {type(d.complete).__name__}"
+        )
+        assert isinstance(d.total_matching, int), (
+            f"total_matching must be int, got {type(d.total_matching).__name__}"
+        )
+        assert d.total_matching >= 0
+
+        # total_matching ≥ total_active_awards (active is a subset of all)
+        assert d.total_matching >= d.total_active_awards, (
+            f"total_matching ({d.total_matching}) must be >= "
+            f"total_active_awards ({d.total_active_awards})"
+        )
+
+        # If complete, the active count should reflect full examination
+        if d.complete:
+            # Sanity: retrieved at least as many as the API reports
+            assert d.total_active_awards >= 0
+
+        # The note should NOT claim completeness if it's incomplete
+        if not d.complete:
+            assert "retrieval ceiling" in d.note.lower() or "warning" in d.note.lower(), (
+                "Incomplete result must warn about truncation in note"
+            )
+
+    asyncio.run(_run())
+
+
 # ── Standalone runner ───────────────────────────────────────────────────
 
 
 def main() -> int:
     tests = [
         ("Ground-truth exact match (fixture vs tool)", test_ground_truth_exact_match),
-        ("Double-counting proof (U19AG068753)", test_double_counting_proof),
+        ("Double-counting arithmetic (raw API, U19AG068753)", test_double_counting_arithmetic),
         ("Provenance reproducibility (re-fetch + re-sum)", test_provenance_reproducibility),
         ("Missing-amount honesty", test_missing_amount_honesty),
-        ("Cross-tool funding-basis consistency", test_cross_tool_basis_consistency),
+        ("Funding-basis consistency (single tool, two modes)", test_funding_basis_consistency),
+        ("Overlap completeness flag", test_overlap_completeness_flag),
     ]
     print(f"Running {len(tests)} correctness tests against {MCP_URL}\n")
     passed = 0

@@ -80,6 +80,16 @@ class ProjectSummary(BaseModel):
     org_state: str | None = None
     principal_investigators: list[str] = Field(default_factory=list)
     administering_ic: str | None = Field(None, description="Administering NIH Institute/Center or agency abbreviation.")
+    abstract: str | None = Field(
+        None,
+        description="Project abstract (populated for detail lookups via get_project_by_id, None for search results).",
+    )
+    start_date: str | None = Field(
+        None, description="Project start date, ISO format (detail lookups only)."
+    )
+    end_date: str | None = Field(
+        None, description="Project end date, ISO format (detail lookups only)."
+    )
     reporter_url: str | None = Field(None, description="Link to the full project record on RePORTER.")
 
 

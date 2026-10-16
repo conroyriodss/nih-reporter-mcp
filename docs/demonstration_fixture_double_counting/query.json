@@ -1,0 +1,21 @@
+{
+  "criteria": {
+    "project_nums": [
+      "U19AG068753"
+    ],
+    "fiscal_years": [
+      2024
+    ]
+  },
+  "include_fields": [
+    "ApplId",
+    "SubprojectId",
+    "AwardAmount",
+    "ProjectTitle",
+    "CoreProjectNum",
+    "FiscalYear",
+    "Organization",
+    "PrincipalInvestigators",
+    "AgencyIcAdmin"
+  ]
+}

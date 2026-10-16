@@ -11,6 +11,13 @@ the tool's output in `tool_output.json` to the dollar.
 37 contributing) that `source_record_ids` is complete (not capped at 500), making
 end-to-end verification possible without sampling.
 
+**Note:** This fixture demonstrates correct aggregation, deduplication, and
+orphan detection — but NOT double-counting. Its single excluded subproject
+(appl_id 10992993, P50HD096723) is an **orphan**: its parent award is absent
+from the CRISPR sickle cell cohort, so there is no parent to double-count
+against. For the double-counting proof (parent + children in the same cohort),
+see `docs/demonstration_fixture_double_counting/` (U19AG068753 FY2024).
+
 ## Files
 
 | File | Purpose |

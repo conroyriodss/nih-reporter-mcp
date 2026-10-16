@@ -1,8 +1,9 @@
-# Databricks Apps manifest for NIH RePORTER MCP server.
+# Databricks Apps manifest for NIH RePORTER MCP web test interface.
+# Single process: FastAPI (UI + agent) with FastMCP mounted (MCP protocol).
 # DATABRICKS_APP_PORT is injected by the platform at runtime.
 command:
   - /bin/sh
   - -c
   - >-
     export PYTHONPATH=/app/python/source_code/src:$PYTHONPATH &&
-    python -m nih_reporter_mcp.app
+    python -m nih_reporter_mcp.web_app

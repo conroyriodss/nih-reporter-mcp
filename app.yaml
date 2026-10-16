@@ -1,0 +1,17 @@
+# Databricks Apps manifest for NIH RePORTER MCP web test interface.
+# Single process: FastAPI (UI + agent) with FastMCP mounted (MCP protocol).
+# DATABRICKS_APP_PORT is injected by the platform at runtime.
+command:
+  - /bin/sh
+  - -c
+  - >-
+    export PYTHONPATH=/app/python/source_code/src:$PYTHONPATH &&
+    python -m nih_reporter_mcp.web_app
+
+# Grant the app's service principal CAN_QUERY on the serving endpoint
+# used for the agent loop.  Without this the model call returns 403.
+resources:
+  - name: serving-endpoint
+    serving_endpoint:
+      name: databricks-gpt-5-5
+      permission: CAN_QUERY

@@ -1,0 +1,9 @@
+appl_id,core_project_num,subproject_id,fiscal_year,award_amount,decision,reason,amount_counted
+10903930,U19AG068753,,2024,5130473,included,"included (parent, non-null amount, unique appl_id)",5130473
+10903931,U19AG068753,8052,2024,574217,excluded,"subproject excluded (subproject_id=8052; parent U19AG068753 is present in cohort — this is double-counting prevention, not data loss)",0
+10903932,U19AG068753,5588,2024,2277855,excluded,"subproject excluded (subproject_id=5588; parent U19AG068753 is present in cohort — this is double-counting prevention, not data loss)",0
+10903934,U19AG068753,8054,2024,486044,excluded,"subproject excluded (subproject_id=8054; parent U19AG068753 is present in cohort — this is double-counting prevention, not data loss)",0
+10903936,U19AG068753,8056,2024,549775,excluded,"subproject excluded (subproject_id=8056; parent U19AG068753 is present in cohort — this is double-counting prevention, not data loss)",0
+10903938,U19AG068753,8059,2024,370535,excluded,"subproject excluded (subproject_id=8059; parent U19AG068753 is present in cohort — this is double-counting prevention, not data loss)",0
+10903941,U19AG068753,8063,2024,498933,excluded,"subproject excluded (subproject_id=8063; parent U19AG068753 is present in cohort — this is double-counting prevention, not data loss)",0
+10903942,U19AG068753,8065,2024,373114,excluded,"subproject excluded (subproject_id=8065; parent U19AG068753 is present in cohort — this is double-counting prevention, not data loss)",0

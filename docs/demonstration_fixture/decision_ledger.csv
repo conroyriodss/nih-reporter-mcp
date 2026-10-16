@@ -28,7 +28,7 @@ appl_id,core_project_num,subproject_id,fiscal_year,award_amount,decision,reason,
 10817959,R21NS130250,,2024,196250,included,"included (parent, non-null amount, unique appl_id)",196250
 10837898,K08DK128571,,2024,158328,included,"included (parent, non-null amount, unique appl_id)",158328
 10911966,R01HL130040,,2024,644784,included,"included (parent, non-null amount, unique appl_id)",644784
-10992993,P50HD096723,9946,2024,472999,excluded,subproject excluded (subproject_id non-null),0
+10992993,P50HD096723,9946,2024,472999,excluded,"orphan subproject excluded (subproject_id=9946; parent P50HD096723 not in cohort)",0
 10849327,R01AR082858,,2024,395537,included,"included (parent, non-null amount, unique appl_id)",395537
 10917350,U01HL163983,,2024,1159340,included,"included (parent, non-null amount, unique appl_id)",1159340
 10877295,R01HL166271,,2024,684002,included,"included (parent, non-null amount, unique appl_id)",684002

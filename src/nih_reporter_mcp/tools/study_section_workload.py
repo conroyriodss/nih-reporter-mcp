@@ -34,7 +34,7 @@ class StudySectionWorkloadResult(BaseModel):
 
 def register(mcp: FastMCP) -> None:
     @mcp.tool
-    async def study_section_workload(
+    async def funded_projects_by_study_section(
         fiscal_years: Annotated[
             list[int] | None,
             Field(
@@ -59,9 +59,8 @@ def register(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> StudySectionWorkloadResult:
-        """Summarize the distribution of funded projects across scientific
-        review study sections -- the peer-review panels that evaluated the
-        funded applications.
+        """Distribution of funded projects across the peer-review study
+        sections that evaluated them.
 
         SCOPE LIMITATION: This shows funded outcomes only (awards that
         received funding). It does NOT reflect the full review workload of

@@ -84,7 +84,7 @@ async def smoke_tests(
                 f"${d.total_award_amount_usd:,.0f}",
             )
         await check("t1",
-            "t1: Exact-total pagination (CRISPR FY2023 == 1,739 projects)", t1
+            "t1: Exact-total pagination (CRISPR FY2023 == 1,739 matching records)", t1
         )
 
         # t2 — 10,000-record retrieval cap
@@ -123,20 +123,27 @@ async def smoke_tests(
             "t3: Exact org-name match isolates single institution", t3
         )
 
-        # t4 — RCDC vs free-text divergence
+        # t4 — RCDC-category vs free-text divergence (both sides fetched live)
         async def t4():
-            r = await c.call_tool(
+            r_cat = await c.call_tool(
                 "summarize_funding_by_topic",
                 {"spending_category": "long covid", "fiscal_years": [2023]},
             )
-            d = r.data
+            r_ft = await c.call_tool(
+                "summarize_funding_by_topic",
+                {"topic": "long covid", "fiscal_years": [2023]},
+            )
+            cat_total = r_cat.data.total_award_amount_usd
+            ft_total = r_ft.data.total_award_amount_usd
             return (
-                50_000_000 < d.total_award_amount_usd < 300_000_000,
-                f"RCDC category total=${d.total_award_amount_usd:,.0f} "
-                f"vs free-text total=$891,742,057 (same query)",
+                50_000_000 < cat_total < 300_000_000
+                and ft_total > cat_total,
+                f"RCDC-category (live)=${cat_total:,.0f} "
+                f"vs free-text (live)=${ft_total:,.0f} "
+                f"(ratio={ft_total/cat_total:.1f}x)",
             )
         await check("t4",
-            "t4: Official RCDC category vs free-text search: documented divergence",
+            "t4: Live RCDC-category vs free-text: both fetched, divergence confirmed",
             t4,
         )
 
@@ -244,13 +251,18 @@ async def smoke_tests(
             d = r.data
             return (
                 isinstance(d.total_active_awards, int)
-                and d.total_active_awards >= 0,
+                and d.total_active_awards >= 0
+                and isinstance(d.complete, bool)
+                and isinstance(d.total_matching, int)
+                and d.total_matching >= d.total_active_awards,
                 f"total_active_awards={d.total_active_awards}, "
+                f"total_matching={d.total_matching}, "
+                f"complete={d.complete}, "
                 f"flagged={len(d.flagged_awards)}",
             )
         await check("t10",
-            "t10: check_investigator_overlap runs end-to-end and returns "
-            "valid structure",
+            "t10: check_investigator_overlap runs end-to-end, returns "
+            "complete/total_matching fields",
             t10,
         )
 
@@ -278,10 +290,10 @@ async def smoke_tests(
             t11,
         )
 
-        # t12 — study_section_workload groups and reconciles
+        # t12 — funded_projects_by_study_section groups and reconciles
         async def t12():
             r = await c.call_tool(
-                "study_section_workload",
+                "funded_projects_by_study_section",
                 {"topic": "CRISPR gene editing", "fiscal_years": [2023]},
             )
             d = r.data
@@ -293,7 +305,7 @@ async def smoke_tests(
                 f"total_projects={d.total_projects}",
             )
         await check("t12",
-            "t12: study_section_workload groups projects correctly, "
+            "t12: funded_projects_by_study_section groups projects correctly, "
             "counts reconcile",
             t12,
         )

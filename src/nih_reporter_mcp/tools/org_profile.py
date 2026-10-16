@@ -56,16 +56,51 @@ def register(mcp: FastMCP) -> None:
         top_ics = sorted(ic_counts, key=ic_counts.get, reverse=True)[:5]
         sample = [to_summary(r) for r in results[:5]]
 
+        exact = complete and agg.is_exact
+        note_parts = []
         if total == 0 and exact_match:
-            note = ("No projects found with that exact organization name. Retry with exact_match=false "
-                    "to find the correct name, then re-run with the exact name from 'matched_org_names'.")
-        elif complete:
-            note = "Totals cover all matching projects."
+            note_parts.append(
+                "No projects found with that exact organization name. Retry with "
+                "exact_match=false to find the correct name, then re-run with the "
+                "exact name from 'matched_org_names'."
+            )
+        elif exact:
+            note_parts.append(
+                "Total is exact: every matching project was aggregated, none had "
+                "missing amounts or unresolved conflicts."
+            )
             if not exact_match and len(matched_orgs) > 1:
-                note += (f" Note: {len(matched_orgs)} distinct organization names matched "
-                          f"({', '.join(matched_orgs[:5])}) -- totals combine all of them.")
+                note_parts.append(
+                    f"Note: {len(matched_orgs)} distinct organization names matched "
+                    f"({', '.join(matched_orgs[:5])}) -- totals combine all of them."
+                )
         else:
-            note = f"Hit the {MAX_RESULT_SET}-record safety cap; totals are a partial lower bound."
+            if not complete:
+                note_parts.append(
+                    f"Hit the {MAX_RESULT_SET}-record safety cap; totals are a "
+                    "partial lower bound."
+                )
+            if agg.has_unresolved_conflicts:
+                note_parts.append(
+                    f"{len(agg.id_conflicts)} application ID(s) appeared with "
+                    "conflicting amounts; first occurrence was counted."
+                )
+            if agg.records_with_missing_amount > 0:
+                note_parts.append(
+                    f"{agg.records_with_missing_amount} record(s) had no funding "
+                    "amount on file and are excluded from the total."
+                )
+            if agg.orphan_children:
+                note_parts.append(
+                    f"{len(agg.orphan_children)} excluded subproject(s) had no "
+                    "corresponding parent record in the retrieved cohort."
+                )
+            if not exact_match and len(matched_orgs) > 1:
+                note_parts.append(
+                    f"Note: {len(matched_orgs)} distinct organization names matched "
+                    f"({', '.join(matched_orgs[:5])}) -- totals combine all of them."
+                )
+        note = " ".join(note_parts) if note_parts else ""
 
         counting_unit = COUNTING_UNIT_WHOLE if funding_basis == "whole_award" else COUNTING_UNIT_ALL
 

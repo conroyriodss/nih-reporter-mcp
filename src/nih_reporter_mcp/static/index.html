@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIH RePORTER MCP — Test Interface</title>
+<style>
+  :root { --bg: #f8f9fa; --card: #fff; --border: #dee2e6; --primary: #0d6efd;
+           --success: #198754; --danger: #dc3545; --muted: #6c757d; --text: #212529; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--text); line-height: 1.5; }
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 1.4em; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 0.85em; margin-bottom: 20px; }
+  .input-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .input-row input { flex: 1; padding: 10px 14px; border: 1px solid var(--border);
+                     border-radius: 6px; font-size: 0.95em; }
+  .input-row select { padding: 10px; border: 1px solid var(--border); border-radius: 6px;
+                      font-size: 0.85em; min-width: 200px; }
+  .input-row button { padding: 10px 24px; background: var(--primary); color: #fff;
+                      border: none; border-radius: 6px; cursor: pointer; font-weight: 600;
+                      white-space: nowrap; }
+  .input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+          padding: 16px; margin-bottom: 16px; }
+  .card h2 { font-size: 1em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 0.7em; padding: 2px 8px; border-radius: 10px; color: #fff; }
+  .badge-ok { background: var(--success); }
+  .badge-err { background: var(--danger); }
+  .answer-text { white-space: pre-wrap; font-size: 0.9em; }
+  .trace-table { width: 100%; border-collapse: collapse; font-size: 0.82em; }
+  .trace-table th, .trace-table td { padding: 6px 10px; border-bottom: 1px solid var(--border);
+                                      text-align: left; }
+  .trace-table th { background: var(--bg); font-weight: 600; }
+  .args-cell { max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+               cursor: pointer; }
+  .args-cell:hover { white-space: normal; word-break: break-all; }
+  .evidence-panel { margin-top: 12px; }
+  .evidence-btn { padding: 8px 16px; background: #6f42c1; color: #fff; border: none;
+                  border-radius: 6px; cursor: pointer; font-size: 0.85em; margin-top: 8px; }
+  .evidence-btn:disabled { opacity: 0.5; }
+  .evidence-content { margin-top: 12px; font-size: 0.82em; }
+  .evidence-content pre { background: var(--bg); padding: 12px; border-radius: 6px;
+                           overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+                           max-height: 500px; overflow-y: auto; }
+  details { margin-top: 8px; }
+  details summary { cursor: pointer; color: var(--primary); font-weight: 500; font-size: 0.85em; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border);
+             border-top-color: var(--primary); border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none; }
+  .ledger-table { width: 100%; border-collapse: collapse; font-size: 0.78em; margin-top: 8px; }
+  .ledger-table th, .ledger-table td { padding: 4px 8px; border: 1px solid var(--border); text-align: left; }
+  .ledger-table th { background: var(--bg); }
+  .meta-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.82em; color: var(--muted);
+              margin-bottom: 8px; }
+  .meta-row strong { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>NIH RePORTER MCP — Test Interface</h1>
+  <p class="subtitle">Internal testing harness — agent + tool trace + evidence inspection</p>
+
+  <div class="input-row">
+    <input id="question" type="text" placeholder="Ask about NIH funding..."
+           value="How much did NIH spend on CRISPR sickle cell research in FY2024?">
+    <select id="model"><option>loading...</option></select>
+    <button id="ask-btn" onclick="doAsk()">Ask</button>
+  </div>
+
+  <!-- Answer -->
+  <div id="answer-card" class="card hidden">
+    <h2>Answer</h2>
+    <div id="answer-text" class="answer-text"></div>
+  </div>
+
+  <!-- Tool Trace -->
+  <div id="trace-card" class="card hidden">
+    <h2>Tool-Call Trace <span id="trace-badge" class="badge"></span></h2>
+    <table class="trace-table">
+      <thead><tr><th>#</th><th>Tool</th><th>Arguments</th><th>Latency</th><th>Status</th></tr></thead>
+      <tbody id="trace-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Evidence Panel -->
+  <div id="evidence-card" class="card hidden">
+    <h2>Evidence Bundle</h2>
+    <p style="font-size:0.85em;color:var(--muted)">Inspect the provenance behind any funding figure.
+       Enter a topic and fiscal year, then click to retrieve the full evidence bundle.</p>
+    <div class="input-row" style="margin-top:10px">
+      <input id="ev-topic" type="text" placeholder="Topic (e.g. CRISPR sickle cell)" value="CRISPR sickle cell">
+      <input id="ev-fy" type="text" placeholder="FY (e.g. 2024)" value="2024" style="max-width:80px">
+      <select id="ev-basis">
+        <option value="whole_award">whole_award (deduped)</option>
+        <option value="all_records">all_records (raw)</option>
+      </select>
+      <button id="ev-btn" class="evidence-btn" onclick="doEvidence()">Get Evidence</button>
+    </div>
+    <div id="ev-content" class="evidence-content hidden"></div>
+  </div>
+
+  <!-- Loading indicator -->
+  <div id="loading" class="hidden" style="text-align:center;padding:20px;">
+    <div class="spinner"></div> <span style="margin-left:8px;">Agent is working...</span>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// Load models on page load
+async function loadModels() {
+  try {
+    const r = await fetch("/models");
+    const d = await r.json();
+    const sel = $("model");
+    sel.innerHTML = "";
+    (d.models || []).forEach(m => {
+      const o = document.createElement("option");
+      o.value = m; o.textContent = m;
+      if (m === d.default) o.selected = true;
+      sel.appendChild(o);
+    });
+  } catch(e) { console.error("Failed to load models:", e); }
+}
+loadModels();
+
+// Ask
+async function doAsk() {
+  const q = $("question").value.trim();
+  if (!q) return;
+  const model = $("model").value;
+  $("ask-btn").disabled = true;
+  $("loading").classList.remove("hidden");
+  $("answer-card").classList.add("hidden");
+  $("trace-card").classList.add("hidden");
+  $("evidence-card").classList.add("hidden");
+
+  try {
+    const r = await fetch("/ask", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({question: q, model: model}),
+    });
+    // Guard: if the response is not JSON (e.g. 500 HTML page), show
+    // a readable message instead of "Unexpected token".
+    const ct = (r.headers.get("content-type") || "");
+    if (!ct.includes("application/json")) {
+      const txt = await r.text();
+      throw new Error(`Server returned ${r.status} (${r.statusText}). ` +
+        (txt.length < 300 ? txt : txt.slice(0, 300) + "..."));
+    }
+    const d = await r.json();
+    if (d.error) {
+      $("answer-text").textContent = "Server error: " + (d.error || d.detail || "unknown");
+      $("answer-card").classList.remove("hidden");
+      return;
+    }
+
+    // Answer
+    $("answer-text").textContent = d.answer || "(no answer)";
+    $("answer-card").classList.remove("hidden");
+
+    // Trace
+    if (d.trace && d.trace.length > 0) {
+      const tbody = $("trace-body");
+      tbody.innerHTML = "";
+      let allOk = true;
+      d.trace.forEach((t, i) => {
+        if (!t.ok) allOk = false;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${i+1}</td><td><code>${t.tool}</code></td>` +
+          `<td class="args-cell" title='${JSON.stringify(t.args)}'>${JSON.stringify(t.args)}</td>` +
+          `<td>${t.latency_s}s</td>` +
+          `<td>${t.ok ? "\u2705" : "\u274c " + (t.error||"")}</td>`;
+        tbody.appendChild(tr);
+      });
+      const badge = $("trace-badge");
+      badge.textContent = `${d.trace.length} call${d.trace.length>1?"s":""}`;
+      badge.className = "badge " + (allOk ? "badge-ok" : "badge-err");
+      $("trace-card").classList.remove("hidden");
+    }
+
+    // Show evidence panel
+    $("evidence-card").classList.remove("hidden");
+
+    // Try to auto-fill evidence topic from the question
+    const topicMatch = q.match(/(?:on|about|for)\s+(.+?)(?:\s+in\s+FY|\s+research|\?|$)/i);
+    if (topicMatch) $("ev-topic").value = topicMatch[1];
+    const fyMatch = q.match(/FY\s*(\d{4})/i);
+    if (fyMatch) $("ev-fy").value = fyMatch[1];
+
+  } catch(e) {
+    $("answer-text").textContent = "Error: " + e.message;
+    $("answer-card").classList.remove("hidden");
+  } finally {
+    $("ask-btn").disabled = false;
+    $("loading").classList.add("hidden");
+  }
+}
+
+// Evidence
+async function doEvidence() {
+  const topic = $("ev-topic").value.trim();
+  const fy = parseInt($("ev-fy").value.trim()) || 2024;
+  const basis = $("ev-basis").value;
+  if (!topic) { alert("Enter a topic"); return; }
+  $("ev-btn").disabled = true;
+  $("ev-btn").textContent = "Loading...";
+
+  try {
+    const r = await fetch("/evidence", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({topic, fiscal_years: [fy], funding_basis: basis, label: "web-ui"}),
+    });
+    const ct = (r.headers.get("content-type") || "");
+    if (!ct.includes("application/json")) {
+      const txt = await r.text();
+      throw new Error(`Server returned ${r.status}: ${txt.slice(0, 300)}`);
+    }
+    const d = await r.json();
+    const ec = $("ev-content");
+    ec.classList.remove("hidden");
+
+    if (!d.ok) { ec.innerHTML = `<p style="color:var(--danger)">Error: ${d.error}</p>`; return; }
+
+    const b = d.data;
+    const s = b.summary || {};  // funding data lives in summary
+    const prov = b.provenance || {};
+    let html = `<div class="meta-row">
+      <span><strong>Topic:</strong> ${s.topic || topic}</span>
+      <span><strong>Fiscal Year:</strong> ${(s.fiscal_years||[fy]).join(", ")}</span>
+      <span><strong>Basis:</strong> ${s.funding_basis || basis}</span>
+      <span><strong>Total:</strong> $${Number(s.total_award_amount_usd||0).toLocaleString()}</span>
+    </div>
+    <div class="meta-row">
+      <span><strong>Records aggregated:</strong> ${prov.records_aggregated||s.projects_aggregated||"N/A"}</span>
+      <span><strong>Subprojects excluded:</strong> ${s.subproject_excluded_count||0}</span>
+      <span><strong>Complete:</strong> ${s.complete ? "Yes" : "No (10K cap)"}</span>
+      <span><strong>Source IDs:</strong> ${(prov.source_record_ids||[]).length}</span>
+    </div>`;
+
+    // Reproduction note
+    if (b.reproduction_note) {
+      html += `<details open><summary>Reproduction Note</summary>
+        <pre>${b.reproduction_note}</pre></details>`;
+    }
+
+    // Decision ledger (source record IDs)
+    const ids = prov.source_record_ids || [];
+    if (ids.length > 0) {
+      html += `<details><summary>Source Record IDs (${ids.length} records — click to expand)</summary>
+        <div style="max-height:300px;overflow-y:auto;margin-top:8px;font-size:0.8em;font-family:monospace">
+        ${ids.map(id => `<a href="https://reporter.nih.gov/project-details/${id}" target="_blank">${id}</a>`).join(", ")}
+        </div></details>`;
+    }
+
+    // Full raw bundle
+    html += `<details><summary>Full Raw Bundle (JSON)</summary>
+      <pre>${JSON.stringify(b, null, 2)}</pre></details>`;
+
+    ec.innerHTML = html;
+  } catch(e) {
+    $("ev-content").innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    $("ev-content").classList.remove("hidden");
+  } finally {
+    $("ev-btn").disabled = false;
+    $("ev-btn").textContent = "Get Evidence";
+  }
+}
+
+// Enter key submits
+$("question").addEventListener("keydown", e => { if (e.key === "Enter") doAsk(); });
+</script>
+</body>
+</html>

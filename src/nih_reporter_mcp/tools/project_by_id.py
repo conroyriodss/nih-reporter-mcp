@@ -9,7 +9,7 @@ from pydantic import Field
 
 from nih_reporter_mcp.config import PROJECTS_SEARCH
 from nih_reporter_mcp.models import SearchResult
-from nih_reporter_mcp.utils import INCLUDE_FIELDS, build_criteria, post_json, to_summary, validate_string_length
+from nih_reporter_mcp.utils import DETAIL_INCLUDE_FIELDS, build_criteria, post_json, to_summary, validate_string_length
 
 
 def register(mcp: FastMCP) -> None:
@@ -31,7 +31,7 @@ def register(mcp: FastMCP) -> None:
                 appl_ids=[appl_id] if appl_id else None,
                 project_nums=[core_project_num] if core_project_num else None,
             ),
-            "include_fields": INCLUDE_FIELDS,
+            "include_fields": DETAIL_INCLUDE_FIELDS,
             "offset": 0,
             "limit": 25,
         }

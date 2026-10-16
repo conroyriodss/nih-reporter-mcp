@@ -12,7 +12,7 @@ Our paginator is configured to fetch up to 20 pages × 500 records = 10,000 reco
 
 ## 2. The 500-record MVP cap materially understated real totals
 
-Before implementing full pagination, an early version capped aggregation at a single 500-record page. For "CRISPR gene editing" FY2023, this produced **$580M** from 500 records. Full pagination across all 1,739 records returned **$921.5M on the all_records basis** (since superseded by the whole_award corrected figure of $837M in Finding 11). The 500-record cap understated even the naive all_records total by 37% (= ($921.5M − $580M) / $921.5M), and understated the corrected whole_award total by 30.7% (= ($837M − $580M) / $837M). This motivated full pagination as a correctness requirement, not an optimization.
+Before implementing full pagination, an early version capped aggregation at a single 500-record page. For "CRISPR gene editing" FY2023, this produced **$580M** from 500 records. Full pagination across all 1,739 matching records returned **$921.5M on the all_records basis** (since superseded by the whole_award corrected figure of $837M in Finding 11). The 500-record cap understated even the naive all_records total by 37% (= ($921.5M − $580M) / $921.5M), and understated the corrected whole_award total by 30.7% (= ($837M − $580M) / $837M). This motivated full pagination as a correctness requirement, not an optimization.
 
 ## 3. NIH's official RCDC spending categories diverge sharply from free-text keyword search
 
@@ -23,7 +23,7 @@ For "Long COVID" in FY2023:
 | Official RCDC category ("Long COVID", ID 5194) | 154 | $209,603,849 |
 | Free-text search for "long covid" | 1,148 | $891,742,057 |
 
-A 4.25x difference. The RCDC category is NIH's own curated, congressionally-mandated classification; free-text search catches any project that merely mentions the term, including tangential references. Neither number is "wrong" — they answer different questions — but presenting one as if it were the only truth would mislead. `summarize_funding_by_topic` accepts either method explicitly (`topic` for free-text, `spending_category` for the official category) and both paths are available as distinct tool calls, so an agent (or a human) can compare them rather than being forced into one framing.
+A 4.25x difference. The RCDC number aggregates projects currently tagged with a congressionally-mandated category in live RePORTER data (which updates continuously and may differ from NIH's frozen published annual RCDC totals); free-text search catches any project that merely mentions the term, including tangential references. Additionally, RCDC categories overlap — a project can appear in multiple categories — so summing across categories double-counts. Neither method is "wrong" — they answer different questions — but presenting one as if it were the only truth would mislead. `summarize_funding_by_topic` accepts either method explicitly (`topic` for free-text, `spending_category` for live RCDC-category aggregation) and both paths are available as distinct tool calls, so an agent (or a human) can compare them rather than being forced into one framing.
 
 This same divergence held for Alzheimer's Disease (RCDC $9.36B vs. free-text $12.07B over FY2022–2024) and is a structural property of the data, not a quirk of one topic.
 
@@ -86,13 +86,13 @@ The official API Data Elements documentation describes the `full_study_section` 
 
 The keys are `srg_code`, `srg_flex`, `sra_designator_code`, `sra_flex_code`, `group_code`, and `name` — six fields total. The docs list `group` where the actual field is `group_code`.
 
-**Why it matters:** Any tool that groups or filters by study section must use the actual field names from the live response, not the documentation. Our `study_section_workload` tool groups by `(srg_code, name)` and was verified against 1,739 CRISPR gene editing projects in FY2023, which distributed across 652 distinct study sections with `section_project_sum == total_projects` (no projects lost in the grouping).
+**Why it matters:** Any tool that groups or filters by study section must use the actual field names from the live response, not the documentation. Our `funded_projects_by_study_section` tool groups by `(srg_code, name)` and was verified against all 1,739 matching CRISPR gene editing records in FY2023, which distributed across 652 distinct study sections with `section_project_sum == total_projects` (no records lost in the grouping).
 
 ## 11. Parent/subproject double-counting inflated funding totals by 10.1%
 
 **Discovered in v0.8.0.** Per the NIH RePORTER Data Elements PDF: "For multi-project grants, Total_Cost includes funding for all the constituent subprojects." This means a parent award's `award_amount` already includes its children. Naively summing both parent and subproject records double-counts multi-project grants.
 
-**Before (v0.7.0):** CRISPR gene editing FY2023 was reported as $921,543,173 across 1,739 records (parent + subproject) on the all_records basis. **After (v0.8.0):** Excluding 226 subproject records and 7 records with missing amounts, the corrected whole_award total is $836,981,580 across 1,513 parent records — a $84,561,593 reduction. The naive all_records sum overstated the corrected figure by 10.1% (= $84,561,593 / $836,981,580).
+**Before (v0.7.0):** CRISPR gene editing FY2023 was reported as $921,543,173 across 1,739 matching records (parent + subproject) on the all_records basis. **After (v0.8.0):** Excluding 226 subproject records yields 1,513 parent records, of which 7 had missing amounts; the corrected whole_award total is $836,981,580 across the 1,506 contributing parent records — a $84,561,593 reduction. The naive all_records sum overstated the corrected figure by 10.1% (= $84,561,593 / $836,981,580).
 
 The fix introduces `funding_basis` parameter (`"whole_award"` default, `"all_records"` for legacy behavior), appl_id deduplication across page boundaries, and explicit tracking of records with missing `award_amount` (excluded from totals, not zeroed to $0). This applies to `summarize_funding_by_topic`, `organization_funding_profile`, `funding_trend_by_year`, and `export_evidence_bundle`.
 
@@ -102,7 +102,7 @@ Verified with synthetic unit tests (`tests/test_counting.py`) against oracle val
 
 **Added in v0.9.0.** A 15-minute TTL cache on `post_json` (the shared HTTP layer) stores raw API responses keyed by SHA-256 of `(url, canonical-JSON-of-payload)`. Cache hits bypass the 1-req/sec rate limiter entirely.
 
-**Cold path:** A `summarize_funding_by_topic` call for CRISPR FY2023 (1,739 projects, 4 pages) takes approximately 4–6 seconds due to upstream latency plus mandatory 1-second spacing between pages.
+**Cold path:** A `summarize_funding_by_topic` call for CRISPR FY2023 (1,739 matching records, 4 pages) takes approximately 4–6 seconds due to upstream latency plus mandatory 1-second spacing between pages.
 
 **Warm path:** The same call returns in **~0.02s** — a >100x speedup — because all four pages are served from the in-process cache with no HTTP or rate-limiter overhead.
 
@@ -110,14 +110,24 @@ Verified with synthetic unit tests (`tests/test_counting.py`) against oracle val
 
 **Parallelisation:** `funding_trend_by_year` now fires all per-year queries concurrently via `asyncio.gather`. On a cold cache with a 3-year range, the rate limiter still serialises upstream requests to ~1 req/sec, but on warm cache all years resolve in parallel in ~20ms total. This reduces a 5-year trend query from ~25 seconds (sequential, 5 pages × 5 years) to under 1 second on warm cache.
 
-## 13. Correctness-against-ground-truth: overstatement ranges from 9% to 14% across topics
+## 13. Orphan subprojects are detected and flagged, not silently dropped
+
+**Added in v0.10.1.** When `whole_award` mode excludes a subproject whose parent `core_project_num` is NOT among the cohort's parent records, that child is an **orphan**: its associated award-family investment is not reflected in the total (because the parent's whole-award amount, which includes this child, was never retrieved).
+
+The frozen fixture ("CRISPR sickle cell" FY2024, 38 records) contains one orphan: appl_id 10992993, subproject of P50HD096723. Its parent is not a CRISPR sickle cell project, so excluding this child is correct — but the result cannot be labeled "exact" because an associated award family's investment may be missing. The note now states this explicitly.
+
+**Orphan children block `is_exact`:** A query returning only orphan subprojects (or orphans alongside valid parents) will never claim the total is exact. This prevents the misleading scenario where a child-only probe returns "$0, complete=True, Total is exact."
+
+A separate frozen fixture (`docs/demonstration_fixture_double_counting/`, U19AG068753 FY2024) provides the inspectable proof that subproject exclusion prevents real double-counting: 1 parent ($5,130,473) + 7 subprojects ($5,130,473) = $10,260,946 naive, correctly reduced to $5,130,473.
+
+## 14. Correctness-against-ground-truth: overstatement ranges from 9% to 14% across topics
 
 **Verified in v0.9.0 (`tests/test_correctness.py`).** The v0.8.0 counting fix was validated against two independently-derived ground truths:
 
 | Topic (FY2023) | all_records (naive) | whole_award (corrected) | Delta | Overstatement (delta/corrected) | Subprojects excluded | Missing amounts |
 |---|---:|---:|---:|---:|---:|---:|
 | CRISPR gene editing | $921,543,173 | $836,981,580 | $84,561,593 | 10.1% | 226 | 7 |
-| Alzheimer’s disease | $4,685,253,389 | $4,020,899,771 | $664,353,618 | 16.5% | 931 | 133 |
+| Alzheimer’s disease | $4,685,171,333 | $4,020,817,715 | $664,353,618 | 16.5% | 931 | 133 |
 
 The Alzheimer’s overstatement (16.5%) is larger than CRISPR’s (10.1%) because NIH Alzheimer’s research includes more multi-component grants (U19, P01, etc.) whose subprojects inflate the naive sum by a greater proportion.
 
@@ -128,3 +138,62 @@ Additional correctness evidence (`tests/test_correctness.py`, 5 tests):
 - **Provenance reproducibility**: Re-fetching `source_record_ids` from `export_evidence_bundle`, applying whole_award rules independently, and re-summing **reproduces the reported total exactly**.
 - **Missing-amount honesty**: CRISPR FY2023 reports `records_with_missing_amount=7` and does not claim the total is “exact”; those records are excluded from the total, not zeroed to $0.
 - **Cross-tool consistency**: `whole_award` < `all_records` with nonzero `subproject_excluded_count`, verified across multiple tools for the same query.
+
+## 15. Tool-selection accuracy is stable across model families (agent-agnostic)
+
+**Test:** 8 questions, each with a single expected first tool call, run against 3 models from different families: GPT-5-5 (OpenAI), Claude Sonnet 4-6 (Anthropic), and Llama 3.3 70B Instruct (Meta). Only the first tool call is evaluated — this isolates tool-selection from downstream execution.
+
+**Results (2026-10-16):**
+
+| Model | Accuracy | Misses |
+|---|---|---|
+| databricks-gpt-5-5 | 7/8 (88%) | Q5: chose `check_investigator_overlap` instead of `investigator_portfolio` |
+| databricks-claude-sonnet-4-6 | 8/8 (100%) | — |
+| databricks-meta-llama-3-3-70b-instruct | 8/8 (100%) | — |
+
+Overall: **23/24 (96%)** correct across all trials. 7/8 cases had unanimous agreement across all 3 models.
+
+**Q5 disagreement analysis:** "What grants does Francis Collins currently hold?" — GPT-5-5 selected `check_investigator_overlap` (which also searches by PI name but is designed for overlap/conflict detection, not portfolio listing). Both tools accept `last_name`/`first_name` and return grant lists, so the confusion is understandable. The `investigator_portfolio` description could be strengthened to emphasize it is the primary PI lookup tool. Claude and Llama both chose correctly, suggesting the descriptions are adequate but not perfectly unambiguous for this edge case.
+
+**Why it matters:** The tool descriptions are written once, in the MCP server, and consumed by any model. This finding confirms they are model-agnostic — accuracy is stable across GPT, Claude, and Llama families with no model-specific tuning. The single miss is a description-clarity issue (two tools with overlapping input schemas), not a model-specific failure.
+
+**Notebook reference:** `notebook-merged`, §14a–c (cells 31–34). Requires live model access — notebook-only, not in pytest suite.
+
+## 16. Tool-selection is deterministic under repeat runs
+
+**Test:** 3 representative questions (Q1: summarize_funding_by_topic, Q2: search_funded_projects, Q3: funding_trend_by_year) each run 5 times against GPT-5-5. This measures whether tool SELECTION is stable across repeats — distinct from the existing call-count efficiency guard (§13), which measures whether the number of tool calls is stable.
+
+**Results (2026-10-16):** 3/3 stable. Every question selected the same tool across all 5 repeats — zero flickers.
+
+| Question | Tool | Run 1 | Run 2 | Run 3 | Run 4 | Run 5 |
+|---|---|---|---|---|---|---|
+| Q1 (CRISPR sickle cell spending) | summarize_funding_by_topic | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Q2 (Alzheimer’s grants in MA) | search_funded_projects | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Q3 (long COVID trend) | funding_trend_by_year | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+**Why it matters:** Non-deterministic tool selection would undermine user trust: the same question could produce different workflows on different runs. This confirms the tool descriptions are unambiguous enough that the model’s tool-selection decision is stable even under LLM sampling randomness. Combined with the Q5 miss from Finding 14, this suggests the overall description set is solid, with `investigator_portfolio` vs `check_investigator_overlap` as the only known ambiguity.
+
+**Notebook reference:** `notebook-merged`, §14d (cell 35). Notebook-only (requires model access).
+
+## 17. Argument validity rate: 100% across all models
+
+**Test:** For each of the 8 TOOL_SELECTION_CASES × 3 models (24 trials total), capture the raw arguments the model generates and validate them against the tool’s input_schema:
+- Required parameters present
+- No unknown parameter names
+- Correct types (string, integer, number, boolean, array)
+
+**Results (2026-10-16):**
+
+| Model | Argument validity rate |
+|---|---|
+| databricks-gpt-5-5 | 8/8 (100%) |
+| databricks-claude-sonnet-4-6 | 8/8 (100%) |
+| databricks-meta-llama-3-3-70b-instruct | 8/8 (100%) |
+
+Overall: **24/24 (100%)** — every model generated valid arguments for every tool call.
+
+**Observations:** Models differ in how many optional parameters they populate (GPT-5-5 tends to include more optional parameters like `funding_basis` and `include_provenance`; Claude and Llama generate more minimal argument sets), but all are structurally valid. No model produced unknown parameter names, type mismatches, or omitted required parameters.
+
+**Why it matters:** This is the named benchmark metric for the eval. A high argument validity rate confirms that the tool input schemas (types, required/optional distinction, enum constraints) are clear enough for models to generate correct invocations without trial-and-error. Combined with Finding 14 (tool-selection accuracy: 96%) and Finding 15 (determinism: 100%), these three metrics form a complete picture of tool-use quality.
+
+**Notebook reference:** `notebook-merged`, §14e (cell 36). Notebook-only (requires model access).

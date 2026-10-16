@@ -1,0 +1,414 @@
+{
+  "retrieved_at": "2026-10-16T17:09:00.163212+00:00",
+  "query": {
+    "project_nums": [
+      "U19AG068753"
+    ],
+    "fiscal_years": [
+      2024
+    ]
+  },
+  "results": [
+    {
+      "appl_id": 10903930,
+      "subproject_id": null,
+      "fiscal_year": 2024,
+      "organization": {
+        "org_name": "BOSTON UNIVERSITY MEDICAL CAMPUS",
+        "city": null,
+        "country": null,
+        "org_city": "BOSTON",
+        "org_country": "UNITED STATES",
+        "org_state": "MA",
+        "org_state_name": null,
+        "dept_type": "INTERNAL MEDICINE/MEDICINE",
+        "fips_country_code": null,
+        "org_duns": [
+          "604483045"
+        ],
+        "org_ueis": [
+          "FBYMGMHW4X95"
+        ],
+        "primary_duns": "604483045",
+        "primary_uei": "FBYMGMHW4X95",
+        "org_fips": "US",
+        "org_ipf_code": "894901",
+        "org_zipcode": "021182340",
+        "external_org_id": 894901
+      },
+      "award_amount": 5130473,
+      "principal_investigators": [
+        {
+          "profile_id": 8624912,
+          "first_name": "Rhoda",
+          "middle_name": "",
+          "last_name": "Au",
+          "is_contact_pi": false,
+          "full_name": "Rhoda  Au",
+          "title": "ASSOCIATE PROFESSOR"
+        },
+        {
+          "profile_id": 1859028,
+          "first_name": "Lindsay",
+          "middle_name": "A.",
+          "last_name": "Farrer",
+          "is_contact_pi": true,
+          "full_name": "Lindsay A. Farrer",
+          "title": "PROFESSOR & CHIEF, BIOMEDICAL GENETICS"
+        }
+      ],
+      "agency_ic_admin": {
+        "code": "AG",
+        "abbreviation": "NIA",
+        "name": "National Institute on Aging",
+        "admin_org_id": "12500002",
+        "admin_funding_url": ""
+      },
+      "core_project_num": "U19AG068753",
+      "project_title": "Precision Monitoring and Assessment in the Framingham Study: Cognitive, MRI, Genetic and Biomarker Precursors of AD & Dementia"
+    },
+    {
+      "appl_id": 10903941,
+      "subproject_id": "8063",
+      "fiscal_year": 2024,
+      "organization": {
+        "org_name": "BOSTON UNIVERSITY MEDICAL CAMPUS",
+        "city": null,
+        "country": null,
+        "org_city": "BOSTON",
+        "org_country": "UNITED STATES",
+        "org_state": "MA",
+        "org_state_name": null,
+        "dept_type": null,
+        "fips_country_code": null,
+        "org_duns": [
+          "604483045"
+        ],
+        "org_ueis": [
+          "FBYMGMHW4X95"
+        ],
+        "primary_duns": "604483045",
+        "primary_uei": "FBYMGMHW4X95",
+        "org_fips": "US",
+        "org_ipf_code": "894901",
+        "org_zipcode": "021182340",
+        "external_org_id": 894901
+      },
+      "award_amount": 498933,
+      "principal_investigators": [
+        {
+          "profile_id": 6070528,
+          "first_name": "WEI QIAO",
+          "middle_name": "Wendy",
+          "last_name": "QIU",
+          "is_contact_pi": true,
+          "full_name": "WEI QIAO Wendy QIU",
+          "title": "PROFESSOR"
+        }
+      ],
+      "agency_ic_admin": {
+        "code": "AG",
+        "abbreviation": "NIA",
+        "name": "National Institute on Aging",
+        "admin_org_id": "12500002",
+        "admin_funding_url": ""
+      },
+      "core_project_num": "U19AG068753",
+      "project_title": "Characterizing the interaction of genetic vulnerabilities and chronic peripheral inflammation for AD risk"
+    },
+    {
+      "appl_id": 10903931,
+      "subproject_id": "8052",
+      "fiscal_year": 2024,
+      "organization": {
+        "org_name": "BOSTON UNIVERSITY MEDICAL CAMPUS",
+        "city": null,
+        "country": null,
+        "org_city": "BOSTON",
+        "org_country": "UNITED STATES",
+        "org_state": "MA",
+        "org_state_name": null,
+        "dept_type": null,
+        "fips_country_code": null,
+        "org_duns": [
+          "604483045"
+        ],
+        "org_ueis": [
+          "FBYMGMHW4X95"
+        ],
+        "primary_duns": "604483045",
+        "primary_uei": "FBYMGMHW4X95",
+        "org_fips": "US",
+        "org_ipf_code": "894901",
+        "org_zipcode": "021182340",
+        "external_org_id": 894901
+      },
+      "award_amount": 574217,
+      "principal_investigators": [
+        {
+          "profile_id": 1859028,
+          "first_name": "Lindsay",
+          "middle_name": "A.",
+          "last_name": "Farrer",
+          "is_contact_pi": true,
+          "full_name": "Lindsay A. Farrer",
+          "title": "PROFESSOR & CHIEF, BIOMEDICAL GENETICS"
+        }
+      ],
+      "agency_ic_admin": {
+        "code": "AG",
+        "abbreviation": "NIA",
+        "name": "National Institute on Aging",
+        "admin_org_id": "12500002",
+        "admin_funding_url": ""
+      },
+      "core_project_num": "U19AG068753",
+      "project_title": "Admin Core"
+    },
+    {
+      "appl_id": 10903936,
+      "subproject_id": "8056",
+      "fiscal_year": 2024,
+      "organization": {
+        "org_name": "BOSTON UNIVERSITY MEDICAL CAMPUS",
+        "city": null,
+        "country": null,
+        "org_city": "BOSTON",
+        "org_country": "UNITED STATES",
+        "org_state": "MA",
+        "org_state_name": null,
+        "dept_type": null,
+        "fips_country_code": null,
+        "org_duns": [
+          "604483045"
+        ],
+        "org_ueis": [
+          "FBYMGMHW4X95"
+        ],
+        "primary_duns": "604483045",
+        "primary_uei": "FBYMGMHW4X95",
+        "org_fips": "US",
+        "org_ipf_code": "894901",
+        "org_zipcode": "021182340",
+        "external_org_id": 894901
+      },
+      "award_amount": 549775,
+      "principal_investigators": [
+        {
+          "profile_id": 8635403,
+          "first_name": "Ann",
+          "middle_name": "C.",
+          "last_name": "McKee",
+          "is_contact_pi": true,
+          "full_name": "Ann C. McKee",
+          "title": "PHYSICIAN"
+        }
+      ],
+      "agency_ic_admin": {
+        "code": "AG",
+        "abbreviation": "NIA",
+        "name": "National Institute on Aging",
+        "admin_org_id": "12500002",
+        "admin_funding_url": ""
+      },
+      "core_project_num": "U19AG068753",
+      "project_title": "Neuropath Core"
+    },
+    {
+      "appl_id": 10903938,
+      "subproject_id": "8059",
+      "fiscal_year": 2024,
+      "organization": {
+        "org_name": "BOSTON UNIVERSITY MEDICAL CAMPUS",
+        "city": null,
+        "country": null,
+        "org_city": "BOSTON",
+        "org_country": "UNITED STATES",
+        "org_state": "MA",
+        "org_state_name": null,
+        "dept_type": null,
+        "fips_country_code": null,
+        "org_duns": [
+          "604483045"
+        ],
+        "org_ueis": [
+          "FBYMGMHW4X95"
+        ],
+        "primary_duns": "604483045",
+        "primary_uei": "FBYMGMHW4X95",
+        "org_fips": "US",
+        "org_ipf_code": "894901",
+        "org_zipcode": "021182340",
+        "external_org_id": 894901
+      },
+      "award_amount": 370535,
+      "principal_investigators": [
+        {
+          "profile_id": 1859028,
+          "first_name": "Lindsay",
+          "middle_name": "A.",
+          "last_name": "Farrer",
+          "is_contact_pi": true,
+          "full_name": "Lindsay A. Farrer",
+          "title": "PROFESSOR & CHIEF, BIOMEDICAL GENETICS"
+        }
+      ],
+      "agency_ic_admin": {
+        "code": "AG",
+        "abbreviation": "NIA",
+        "name": "National Institute on Aging",
+        "admin_org_id": "12500002",
+        "admin_funding_url": ""
+      },
+      "core_project_num": "U19AG068753",
+      "project_title": "Genomic, physiological, and environmental predictors of AD risk, resilience and resistance"
+    },
+    {
+      "appl_id": 10903932,
+      "subproject_id": "5588",
+      "fiscal_year": 2024,
+      "organization": {
+        "org_name": "BOSTON UNIVERSITY MEDICAL CAMPUS",
+        "city": null,
+        "country": null,
+        "org_city": "BOSTON",
+        "org_country": "UNITED STATES",
+        "org_state": "MA",
+        "org_state_name": null,
+        "dept_type": null,
+        "fips_country_code": null,
+        "org_duns": [
+          "604483045"
+        ],
+        "org_ueis": [
+          "FBYMGMHW4X95"
+        ],
+        "primary_duns": "604483045",
+        "primary_uei": "FBYMGMHW4X95",
+        "org_fips": "US",
+        "org_ipf_code": "894901",
+        "org_zipcode": "021182340",
+        "external_org_id": 894901
+      },
+      "award_amount": 2277855,
+      "principal_investigators": [
+        {
+          "profile_id": 8624912,
+          "first_name": "Rhoda",
+          "middle_name": "",
+          "last_name": "Au",
+          "is_contact_pi": true,
+          "full_name": "Rhoda  Au",
+          "title": "ASSOCIATE PROFESSOR"
+        }
+      ],
+      "agency_ic_admin": {
+        "code": "AG",
+        "abbreviation": "NIA",
+        "name": "National Institute on Aging",
+        "admin_org_id": "12500002",
+        "admin_funding_url": ""
+      },
+      "core_project_num": "U19AG068753",
+      "project_title": "Clinical Core"
+    },
+    {
+      "appl_id": 10903942,
+      "subproject_id": "8065",
+      "fiscal_year": 2024,
+      "organization": {
+        "org_name": "BOSTON UNIVERSITY MEDICAL CAMPUS",
+        "city": null,
+        "country": null,
+        "org_city": "BOSTON",
+        "org_country": "UNITED STATES",
+        "org_state": "MA",
+        "org_state_name": null,
+        "dept_type": null,
+        "fips_country_code": null,
+        "org_duns": [
+          "604483045"
+        ],
+        "org_ueis": [
+          "FBYMGMHW4X95"
+        ],
+        "primary_duns": "604483045",
+        "primary_uei": "FBYMGMHW4X95",
+        "org_fips": "US",
+        "org_ipf_code": "894901",
+        "org_zipcode": "021182340",
+        "external_org_id": 894901
+      },
+      "award_amount": 373114,
+      "principal_investigators": [
+        {
+          "profile_id": 10876888,
+          "first_name": "Thor",
+          "middle_name": "",
+          "last_name": "Stein",
+          "is_contact_pi": true,
+          "full_name": "Thor  Stein",
+          "title": ""
+        }
+      ],
+      "agency_ic_admin": {
+        "code": "AG",
+        "abbreviation": "NIA",
+        "name": "National Institute on Aging",
+        "admin_org_id": "12500002",
+        "admin_funding_url": ""
+      },
+      "core_project_num": "U19AG068753",
+      "project_title": "Role of classical complement pathway underling glial phenotypes and multiple pathologies in Alzheimer's disease and cerebrovascular disease"
+    },
+    {
+      "appl_id": 10903934,
+      "subproject_id": "8054",
+      "fiscal_year": 2024,
+      "organization": {
+        "org_name": "BOSTON UNIVERSITY MEDICAL CAMPUS",
+        "city": null,
+        "country": null,
+        "org_city": "BOSTON",
+        "org_country": "UNITED STATES",
+        "org_state": "MA",
+        "org_state_name": null,
+        "dept_type": null,
+        "fips_country_code": null,
+        "org_duns": [
+          "604483045"
+        ],
+        "org_ueis": [
+          "FBYMGMHW4X95"
+        ],
+        "primary_duns": "604483045",
+        "primary_uei": "FBYMGMHW4X95",
+        "org_fips": "US",
+        "org_ipf_code": "894901",
+        "org_zipcode": "021182340",
+        "external_org_id": 894901
+      },
+      "award_amount": 486044,
+      "principal_investigators": [
+        {
+          "profile_id": 8644268,
+          "first_name": "Joseph",
+          "middle_name": "Michael",
+          "last_name": "Massaro",
+          "is_contact_pi": true,
+          "full_name": "Joseph Michael Massaro",
+          "title": "PROFESSOR OF BIOSTATISTICS"
+        }
+      ],
+      "agency_ic_admin": {
+        "code": "AG",
+        "abbreviation": "NIA",
+        "name": "National Institute on Aging",
+        "admin_org_id": "12500002",
+        "admin_funding_url": ""
+      },
+      "core_project_num": "U19AG068753",
+      "project_title": "Data Core"
+    }
+  ]
+}

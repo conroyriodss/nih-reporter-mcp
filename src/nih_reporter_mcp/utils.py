@@ -261,6 +261,12 @@ async def paginate_all(
             break
         payload = {**base_payload, "offset": offset, "limit": PAGE_SIZE}
         data = await post_json(PROJECTS_SEARCH, payload)
+        # Validate upstream response structure (defend against malformed 200s)
+        if not isinstance(data, dict) or "meta" not in data or "results" not in data:
+            raise RuntimeError(
+                "RePORTER returned a malformed response (missing 'meta' or "
+                "'results' keys). The upstream API may be experiencing issues."
+            )
         total = (data.get("meta") or {}).get("total", 0)
         results = data.get("results") or []
         all_results.extend(results)
@@ -335,6 +341,9 @@ def to_summary(rec: dict) -> ProjectSummary:
         org_state=org.get("org_state"),
         principal_investigators=pis,
         administering_ic=ic.get("abbreviation") or ic.get("name"),
+        abstract=rec.get("abstract_text"),
+        start_date=rec.get("project_start_date"),
+        end_date=rec.get("project_end_date"),
         reporter_url=PROJECT_URL.format(appl_id=appl_id) if appl_id else None,
     )
 
@@ -345,6 +354,9 @@ INCLUDE_FIELDS = [
     "ApplId", "SubprojectId", "CoreProjectNum", "ProjectNum", "ProjectTitle",
     "AwardAmount", "FiscalYear", "Organization", "PrincipalInvestigators",
     "AgencyIcAdmin",
+]
+DETAIL_INCLUDE_FIELDS = INCLUDE_FIELDS + [
+    "AbstractText", "ProjectStartDate", "ProjectEndDate",
 ]
 AGG_FIELDS = [
     "ApplId", "SubprojectId", "AwardAmount",
@@ -363,6 +375,7 @@ class AggResult:
         "records_with_missing_amount",
         "deduped_count", "subproject_excluded_count",
         "contributing_ids", "id_conflicts",
+        "orphan_children",
     )
 
     def __init__(
@@ -374,6 +387,7 @@ class AggResult:
         subproject_excluded_count: int,
         contributing_ids: list[int] | None = None,
         id_conflicts: list[int] | None = None,
+        orphan_children: list[int] | None = None,
     ):
         self.total_award = total_award
         self.record_count = record_count  # eligible (post-exclusion, post-dedup, incl. null-amount)
@@ -382,9 +396,29 @@ class AggResult:
         self.subproject_excluded_count = subproject_excluded_count
         self.contributing_ids = contributing_ids or []
         self.id_conflicts = id_conflicts or []
+        # orphan_children: subproject appl_ids excluded in whole_award mode
+        # whose parent core_project_num was NOT in the retrieved cohort.
+        # Their funding may represent additional topical investment not
+        # captured in the total.
+        self.orphan_children = orphan_children or []
         # contributing_count: records that actually added a dollar amount
         # (= record_count - records_with_missing_amount)
         self.contributing_count = self.record_count - self.records_with_missing_amount
+
+    @property
+    def has_unresolved_conflicts(self) -> bool:
+        """True if any appl_id appeared with differing amounts/FY/subproject."""
+        return len(self.id_conflicts) > 0
+
+    @property
+    def is_exact(self) -> bool:
+        """Conservative exactness: no missing amounts AND no unresolved
+        duplicate conflicts AND no orphan children (whose parent awards
+        are absent from the cohort).  Callers must ALSO check retrieval
+        completeness."""
+        return (self.records_with_missing_amount == 0
+                and not self.has_unresolved_conflicts
+                and len(self.orphan_children) == 0)
 
 
 def aggregate_funding(
@@ -407,6 +441,9 @@ def aggregate_funding(
       - id_conflicts: appl_ids seen multiple times with differing
         award_amount, fiscal_year, or subproject_id.  First occurrence
         is counted; subsequent are deduped.  Investigate manually.
+      - orphan_children: subproject appl_ids excluded in whole_award mode
+        whose parent core_project_num was NOT found among the cohort's
+        parent records.
     """
     seen_appl_ids: dict[int, dict] = {}  # appl_id -> first occurrence info
     total_award = 0.0
@@ -417,9 +454,12 @@ def aggregate_funding(
     contributing_ids: list[int] = []
     id_conflicts: list[int] = []
     _conflict_seen: set[int] = set()
+    # Track parent core_project_nums and excluded children for orphan detection
+    _parent_projects: set[str] = set()
+    _excluded_children: list[tuple[int, str | None]] = []  # (appl_id, core_project_num)
 
     for r in records:
-        # ── Dedup by appl_id ──────────────────────────────────────────
+        # ── Dedup by appl_id ──────────────────────────────────────────────────────
         appl_id = r.get("appl_id")
         if appl_id is not None:
             if appl_id in seen_appl_ids:
@@ -445,7 +485,15 @@ def aggregate_funding(
             subproject_id = r.get("subproject_id")
             if subproject_id is not None:
                 subproject_excluded_count += 1
+                core_pn = r.get("core_project_num")
+                if appl_id is not None:
+                    _excluded_children.append((appl_id, core_pn))
                 continue
+
+        # ── Track parent project numbers ─────────────────────────────
+        core_pn = r.get("core_project_num")
+        if core_pn:
+            _parent_projects.add(core_pn)
 
         # ── Sum with missing-amount tracking ──────────────────────────
         amount = r.get("award_amount")
@@ -457,6 +505,18 @@ def aggregate_funding(
                 contributing_ids.append(appl_id)
         record_count += 1
 
+    # ── Orphan child detection ─────────────────────────────────────
+    # Subprojects whose parent core_project_num was NOT found among the
+    # cohort's parent records.  Their funding represents topical investment
+    # associated with a matching component but NOT captured in the total
+    # (because the parent's whole-award amount—which includes this child's
+    # funding—is absent from the query results).
+    orphan_children: list[int] = []
+    if funding_basis == "whole_award" and _excluded_children:
+        for child_id, child_cpn in _excluded_children:
+            if child_cpn and child_cpn not in _parent_projects:
+                orphan_children.append(child_id)
+
     return AggResult(
         total_award=round(total_award, 2),
         record_count=record_count,
@@ -465,4 +525,5 @@ def aggregate_funding(
         subproject_excluded_count=subproject_excluded_count,
         contributing_ids=contributing_ids,
         id_conflicts=id_conflicts,
+        orphan_children=orphan_children,
     )

@@ -20,7 +20,7 @@ def register(mcp: FastMCP) -> None:
         end_year: Annotated[int, Field(description="Last fiscal year to include.")],
         topic: Annotated[str | None, Field(description="Research topic or keywords, e.g. 'long COVID'. Omit if using spending_category instead.")] = None,
         agencies: Annotated[list[str] | None, Field(description="Limit to agency/IC abbreviations.")] = None,
-        spending_category: Annotated[str | int | None, Field(description="NIH official RCDC spending category -- name (e.g. 'Cancer', 'Long COVID') or numeric ID. More authoritative than free-text for official totals.")] = None,
+        spending_category: Annotated[str | int | None, Field(description="NIH RCDC spending category -- name (e.g. 'Cancer', 'Long COVID') or numeric ID. Aggregates live RePORTER data tagged with this category; note this may differ from NIH's frozen published RCDC totals.")] = None,
         funding_basis: Annotated[str, Field(description="'whole_award' (default) or 'all_records'.")] = "whole_award",
     ) -> FundingTrend:
         """Show NIH/HHS funding for a topic (or official spending category) broken out year by year."""
@@ -36,7 +36,7 @@ def register(mcp: FastMCP) -> None:
         if funding_basis not in ("whole_award", "all_records"):
             raise ValueError("funding_basis must be 'whole_award' or 'all_records'.")
 
-        async def _fetch_year(year: int) -> YearFunding:
+        async def _fetch_year(year: int) -> tuple[YearFunding, bool, int]:
             base_payload = {
                 "criteria": build_criteria(
                     topic=topic, fiscal_years=[year], agencies=agencies,
@@ -46,11 +46,12 @@ def register(mcp: FastMCP) -> None:
             }
             results, total, complete, _pf, _ids = await paginate_all(base_payload)
             agg = aggregate_funding(results, funding_basis=funding_basis)
-            return YearFunding(
+            yf = YearFunding(
                 fiscal_year=year, project_count=agg.record_count,
                 total_award_amount_usd=agg.total_award, complete=complete,
                 records_with_missing_amount=agg.records_with_missing_amount,
             )
+            return yf, agg.has_unresolved_conflicts, len(agg.id_conflicts)
 
         # Fire all years concurrently — the rate limiter in post_json still
         # serialises upstream HTTP calls to ~1 req/sec on cache misses while
@@ -60,12 +61,18 @@ def register(mcp: FastMCP) -> None:
         )
         year_results = []
         any_incomplete = False
-        for yr in year_results_raw:
-            if isinstance(yr, Exception):
-                raise yr
-            year_results.append(yr)
-            if not yr.complete:
+        any_conflicts = False
+        total_conflicts = 0
+        for yr_raw in year_results_raw:
+            if isinstance(yr_raw, Exception):
+                raise yr_raw
+            yf, has_conflicts, n_conflicts = yr_raw
+            year_results.append(yf)
+            if not yf.complete:
                 any_incomplete = True
+            if has_conflicts:
+                any_conflicts = True
+                total_conflicts += n_conflicts
 
         any_missing = any(yr.records_with_missing_amount > 0 for yr in year_results)
         note_parts = []
@@ -80,8 +87,17 @@ def register(mcp: FastMCP) -> None:
                 "(see per-year records_with_missing_amount); totals for "
                 "those years are not exact."
             )
+        if any_conflicts:
+            note_parts.append(
+                f"{total_conflicts} application ID(s) appeared with conflicting "
+                "amounts across pages in one or more years; first occurrence "
+                "was counted."
+            )
         if not note_parts:
-            note_parts.append("All years aggregated exactly.")
+            note_parts.append(
+                "All years aggregated exactly: complete retrieval, "
+                "no missing amounts, no conflicting duplicates."
+            )
         note = " ".join(note_parts)
         return FundingTrend(
             topic=topic or f"spending_category:{spending_category}",

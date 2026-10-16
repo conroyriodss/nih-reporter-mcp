@@ -14,7 +14,7 @@
     "deduped_count": 0,
     "subproject_excluded_count": 1,
     "counting_unit": "funding_basis=whole_award: subproject records excluded, appl_ids deduplicated, missing amounts excluded (not zeroed). This total counts each parent award once.",
-    "note": "Total is exact: every matching project was aggregated, none had missing amounts."
+    "note": "1 excluded subproject (appl_id 10992993, P50HD096723) is an orphan: its parent award is not in this cohort. The total covers only matching parent/non-subproject records; the orphan's associated award-family investment is not reflected."
   },
   "provenance": {
     "retrieved_at": "2026-10-15T20:37:30.023550+00:00",

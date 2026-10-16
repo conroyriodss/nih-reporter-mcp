@@ -21,7 +21,7 @@ def register(mcp: FastMCP) -> None:
         topic: Annotated[str | None, Field(description="Research topic or keywords to total funding for. Omit if using spending_category instead.")] = None,
         fiscal_years: Annotated[list[int] | None, Field(description="Fiscal years to include, e.g. [2022, 2023, 2024].")] = None,
         agencies: Annotated[list[str] | None, Field(description="Limit to agency/IC abbreviations, e.g. ['NCI'].")] = None,
-        spending_category: Annotated[str | int | None, Field(description="NIH official RCDC spending category -- name (e.g. 'Alzheimer's Disease', 'Cancer', 'Long COVID') or numeric ID. More authoritative than free-text for official totals.")] = None,
+        spending_category: Annotated[str | int | None, Field(description="NIH RCDC spending category -- name (e.g. 'Alzheimer's Disease', 'Cancer', 'Long COVID') or numeric ID. Aggregates live RePORTER data tagged with this category; note this may differ from NIH's frozen published RCDC totals, which are point-in-time snapshots.")] = None,
         active_only: Annotated[bool | None, Field(description="If true, active projects only (client-side filtered). If false, inactive only. Omit for all.")] = None,
         funding_basis: Annotated[str, Field(description="'whole_award' (default, excludes subproject records to avoid double-counting) or 'all_records' (legacy, sums every record including subprojects).")] = "whole_award",
         include_provenance: Annotated[bool, Field(description="If true, attach a full Provenance audit trail (heavier payload).")] = False,
@@ -58,11 +58,20 @@ def register(mcp: FastMCP) -> None:
         orgs = {(r.get("organization") or {}).get("org_name") for r in results if (r.get("organization") or {}).get("org_name")}
         ics = {(r.get("agency_ic_admin") or {}).get("abbreviation") for r in results if (r.get("agency_ic_admin") or {}).get("abbreviation")}
 
-        exact = complete and agg.records_with_missing_amount == 0
-        note = ("Total is exact: every matching project was aggregated, none had missing amounts." if exact else "")
+        exact = complete and agg.is_exact
+        note_parts = []
+        if exact:
+            note_parts.append("Total is exact: every matching project was aggregated, none had missing amounts or unresolved conflicts.")
         if not complete:
-            note = (f"Only the top {len(results)} of {total} matching projects were aggregated "
-                    f"(hit RePORTER's {MAX_RESULT_SET}-record retrieval ceiling). Narrow the query for an exact figure.")
+            note_parts.append(f"Only the top {len(results)} of {total} matching projects were aggregated "
+                    f"(hit RePORTER's {MAX_RESULT_SET}-record retrieval ceiling). Narrow the query for a complete figure.")
+        if agg.has_unresolved_conflicts:
+            note_parts.append(f"{len(agg.id_conflicts)} application ID(s) appeared with conflicting amounts across pages; "
+                    "first occurrence was counted. Enable provenance to inspect conflicts.")
+        if agg.orphan_children:
+            note_parts.append(f"{len(agg.orphan_children)} excluded subproject(s) had no corresponding parent record in the "
+                    "retrieved cohort; their associated award-family investment may not be reflected in this total.")
+        note = " ".join(note_parts) if note_parts else ""
         if agg.records_with_missing_amount > 0:
             note += (f" {agg.records_with_missing_amount} record(s) had no funding amount on "
                      "file and are excluded from the total (not counted as $0).")

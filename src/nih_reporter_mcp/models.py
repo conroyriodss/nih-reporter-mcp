@@ -129,6 +129,7 @@ class YearFunding(BaseModel):
     total_award_amount_usd: float
     complete: bool
     records_with_missing_amount: int = 0
+    orphan_child_count: int = 0
 
 
 class FundingTrend(BaseModel):

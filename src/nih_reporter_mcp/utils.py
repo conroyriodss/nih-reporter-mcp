@@ -365,7 +365,7 @@ DETAIL_INCLUDE_FIELDS = INCLUDE_FIELDS + [
     "AbstractText", "ProjectStartDate", "ProjectEndDate",
 ]
 AGG_FIELDS = [
-    "ApplId", "SubprojectId", "AwardAmount",
+    "ApplId", "SubprojectId", "CoreProjectNum", "AwardAmount",
     "Organization", "AgencyIcAdmin", "FiscalYear",
 ]
 
@@ -461,8 +461,12 @@ def aggregate_funding(
     id_conflicts: list[int] = []
     _conflict_seen: set[int] = set()
     # Track parent core_project_nums and excluded children for orphan detection
-    _parent_projects: set[str] = set()
-    _excluded_children: list[tuple[int, str | None]] = []  # (appl_id, core_project_num)
+    # Orphan detection: track (core_project_num, fiscal_year) pairs for parents.
+    # A child is non-orphan only if a parent with the SAME core_project_num
+    # AND the SAME fiscal_year exists in the cohort.  A parent in a different
+    # FY cannot vouch for a child's award-family membership in this FY.
+    _parent_projects: set[tuple[str, int | None]] = set()
+    _excluded_children: list[tuple[int, str | None, int | None]] = []  # (appl_id, core_project_num, fiscal_year)
 
     for r in records:
         # ── Dedup by appl_id ──────────────────────────────────────────────────────
@@ -493,13 +497,13 @@ def aggregate_funding(
                 subproject_excluded_count += 1
                 core_pn = r.get("core_project_num")
                 if appl_id is not None:
-                    _excluded_children.append((appl_id, core_pn))
+                    _excluded_children.append((appl_id, core_pn, r.get("fiscal_year")))
                 continue
 
         # ── Track parent project numbers ─────────────────────────────
         core_pn = r.get("core_project_num")
         if core_pn:
-            _parent_projects.add(core_pn)
+            _parent_projects.add((core_pn, r.get("fiscal_year")))
 
         # ── Sum with missing-amount tracking ──────────────────────────
         amount = r.get("award_amount")
@@ -519,8 +523,8 @@ def aggregate_funding(
     # funding—is absent from the query results).
     orphan_children: list[int] = []
     if funding_basis == "whole_award" and _excluded_children:
-        for child_id, child_cpn in _excluded_children:
-            if child_cpn and child_cpn not in _parent_projects:
+        for child_id, child_cpn, child_fy in _excluded_children:
+            if child_cpn and (child_cpn, child_fy) not in _parent_projects:
                 orphan_children.append(child_id)
 
     return AggResult(

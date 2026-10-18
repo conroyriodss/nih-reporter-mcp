@@ -455,3 +455,92 @@ class TestReproductionNoteOrder:
         )
         assert agg.deduped_count == 1, "Parent should be deduped"
         assert agg.has_unresolved_conflicts, "Different amounts = conflict"
+
+
+class TestOrphanDetectionUnderProjection:
+    """Regression: orphan detection must work under the ACTUAL field projection
+    (AGG_FIELDS) that tools request from the API, not just when tests hand-supply
+    core_project_num.  AGG_FIELDS historically omitted CoreProjectNum, so
+    aggregate_funding saw core_project_num=None and never detected orphans."""
+
+    # Helper: project a record to only the fields AGG_FIELDS actually requests
+    @staticmethod
+    def _project(record: dict) -> dict:
+        """Simulate API field projection: only return keys that correspond
+        to AGG_FIELDS entries.  The API returns snake_case keys."""
+        from nih_reporter_mcp.utils import AGG_FIELDS
+        # Map API field names to response JSON keys
+        _field_to_key = {
+            "ApplId": "appl_id", "SubprojectId": "subproject_id",
+            "AwardAmount": "award_amount", "Organization": "organization",
+            "AgencyIcAdmin": "agency_ic_admin", "FiscalYear": "fiscal_year",
+            "CoreProjectNum": "core_project_num", "ProjectNum": "project_num",
+        }
+        allowed = {_field_to_key.get(f, f.lower()) for f in AGG_FIELDS}
+        return {k: v for k, v in record.items() if k in allowed}
+
+    def test_child_only_projected_is_not_exact(self):
+        """(a) A child-only cohort under AGG_FIELDS projection must produce
+        orphan_children non-empty and is_exact=False."""
+        from nih_reporter_mcp.utils import aggregate_funding
+        records = [
+            {"appl_id": 100, "subproject_id": "SUB1", "award_amount": 50000,
+             "fiscal_year": 2024, "core_project_num": "P50HD096723",
+             "organization": {"org_name": "Test Univ"},
+             "agency_ic_admin": {"abbreviation": "NICHD"}},
+        ]
+        projected = [self._project(r) for r in records]
+        agg = aggregate_funding(projected, funding_basis="whole_award")
+        assert len(agg.orphan_children) > 0, (
+            f"Projected child-only cohort should have orphans but got: "
+            f"orphan_children={agg.orphan_children}"
+        )
+        assert not agg.is_exact, "Child-only projected cohort must not be exact"
+
+    def test_parent_plus_child_projected_no_false_orphan(self):
+        """(b) A parent+child in the same cohort under projection:
+        correct whole_award, no false orphan."""
+        from nih_reporter_mcp.utils import aggregate_funding
+        records = [
+            {"appl_id": 200, "subproject_id": None, "award_amount": 1000000,
+             "fiscal_year": 2024, "core_project_num": "P50HD096723",
+             "organization": {"org_name": "Test Univ"},
+             "agency_ic_admin": {"abbreviation": "NICHD"}},
+            {"appl_id": 201, "subproject_id": "SUB1", "award_amount": 300000,
+             "fiscal_year": 2024, "core_project_num": "P50HD096723",
+             "organization": {"org_name": "Test Univ"},
+             "agency_ic_admin": {"abbreviation": "NICHD"}},
+        ]
+        projected = [self._project(r) for r in records]
+        agg = aggregate_funding(projected, funding_basis="whole_award")
+        assert agg.total_award == 1000000, f"Expected $1M parent only, got ${agg.total_award}"
+        assert agg.subproject_excluded_count == 1
+        assert len(agg.orphan_children) == 0, (
+            f"Parent+child in same cohort should have no orphans, got {agg.orphan_children}"
+        )
+
+    def test_wrong_fy_parent_does_not_suppress_orphan(self):
+        """(c) A parent in FY2023 must NOT satisfy the orphan check for a
+        child in FY2024 of the same core_project_num.  Cross-fiscal-year
+        parent presence is not meaningful for award-identity."""
+        from nih_reporter_mcp.utils import aggregate_funding
+        records = [
+            # Parent in FY2023
+            {"appl_id": 300, "subproject_id": None, "award_amount": 500000,
+             "fiscal_year": 2023, "core_project_num": "P50HD096723",
+             "organization": {"org_name": "Test Univ"},
+             "agency_ic_admin": {"abbreviation": "NICHD"}},
+            # Child in FY2024 — different fiscal year, same core
+            {"appl_id": 301, "subproject_id": "SUB1", "award_amount": 100000,
+             "fiscal_year": 2024, "core_project_num": "P50HD096723",
+             "organization": {"org_name": "Test Univ"},
+             "agency_ic_admin": {"abbreviation": "NICHD"}},
+        ]
+        projected = [self._project(r) for r in records]
+        agg = aggregate_funding(projected, funding_basis="whole_award")
+        # The child's parent is in a DIFFERENT fiscal year — should still be orphan
+        assert 301 in agg.orphan_children, (
+            f"FY2024 child with FY2023-only parent should be orphan, "
+            f"got orphan_children={agg.orphan_children}"
+        )
+        assert not agg.is_exact, "Cross-FY orphan should block is_exact"

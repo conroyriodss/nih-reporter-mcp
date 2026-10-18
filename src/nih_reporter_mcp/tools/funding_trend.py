@@ -50,8 +50,9 @@ def register(mcp: FastMCP) -> None:
                 fiscal_year=year, project_count=agg.record_count,
                 total_award_amount_usd=agg.total_award, complete=complete,
                 records_with_missing_amount=agg.records_with_missing_amount,
+                orphan_child_count=len(agg.orphan_children),
             )
-            return yf, agg.has_unresolved_conflicts, len(agg.id_conflicts)
+            return yf, agg.has_unresolved_conflicts, len(agg.id_conflicts), len(agg.orphan_children)
 
         # Fire all years concurrently — the rate limiter in post_json still
         # serialises upstream HTTP calls to ~1 req/sec on cache misses while
@@ -63,16 +64,21 @@ def register(mcp: FastMCP) -> None:
         any_incomplete = False
         any_conflicts = False
         total_conflicts = 0
+        any_orphans = False
+        total_orphans = 0
         for yr_raw in year_results_raw:
             if isinstance(yr_raw, Exception):
                 raise yr_raw
-            yf, has_conflicts, n_conflicts = yr_raw
+            yf, has_conflicts, n_conflicts, n_orphans = yr_raw
             year_results.append(yf)
             if not yf.complete:
                 any_incomplete = True
             if has_conflicts:
                 any_conflicts = True
                 total_conflicts += n_conflicts
+            if n_orphans > 0:
+                any_orphans = True
+                total_orphans += n_orphans
 
         any_missing = any(yr.records_with_missing_amount > 0 for yr in year_results)
         note_parts = []
@@ -93,10 +99,16 @@ def register(mcp: FastMCP) -> None:
                 "amounts across pages in one or more years; first occurrence "
                 "was counted."
             )
+        if any_orphans:
+            note_parts.append(
+                f"{total_orphans} excluded subproject(s) across one or more years "
+                "had no corresponding parent record in their fiscal year's cohort; "
+                "see per-year orphan_child_count. Those years' totals are not exact."
+            )
         if not note_parts:
             note_parts.append(
                 "All years aggregated exactly: complete retrieval, "
-                "no missing amounts, no conflicting duplicates."
+                "no missing amounts, no conflicting duplicates, no orphan subprojects."
             )
         note = " ".join(note_parts)
         return FundingTrend(

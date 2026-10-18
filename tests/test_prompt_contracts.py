@@ -367,3 +367,43 @@ def test_frozen_eval_q5_llama_is_not_runtime_admissible():
         "inadmissible — the tool rejects it at runtime"
     )
     assert any("at_least_one_non_null" in v for v in violations)
+
+
+def test_tool_output_json_validates_against_schema():
+    """STEP 5: tool_output.json in docs/demonstration_fixture must validate
+    against FundingSummary, Provenance, and EvidenceBundle schemas.
+    Catches drift between the fixture and the current model."""
+    import json
+    from pydantic import BaseModel, Field as PField
+    from nih_reporter_mcp.models import FundingSummary, Provenance
+
+    fixture_path = SRC.parent.parent / "docs" / "demonstration_fixture" / "tool_output.json"
+    assert fixture_path.exists(), f"tool_output.json not found at {fixture_path}"
+
+    with open(fixture_path) as f:
+        bundle = json.load(f)
+
+    # Provenance must parse
+    prov = Provenance(**bundle["provenance"])
+    assert prov.complete is not None
+
+    # Summary must parse (includes distinct_organizations etc.)
+    summ = FundingSummary(**bundle["summary"])
+    assert summ.distinct_organizations >= 0
+    assert summ.distinct_administering_ics >= 0
+    assert summ.pages_fetched >= 1
+    assert summ.counting_unit  # non-empty
+
+    # Full bundle structure
+    class _EvidenceBundle(BaseModel):
+        label: str | None
+        summary: FundingSummary
+        provenance: Provenance
+        reproduction_note: str = PField(
+            ..., description="How to independently reproduce this figure."
+        )
+
+    eb = _EvidenceBundle(**bundle)
+    assert "reproduce" in eb.reproduction_note.lower()
+    # Reproduction note must describe production order: dedup before subproject
+    assert eb.reproduction_note.index("eduplicate") < eb.reproduction_note.index("subproject_id")

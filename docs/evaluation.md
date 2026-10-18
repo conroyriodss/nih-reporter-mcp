@@ -168,6 +168,12 @@ All credentials (Databricks PAT, GitHub PAT) are stored in workspace secrets or 
 
 The Databricks App (`mcp-nih-reporter`) is accessible to **authenticated workspace users via browser** only. It is behind an OAuth/OIDC gate managed by the Databricks platform — there is no public API endpoint reachable by an external automated MCP client without workspace credentials. This is a platform constraint, not a design limitation.
 
+The app exposes two demonstration surfaces:
+
+1. **Evidence Bundle** (always works): Enter any NIH research topic and fiscal year to retrieve a fully-provenanced funding total with reproduction steps, source record IDs, and deduplication metadata. This exercises the core MCP tool pipeline end-to-end without requiring LLM access.
+
+2. **Ask agent loop** (requires serving endpoint): Sends a natural-language question to a Databricks-hosted LLM which autonomously selects and chains the MCP tools. Requires that the app's service principal has `CAN_QUERY` access to the `databricks-gpt-5-5` serving endpoint (declared in `app.yaml` resources). If the agent returns an error, the Evidence Bundle above remains the primary verified demonstration.
+
 **Primary reproducible artifacts** (available without workspace access):
 - The public GitHub repository (`github.com/conroyriodss/nih-reporter-mcp`) containing all source, tests, and documentation
 - The companion Databricks notebook (`notebook-merged`) with frozen execution outputs from October 16, 2026

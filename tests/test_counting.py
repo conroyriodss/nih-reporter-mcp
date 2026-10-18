@@ -400,3 +400,58 @@ def test_publication_year_join():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestReproductionNoteOrder:
+    """GAP 2: The reproduction_note must describe the ACTUAL code order:
+    deduplicate by appl_id FIRST, then exclude subprojects, then exclude
+    null amounts, then sum. If the note says a different order, it's wrong."""
+
+    def test_note_order_matches_code_dedup_before_subproject(self):
+        """The reproduction_note for whole_award must say 'Deduplicate' before
+        'Exclude subproject' — matching the actual aggregate_funding code."""
+        from pathlib import Path
+        eb_path = Path(__file__).parent.parent / "src" / "nih_reporter_mcp" / "tools" / "evidence_bundle.py"
+        source = eb_path.read_text()
+        # Find the whole_award reproduction note block — it starts after
+        # 'if funding_basis == "whole_award":' and spans multiple string lines.
+        marker = 'if funding_basis == "whole_award":'
+        idx = source.find(marker)
+        assert idx != -1, "Could not find whole_award branch in evidence_bundle.py"
+        # Grab the next ~1000 chars which contain the full repro note
+        note_block = source[idx:idx + 1500]
+
+        # The note must describe dedup BEFORE subproject exclusion
+        dedup_pos = note_block.find("eduplicate")  # "Deduplicate" or "deduplicate"
+        subproject_pos = note_block.find("subproject_id")
+        assert dedup_pos != -1, f"Reproduction note missing deduplicate step in: {note_block[:200]}"
+        assert subproject_pos != -1, "Reproduction note missing subproject step"
+        assert dedup_pos < subproject_pos, (
+            f"Reproduction note says subproject exclusion (pos {subproject_pos}) "
+            f"BEFORE deduplication (pos {dedup_pos}), but production code "
+            f"deduplicates first. Note must match code order."
+        )
+
+    def test_aggregate_funding_dedup_then_exclude_on_conflict(self):
+        """Synthetic proof: child-first, parent-second with same appl_id.
+        Code deduplicates first (child wins), then excludes (child is subproject).
+        If the order were reversed (exclude first, then dedup), the parent would
+        survive and produce a different total."""
+        from nih_reporter_mcp.utils import aggregate_funding
+        records = [
+            # Child seen first (subproject, $100)
+            {"appl_id": 999, "subproject_id": "SUB1", "award_amount": 100,
+             "fiscal_year": 2024, "core_project_num": "R01XX000001"},
+            # Parent seen second (same appl_id, $500) — should be deduped
+            {"appl_id": 999, "subproject_id": None, "award_amount": 500,
+             "fiscal_year": 2024, "core_project_num": "R01XX000001"},
+        ]
+        agg = aggregate_funding(records, funding_basis="whole_award")
+        # Production order: dedup first → child wins → then exclude subproject
+        # → child excluded → total $0, with conflict flagged
+        assert agg.total_award == 0, (
+            f"Expected $0 (child wins dedup, then excluded as subproject), "
+            f"got ${agg.total_award}"
+        )
+        assert agg.deduped_count == 1, "Parent should be deduped"
+        assert agg.has_unresolved_conflicts, "Different amounts = conflict"

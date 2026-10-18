@@ -267,7 +267,13 @@ async def paginate_all(
                 "RePORTER returned a malformed response (missing 'meta' or "
                 "'results' keys). The upstream API may be experiencing issues."
             )
-        total = (data.get("meta") or {}).get("total", 0)
+        meta = data.get("meta") or {}
+        if "total" not in meta:
+            raise RuntimeError(
+                "RePORTER returned a malformed response (meta present but "
+                "missing 'total' key). Cannot determine result completeness."
+            )
+        total = meta["total"]
         results = data.get("results") or []
         all_results.extend(results)
         pages_fetched += 1

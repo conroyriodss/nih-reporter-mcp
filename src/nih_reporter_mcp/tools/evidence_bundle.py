@@ -193,13 +193,15 @@ def register(mcp: FastMCP) -> None:
             repro = (
                 "To reproduce: (1) POST query_criteria to source_api and "
                 "paginate all pages (offset in steps of 500 up to the "
-                "record retrieval cap). (2) Exclude any record whose "
-                "subproject_id is non-null. (3) Deduplicate by appl_id. "
-                "(4) Exclude records whose award_amount is null (these are "
-                "reported separately in records_with_missing_amount, not "
-                "counted as $0). (5) Sum award_amount over the remaining "
-                "records. The contributing appl_ids are listed in "
-                "source_record_ids; records_aggregated gives the true "
+                "record retrieval cap). (2) Deduplicate by appl_id "
+                "(first occurrence wins; flag conflicts where the same "
+                "appl_id appears with different amounts). (3) Exclude "
+                "any remaining record whose subproject_id is non-null. "
+                "(4) Exclude records whose award_amount is null (these "
+                "are reported separately in records_with_missing_amount, "
+                "not counted as $0). (5) Sum award_amount over the "
+                "remaining records. The contributing appl_ids are listed "
+                "in source_record_ids; records_aggregated gives the true "
                 "contributing count."
                 + cap_note
             )

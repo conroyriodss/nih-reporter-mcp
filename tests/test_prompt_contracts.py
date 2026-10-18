@@ -233,3 +233,42 @@ def test_project_summary_fields_abstract_and_dates():
             f"ProjectSummary missing '{field}' — needed by prompts that "
             "reference project abstracts and funding periods"
         )
+
+
+def test_portfolio_brief_no_stale_counting_unit_language():
+    """GAP 3: portfolio_brief must NOT instruct the agent to say parent and
+    subproject records are 'counted separately' — that contradicts
+    whole_award semantics where subprojects are EXCLUDED."""
+    text = PROMPT_TEXTS["portfolio_brief"]
+    # The prompt should not contain language that contradicts whole_award
+    assert "counted separately" not in text, (
+        "portfolio_brief still says 'counted separately' but default "
+        "funding_basis=whole_award EXCLUDES subprojects"
+    )
+
+
+def test_portfolio_brief_outputs_derivable_from_tools():
+    """GAP 3: Every output the prompt requests must be derivable from the
+    tools it actually calls (summarize_funding_by_topic and
+    export_evidence_bundle). IC rankings by count and mechanism distributions
+    are NOT available from these tools."""
+    text = PROMPT_TEXTS["portfolio_brief"]
+    calls = _extract_tool_calls_from_prompt(text)
+    tool_names = {name for name, _ in calls}
+
+    # The prompt calls summarize_funding_by_topic and export_evidence_bundle.
+    # These return FundingSummary + Provenance — which include
+    # distinct_organizations and distinct_administering_ics as COUNTS,
+    # but NOT per-IC project lists or per-mechanism breakdowns.
+
+    # If the prompt asks for "IC rankings by distinct project count" or
+    # "mechanism distribution inferred from search results" but does NOT
+    # call search_funded_projects, that's an unsupported claim.
+    if "search_funded_projects" not in tool_names:
+        # Should not request per-record IC rankings or mechanism distributions
+        import re
+        # Check for claims about inferring from search results
+        assert "inferred from" not in text.lower() and "search results" not in text.lower(), (
+            "portfolio_brief requests outputs 'inferred from search results' "
+            "but does not call search_funded_projects"
+        )

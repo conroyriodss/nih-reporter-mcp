@@ -419,6 +419,28 @@ class TestPartC_MockedUpstreamFailures:
                 run(paginate_all({"criteria": {}, "include_fields": []}))
 
 
+
+    def test_meta_present_but_no_total_key(self):
+        """GAP 1: {meta: {}, results: []} must NOT produce complete=True
+        with total=0.  meta exists but lacks 'total' — this is malformed,
+        not a legitimate empty result."""
+        from nih_reporter_mcp.utils import paginate_all
+
+        mock_resp = self._make_mock_response(
+            status_code=200,
+            json_data={"meta": {}, "results": []},  # meta present, no "total"
+        )
+        mock_client = AsyncMock()
+        mock_client.post.return_value = mock_resp
+
+        with patch("nih_reporter_mcp.utils.httpx.AsyncClient") as MockClient:
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            # Should NOT silently return complete=True, total=0.
+            # Either raise RuntimeError or return complete=False.
+            with pytest.raises(RuntimeError, match="malformed"):
+                run(paginate_all({"criteria": {}, "include_fields": []}))
+
 # ══════════════════════════════════════════════════════════════════════════════
 # PART D — Stability across repeated calls
 # ══════════════════════════════════════════════════════════════════════════════

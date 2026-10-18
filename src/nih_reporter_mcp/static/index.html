@@ -63,6 +63,51 @@
   <h1>NIH RePORTER MCP — Test Interface</h1>
   <p class="subtitle">Internal testing harness — agent + tool trace + evidence inspection</p>
 
+  <div class="card" style="background:#f0f4ff;border-color:#b8d0ff;margin-bottom:16px;">
+    <p style="font-size:0.85em;margin-bottom:6px;">
+      <strong>Primary artifacts:</strong>
+      <a href="https://github.com/conroyriodss/nih-reporter-mcp" target="_blank">GitHub repo</a> ·
+      <a href="https://github.com/conroyriodss/nih-reporter-mcp/blob/main/notebooks/notebook-merged.ipynb" target="_blank">Notebook (with outputs)</a> ·
+      <a href="https://github.com/conroyriodss/nih-reporter-mcp/blob/main/docs/evaluation.md" target="_blank">Evaluation</a> ·
+      <a href="https://github.com/conroyriodss/nih-reporter-mcp/blob/main/docs/presentation/slides.md" target="_blank">Slides</a>
+    </p>
+    <p style="font-size:0.82em;color:var(--muted);margin:0;">
+      The <strong>Evidence Bundle</strong> panel below demonstrates the verified MCP tool pipeline — enter any
+      NIH research topic and get a fully-provenanced funding total with reproduction steps.
+      The <strong>Ask</strong> agent loop (further below) chains an LLM with these tools; it requires
+      Databricks workspace authentication and serving endpoint access.
+    </p>
+  </div>
+
+  <!-- Evidence Panel -->
+  <div id="evidence-card" class="card">
+    <h2>Evidence Bundle</h2>
+    <p style="font-size:0.85em;color:var(--muted)">Inspect the provenance behind any funding figure.
+       Enter a topic and fiscal year, then click to retrieve the full evidence bundle.</p>
+    <div class="input-row" style="margin-top:10px">
+      <input id="ev-topic" type="text" placeholder="Topic (e.g. CRISPR sickle cell)" value="CRISPR sickle cell">
+      <input id="ev-fy" type="text" placeholder="FY (e.g. 2024)" value="2024" style="max-width:80px">
+      <select id="ev-basis">
+        <option value="whole_award">whole_award (deduped)</option>
+        <option value="all_records">all_records (raw)</option>
+      </select>
+      <button id="ev-btn" class="evidence-btn" onclick="doEvidence()">Get Evidence</button>
+    </div>
+    <div id="ev-content" class="evidence-content hidden"></div>
+  </div>
+
+
+
+  <!-- Ask Agent Loop (requires LLM serving endpoint) -->
+  <div class="card" style="margin-bottom:4px;padding:10px 16px;background:#fff8e1;border-color:#ffe0b2;">
+    <p style="font-size:0.82em;color:#7c6000;margin:0;">
+      <strong>Agent loop:</strong> This sends your question to a Databricks-hosted LLM which autonomously
+      selects and chains the MCP tools above. Requires workspace OIDC authentication and
+      serving endpoint access. If the agent returns an error, the Evidence Bundle above
+      remains the primary verified demonstration.
+    </p>
+  </div>
+
   <div class="input-row">
     <input id="question" type="text" placeholder="Ask about NIH funding..."
            value="How much did NIH spend on CRISPR sickle cell research in FY2024?">
@@ -83,23 +128,6 @@
       <thead><tr><th>#</th><th>Tool</th><th>Arguments</th><th>Latency</th><th>Status</th></tr></thead>
       <tbody id="trace-body"></tbody>
     </table>
-  </div>
-
-  <!-- Evidence Panel -->
-  <div id="evidence-card" class="card hidden">
-    <h2>Evidence Bundle</h2>
-    <p style="font-size:0.85em;color:var(--muted)">Inspect the provenance behind any funding figure.
-       Enter a topic and fiscal year, then click to retrieve the full evidence bundle.</p>
-    <div class="input-row" style="margin-top:10px">
-      <input id="ev-topic" type="text" placeholder="Topic (e.g. CRISPR sickle cell)" value="CRISPR sickle cell">
-      <input id="ev-fy" type="text" placeholder="FY (e.g. 2024)" value="2024" style="max-width:80px">
-      <select id="ev-basis">
-        <option value="whole_award">whole_award (deduped)</option>
-        <option value="all_records">all_records (raw)</option>
-      </select>
-      <button id="ev-btn" class="evidence-btn" onclick="doEvidence()">Get Evidence</button>
-    </div>
-    <div id="ev-content" class="evidence-content hidden"></div>
   </div>
 
   <!-- Loading indicator -->
@@ -137,7 +165,7 @@ async function doAsk() {
   $("loading").classList.remove("hidden");
   $("answer-card").classList.add("hidden");
   $("trace-card").classList.add("hidden");
-  $("evidence-card").classList.add("hidden");
+  // evidence panel stays visible
 
   try {
     const r = await fetch("/ask", {

@@ -134,16 +134,22 @@ def test_ground_truth_exact_match():
 
 
 def test_double_counting_arithmetic():
-    """Validates the double-counting arithmetic independently against raw
-    API data (does NOT call the production aggregate_funding tool).
+    """Validates double-counting via PRODUCTION aggregate_funding on real
+    fetched records (unprojected AND AGG_FIELDS-projected).
 
-    For a confirmed multi-component grant, fetches records directly from
-    RePORTER and verifies that parent-only sum < all-records sum, and the
-    delta equals the summed subproject amounts — proving the fix removes
-    real double-counted dollars, not a cosmetic relabel."""
+    For U19AG068753 FY2024 (confirmed multi-component grant), fetches
+    records directly from RePORTER and runs them through aggregate_funding
+    — the same code path the tools use — proving the production code
+    correctly separates whole_award from all_records.
+
+    Rewritten from the original local-math version (which computed
+    all_sum = parent_sum + sub_sum, making the delta-equality an
+    arithmetic identity that proved nothing about the production tool)."""
 
     async def _run():
-        # (a) Raw fetch confirms multiple records for one core project
+        from nih_reporter_mcp.utils import aggregate_funding, AGG_FIELDS
+
+        # (a) Raw fetch — include CoreProjectNum so orphan detection works
         raw = await _raw_fetch(
             {"project_nums": ["U19AG068753"], "fiscal_years": [2024]},
         )
@@ -156,28 +162,45 @@ def test_double_counting_arithmetic():
         assert len(parents) >= 1, "Must have at least one parent record"
         assert len(subs) >= 1, "Must have at least one subproject record"
 
+        # (b) PRODUCTION aggregation — whole_award
+        agg_whole = aggregate_funding(raw, funding_basis="whole_award")
+        assert agg_whole.subproject_excluded_count >= 1, (
+            "whole_award must exclude subprojects"
+        )
+
+        # (c) PRODUCTION aggregation — all_records
+        agg_all = aggregate_funding(raw, funding_basis="all_records")
+        assert agg_all.total_award > agg_whole.total_award, (
+            f"all_records (${agg_all.total_award:,.0f}) should exceed "
+            f"whole_award (${agg_whole.total_award:,.0f}) for a multi-component grant"
+        )
+
+        # (d) whole_award equals the independently-computed parent sum
         parent_sum = sum(
             r["award_amount"] for r in parents if r.get("award_amount")
         )
-        sub_sum = sum(
-            r["award_amount"] for r in subs if r.get("award_amount")
-        )
-        all_sum = parent_sum + sub_sum
-
-        # (b) all_records > whole_award
-        assert all_sum > parent_sum
-
-        # (c) whole_award equals the sum of parent-only records
-        wa_total, _, _, _ = _whole_award_sum(raw)
-        assert wa_total == parent_sum, (
-            f"whole_award ({wa_total}) != parent sum ({parent_sum})"
+        assert agg_whole.total_award == parent_sum, (
+            f"PRODUCTION whole_award (${agg_whole.total_award:,.0f}) != "
+            f"independent parent sum (${parent_sum:,.0f})"
         )
 
-        # (d) delta is nonzero and equals subproject amounts
-        delta = all_sum - parent_sum
+        # (e) Delta is real and nonzero
+        delta = agg_all.total_award - agg_whole.total_award
         assert delta > 0, "Delta must be nonzero (real double-counted dollars)"
-        assert delta == sub_sum, (
-            f"Delta ({delta}) should equal subproject sum ({sub_sum})"
+
+        # (f) Also verify under AGG_FIELDS projection (production field set)
+        field_map = {
+            "ApplId": "appl_id", "SubprojectId": "subproject_id",
+            "CoreProjectNum": "core_project_num", "AwardAmount": "award_amount",
+            "Organization": "organization", "AgencyIcAdmin": "agency_ic_admin",
+            "FiscalYear": "fiscal_year",
+        }
+        allowed = {field_map.get(f, f.lower()) for f in AGG_FIELDS}
+        projected = [{k: v for k, v in r.items() if k in allowed} for r in raw]
+        agg_proj = aggregate_funding(projected, funding_basis="whole_award")
+        assert agg_proj.total_award == agg_whole.total_award, (
+            f"Projected whole_award (${agg_proj.total_award:,.0f}) != "
+            f"unprojected (${agg_whole.total_award:,.0f})"
         )
 
     asyncio.run(_run())
@@ -340,6 +363,112 @@ def test_overlap_completeness_flag():
         if not d.complete:
             assert "retrieval ceiling" in d.note.lower() or "warning" in d.note.lower(), (
                 "Incomplete result must warn about truncation in note"
+            )
+
+    asyncio.run(_run())
+
+
+
+# ── Test 7: Drift-tolerant regression — CRISPR FY2023 headline figures ─────
+#
+# Reference values live-verified 2026-10-16 via raw curl.
+# Tolerance: ±3% — large enough for legitimate new-award drift over months,
+# but will catch a real regression (e.g. double-counting reappearing would
+# produce >10% inflation).
+#
+# If a figure drifts beyond the band, re-verify against the live API before
+# updating the reference.  A genuine correction should come with a new
+# retrieval date and updated findings.md.
+# ──────────────────────────────────────────────────────────────────────
+
+CRISPR_FY2023_WHOLE_AWARD_REF = 836_981_580.0     # live-verified 2026-10-16
+CRISPR_FY2023_ALL_RECORDS_REF = 921_543_173.0      # live-verified 2026-10-16
+CRISPR_FY2023_OVERSTATEMENT_REF = 10.1             # percentage
+ALZ_FY2023_WHOLE_AWARD_REF = 4_020_899_771.0       # live-verified 2026-10-16
+ALZ_FY2023_ALL_RECORDS_REF = 4_685_253_389.0       # live-verified 2026-10-16
+ALZ_FY2023_OVERSTATEMENT_REF = 16.5                # percentage
+DRIFT_TOLERANCE_PCT = 3.0                          # ±3%
+
+
+def _within_band(actual: float, reference: float, tolerance_pct: float = DRIFT_TOLERANCE_PCT) -> bool:
+    """True if actual is within ±tolerance_pct of reference."""
+    lo = reference * (1 - tolerance_pct / 100)
+    hi = reference * (1 + tolerance_pct / 100)
+    return lo <= actual <= hi
+
+
+def test_crispr_fy2023_regression():
+    """CRISPR FY2023 headline figures within ±3% of live-verified references.
+    Regression guard for Finding 14 table values."""
+
+    async def _run():
+        async with Client(MCP_URL) as c:
+            r_whole = await c.call_tool("summarize_funding_by_topic", {
+                "topic": "CRISPR gene editing", "fiscal_years": [2023],
+                "funding_basis": "whole_award",
+            })
+            r_all = await c.call_tool("summarize_funding_by_topic", {
+                "topic": "CRISPR gene editing", "fiscal_years": [2023],
+                "funding_basis": "all_records",
+            })
+
+        wa = r_whole.data.total_award_amount_usd
+        ar = r_all.data.total_award_amount_usd
+
+        assert _within_band(wa, CRISPR_FY2023_WHOLE_AWARD_REF), (
+            f"CRISPR FY2023 whole_award ${wa:,.0f} outside ±{DRIFT_TOLERANCE_PCT}% "
+            f"of reference ${CRISPR_FY2023_WHOLE_AWARD_REF:,.0f} "
+            f"(verified 2026-10-16). Re-verify before updating."
+        )
+        assert _within_band(ar, CRISPR_FY2023_ALL_RECORDS_REF), (
+            f"CRISPR FY2023 all_records ${ar:,.0f} outside ±{DRIFT_TOLERANCE_PCT}% "
+            f"of reference ${CRISPR_FY2023_ALL_RECORDS_REF:,.0f}"
+        )
+
+        # Overstatement percentage should stay in the same ballpark
+        if wa > 0:
+            overstatement = (ar - wa) / wa * 100
+            assert 5.0 <= overstatement <= 20.0, (
+                f"CRISPR FY2023 overstatement {overstatement:.1f}% outside "
+                f"expected range 5-20% (reference: {CRISPR_FY2023_OVERSTATEMENT_REF}%)"
+            )
+
+    asyncio.run(_run())
+
+
+def test_alzheimers_fy2023_regression():
+    """Alzheimer's FY2023 headline figures within ±3% of live-verified references.
+    Regression guard for Finding 14 table values."""
+
+    async def _run():
+        async with Client(MCP_URL) as c:
+            r_whole = await c.call_tool("summarize_funding_by_topic", {
+                "topic": "Alzheimer's disease", "fiscal_years": [2023],
+                "funding_basis": "whole_award",
+            })
+            r_all = await c.call_tool("summarize_funding_by_topic", {
+                "topic": "Alzheimer's disease", "fiscal_years": [2023],
+                "funding_basis": "all_records",
+            })
+
+        wa = r_whole.data.total_award_amount_usd
+        ar = r_all.data.total_award_amount_usd
+
+        assert _within_band(wa, ALZ_FY2023_WHOLE_AWARD_REF), (
+            f"Alzheimer's FY2023 whole_award ${wa:,.0f} outside ±{DRIFT_TOLERANCE_PCT}% "
+            f"of reference ${ALZ_FY2023_WHOLE_AWARD_REF:,.0f} "
+            f"(verified 2026-10-16). Re-verify before updating."
+        )
+        assert _within_band(ar, ALZ_FY2023_ALL_RECORDS_REF), (
+            f"Alzheimer's FY2023 all_records ${ar:,.0f} outside ±{DRIFT_TOLERANCE_PCT}% "
+            f"of reference ${ALZ_FY2023_ALL_RECORDS_REF:,.0f}"
+        )
+
+        if wa > 0:
+            overstatement = (ar - wa) / wa * 100
+            assert 10.0 <= overstatement <= 25.0, (
+                f"Alzheimer's FY2023 overstatement {overstatement:.1f}% outside "
+                f"expected range 10-25% (reference: {ALZ_FY2023_OVERSTATEMENT_REF}%)"
             )
 
     asyncio.run(_run())

@@ -272,3 +272,98 @@ def test_portfolio_brief_outputs_derivable_from_tools():
             "portfolio_brief requests outputs 'inferred from search results' "
             "but does not call search_funded_projects"
         )
+
+
+# ── Runtime-admissibility rules ────────────────────────────────────────────
+# Tools have cross-parameter constraints (anyOf, enum, at-least-one-of)
+# that structural validation (type + name) misses.  These rules define
+# the real admissibility boundary.
+#
+# If the eval claims "100% argument validity," every trial must also pass
+# these rules — not just type/name checks.
+
+_RUNTIME_ADMISSIBILITY_RULES: dict[str, list] = {
+    # At least one of the listed params must be non-null/non-empty
+    "get_project_by_id": [
+        ("at_least_one_non_null", ["appl_id", "core_project_num"]),
+    ],
+    "summarize_funding_by_topic": [
+        ("at_least_one_non_null", ["topic", "spending_category"]),
+        ("enum", "funding_basis", ["whole_award", "all_records"]),
+    ],
+    "export_evidence_bundle": [
+        ("at_least_one_non_null", ["topic", "spending_category"]),
+        ("enum", "funding_basis", ["whole_award", "all_records"]),
+    ],
+    "funding_trend_by_year": [
+        ("at_least_one_non_null", ["topic", "spending_category"]),
+        ("enum", "funding_basis", ["whole_award", "all_records"]),
+    ],
+    "organization_funding_profile": [
+        ("enum", "funding_basis", ["whole_award", "all_records"]),
+    ],
+}
+
+
+def check_runtime_admissibility(tool_name: str, args: dict | None) -> tuple[bool, list[str]]:
+    """Check whether a tool call with these args would be ACCEPTED at runtime.
+    Returns (admissible, list_of_violations)."""
+    if args is None:
+        return False, ["args is None"]
+    rules = _RUNTIME_ADMISSIBILITY_RULES.get(tool_name, [])
+    violations = []
+    for rule in rules:
+        if rule[0] == "at_least_one_non_null":
+            param_names = rule[1]
+            if not any(args.get(p) not in (None, "", 0) for p in param_names):
+                violations.append(
+                    f"at_least_one_non_null({param_names}): "
+                    f"all are null/empty/absent — tool would raise ValueError"
+                )
+        elif rule[0] == "enum":
+            param_name = rule[1]
+            allowed = rule[2]
+            val = args.get(param_name)
+            if val is not None and val not in allowed:
+                violations.append(
+                    f"enum({param_name}): '{val}' not in {allowed}"
+                )
+    return len(violations) == 0, violations
+
+
+def test_runtime_admissibility_rules_are_exhaustive():
+    """Sanity: every tool with a raise ValueError('Provide ...') or
+    enum constraint in its source must have a matching rule above."""
+    import re
+    tools_dir = SRC / "tools"
+    for fp in sorted(tools_dir.glob("*.py")):
+        if fp.name == "__init__.py":
+            continue
+        text = fp.read_text()
+        # Find tool functions
+        for m in re.finditer(r"@mcp\.tool\s+async\s+def\s+(\w+)", text):
+            tool_name = m.group(1)
+            # Check for "at least one" patterns
+            at_least = re.findall(
+                r"raise ValueError.*Provide (?:at least one of |either )",
+                text[m.end():m.end() + 500],
+            )
+            if at_least:
+                assert tool_name in _RUNTIME_ADMISSIBILITY_RULES, (
+                    f"{tool_name} has at-least-one-of constraint but no "
+                    f"admissibility rule defined"
+                )
+
+
+def test_frozen_eval_q5_llama_is_not_runtime_admissible():
+    """The audit found Llama Q5 generates {appl_id: null, core_project_num: null}
+    for get_project_by_id.  This PASSES structural validation (correct param
+    names, correct types) but FAILS at runtime (ValueError: 'Provide either
+    appl_id or core_project_num').  Confirm the admissibility check catches it."""
+    args = {"appl_id": None, "core_project_num": None}
+    admissible, violations = check_runtime_admissibility("get_project_by_id", args)
+    assert not admissible, (
+        "get_project_by_id({appl_id: null, core_project_num: null}) should be "
+        "inadmissible — the tool rejects it at runtime"
+    )
+    assert any("at_least_one_non_null" in v for v in violations)

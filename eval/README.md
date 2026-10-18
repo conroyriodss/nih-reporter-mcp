@@ -21,7 +21,7 @@ Tests are split into two kinds, deliberately distinguished:
 
 **Tool-selection determinism (§14d, notebook-only):** 3 representative questions each run 5 times on GPT-5-5. Measures whether tool SELECTION is stable across repeats (distinct from the call-count efficiency guard in §13). As of 2026-10-16: 3/3 stable, zero flickers. See `docs/findings.md` #15.
 
-**Argument validity rate (§14e, notebook-only):** For each of the 8 cases × 3 models, validates that model-generated tool arguments conform to the tool’s input schema (correct param names, correct types, required params present). This is the named benchmark metric. As of 2026-10-16: 24/24 (100%) across all models. See `docs/findings.md` #16.
+**Argument validity rate (§14e, notebook-only):** For each of the 8 cases × 3 models, validates that model-generated tool arguments conform to the tool’s input schema (correct param names, correct types, required params present) AND pass runtime admissibility (cross-parameter constraints like at-least-one-of). This is the named benchmark metric. As of 2026-10-18: **23/24 (96%)** — one call (Llama Q5: `get_project_by_id({appl_id: null, core_project_num: null})`) is structurally valid but runtime-inadmissible. See `docs/findings.md` #17.
 
 **Tool-call efficiency regression guard** — a specific, previously-observed failure mode (an LLM agent re-querying near-identical phrasings believing minor rewording changes results) is now a permanent assertion: the same question run 3 times must average ≤1.5 tool calls. See `docs/findings.md` #8 for the full before/after measurement that motivated this.
 

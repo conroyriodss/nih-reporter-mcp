@@ -122,7 +122,7 @@ A separate frozen fixture (`docs/demonstration_fixture_double_counting/`, U19AG0
 
 ## 14. Correctness-against-ground-truth: overstatement ranges from 9% to 14% across topics
 
-**Verified in v0.9.0 (`tests/test_correctness.py`).** The v0.8.0 counting fix was validated against two independently-derived ground truths:
+**Regression-guarded (`tests/test_correctness.py`, drift-tolerant ±3%).** The v0.8.0 counting fix was initially validated in v0.9.0 against two independently-derived ground truths; headline figures are now regression-tested with drift-tolerant assertions (±3% band, reference date 2026-10-16) so they cannot silently drift unflagged:
 
 | Topic (FY2023) | all_records (naive) | whole_award (corrected) | Delta | Overstatement (delta/corrected) | Subprojects excluded | Missing amounts |
 |---|---:|---:|---:|---:|---:|---:|
@@ -134,7 +134,7 @@ The Alzheimer’s overstatement (16.5%) is larger than CRISPR’s (10.1%) becaus
 Additional correctness evidence (`tests/test_correctness.py`, 5 tests):
 
 - **Ground-truth exact match**: “CRISPR sickle cell” FY2024 (38 records, independently fetched via curl and hand-computed) matches the tool’s whole_award total **to the dollar** ($19,790,134).
-- **Double-counting proof**: U19AG068753 FY2024 — 1 parent ($5,130,473) + 7 subprojects (sum $5,130,473) = $10,260,946 naive. The delta ($5,130,473) is **exactly** the summed subproject amounts, proving the fix removes real double-counted dollars.
+- **Double-counting proof**: U19AG068753 FY2024 — runs production `aggregate_funding` (both unprojected and AGG_FIELDS-projected) on raw fetched records, asserts whole_award equals parent-only sum and all_records exceeds it by the subproject delta. Proves the production code, not local arithmetic.
 - **Provenance reproducibility**: Re-fetching `source_record_ids` from `export_evidence_bundle`, applying whole_award rules independently, and re-summing **reproduces the reported total exactly**.
 - **Missing-amount honesty**: CRISPR FY2023 reports `records_with_missing_amount=7` and does not claim the total is “exact”; those records are excluded from the total, not zeroed to $0.
 - **Cross-tool consistency**: `whole_award` < `all_records` with nonzero `subproject_excluded_count`, verified across multiple tools for the same query.
@@ -175,7 +175,7 @@ Overall: **22/24 (92%)** correct across all trials. 6/8 cases had unanimous agre
 
 **Notebook reference:** `notebook-merged`, §14d (cell 35). Notebook-only (requires model access).
 
-## 17. Argument validity rate: 100% across all models
+## 17. Argument validity rate: 23/24 (96%) with runtime admissibility
 
 **Test:** For each of the 8 TOOL_SELECTION_CASES × 3 models (24 trials total), capture the raw arguments the model generates and validate them against the tool’s input_schema:
 - Required parameters present
@@ -188,12 +188,12 @@ Overall: **22/24 (92%)** correct across all trials. 6/8 cases had unanimous agre
 |---|---|
 | databricks-gpt-5-5 | 8/8 (100%) |
 | databricks-claude-sonnet-4-6 | 8/8 (100%) |
-| databricks-meta-llama-3-3-70b-instruct | 8/8 (100%) |
+| databricks-meta-llama-3-3-70b-instruct | 7/8 (88%) — Q5 runtime-inadmissible |
 
-Overall: **24/24 (100%)** — every model generated valid arguments for every tool call.
+Overall: **23/24 (96%)** — one call (Llama Q5) is structurally valid but runtime-inadmissible: `get_project_by_id({appl_id: null, core_project_num: null})` passes type/name checks but the tool rejects it with "Provide either appl_id or core_project_num."
 
-**Observations:** Models differ in how many optional parameters they populate (GPT-5-5 tends to include more optional parameters like `funding_basis` and `include_provenance`; Claude and Llama generate more minimal argument sets), but all are structurally valid. No model produced unknown parameter names, type mismatches, or omitted required parameters.
+**Observations:** Models differ in how many optional parameters they populate (GPT-5-5 tends to include more optional parameters; Claude and Llama generate more minimal sets). All 24 calls are structurally valid (correct names, types, required params). However, the runtime-admissibility check catches 1 call: Llama Q5 generates `{appl_id: null, core_project_num: null}` for `get_project_by_id` — structurally valid (both params are optional in the schema) but rejected at runtime because at-least-one must be non-null. The eval now includes this cross-parameter check.
 
-**Why it matters:** This is the named benchmark metric for the eval. A high argument validity rate confirms that the tool input schemas (types, required/optional distinction, enum constraints) are clear enough for models to generate correct invocations without trial-and-error. Combined with Finding 14 (tool-selection accuracy: 92%) and Finding 15 (determinism: 100%), these three metrics form a complete picture of tool-use quality.
+**Why it matters:** This is the named benchmark metric for the eval. A 96% rate (with 100% structural validity and one runtime-admissibility failure) confirms that tool schemas are clear enough for correct invocations in nearly all cases. The Q5 gap reflects a schema design limitation: `get_project_by_id` marks both params as optional (JSON Schema has no native anyOf-required), so the at-least-one-of constraint is only discoverable from the description. Combined with Finding 14 (tool-selection: 92%) and Finding 15 (determinism: 100%), these three metrics form a complete picture of tool-use quality.
 
 **Notebook reference:** `notebook-merged`, §14e (cell 36). Notebook-only (requires model access).

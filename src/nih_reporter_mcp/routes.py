@@ -43,7 +43,7 @@ def register_routes(mcp: FastMCP) -> None:
             {
                 "server": "nih-reporter-mcp",
                 "version": __version__,
-                "tools": 13,
+                "tools": 14,
                 "prompts": 9,
                 "resources": 2,
                 "spending_categories": len(SPENDING_CATEGORIES),

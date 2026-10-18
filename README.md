@@ -32,6 +32,7 @@ Rather than wrapping RePORTER's raw REST endpoints 1:1, every tool here is desig
 | `get_project_by_id` | Direct lookup by application ID or core project number |
 | `list_publications_for_project` | PubMed IDs linked to a project |
 | `get_publication_details` | Resolves PubMed IDs into full citations (title, journal, authors) via NCBI E-utilities — closes the gap left by RePORTER's publications endpoint, which returns bare IDs only |
+| `clinical_trials_lookup` | Find clinical trials linked to an NIH grant or matching a condition via ClinicalTrials.gov v2. Each link carries an explicit evidence class (`source_asserted` vs `candidate`), NIH-vs-FDA disambiguation via the `type` field, and interventional/observational distinction. Never multiplies grant funding across linked trials |
 
 ## Prompts
 

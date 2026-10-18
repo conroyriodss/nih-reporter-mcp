@@ -10,25 +10,27 @@ Open a GitHub issue or contact the maintainer listed in the repository. This is 
 - No user data is collected, logged, or persisted by this server. All requests are pass-through queries against public government datasets.
 - No PII is processed. NIH RePORTER data includes investigator names, which are already public record as part of federal grant award disclosure.
 
-## Fixed upstream origins (3)
+## Fixed upstream origins (4)
 
-This server contacts exactly three hosts, all hardcoded:
+This server contacts exactly four hosts, all hardcoded:
 
 | Client | File | Host | Protocol |
 |---|---|---|---|
 | RePORTER projects/publications | `utils.py` | `api.reporter.nih.gov` | HTTPS POST |
 | NCBI E-utilities (PubMed) | `tools/publication_details.py` | `eutils.ncbi.nlm.nih.gov` | HTTPS GET |
 | MedlinePlus Web Search | `tools/explain_health_topic.py` | `wsearch.nlm.nih.gov` | HTTPS GET |
+| ClinicalTrials.gov v2 | `utils_ctgov.py` | `clinicaltrials.gov` | HTTPS GET |
 
 No user input is ever used to construct a URL or host.
 
 ## Per-client host allowlists
 
-Every HTTP client validates the target URL's hostname against a per-client allowlist **before** making any network call (`validate_host()` in `utils.py`). Three frozen sets:
+Every HTTP client validates the target URL's hostname against a per-client allowlist **before** making any network call (`validate_host()` in `utils.py`). Four frozen sets:
 
 - `ALLOWED_HOSTS_REPORTER = {"api.reporter.nih.gov"}`
 - `ALLOWED_HOSTS_EUTILS = {"eutils.ncbi.nlm.nih.gov"}`
 - `ALLOWED_HOSTS_WSEARCH = {"wsearch.nlm.nih.gov"}`
+- `ALLOWED_HOSTS_CTGOV = {"clinicaltrials.gov"}`
 
 A request to any other host raises `ValueError` immediately. This is defense-in-depth: the URLs are also hardcoded constants, so a disallowed host would require a code change — but the allowlist catches configuration drift, accidental refactors, or a compromised dependency that attempts to redirect a URL.
 
@@ -38,13 +40,13 @@ Unit-tested in `tests/test_security.py`.
 
 All three HTTP clients enforce all five protections on every outbound request:
 
-| Protection | Purpose | RePORTER | E-utilities | MedlinePlus |
+| Protection | Purpose | RePORTER | E-utilities | MedlinePlus | CT.gov |
 |---|---|:---:|:---:|:---:|
-| `follow_redirects=False` | Block open-redirect abuse | ✅ | ✅ | ✅ |
-| `trust_env=False` | Block env-var proxy injection | ✅ | ✅ | ✅ |
-| Timeout | Bound latency | 30s | 15s | 15s |
-| Response-size cap | Prevent memory exhaustion | 10 MB | 10 MB | 5 MB |
-| Rate limiter | Prevent upstream abuse | 1 req/s | 3 req/s | 2 req/s |
+| `follow_redirects=False` | Block open-redirect abuse | ✅ | ✅ | ✅ | ✅ |
+| `trust_env=False` | Block env-var proxy injection | ✅ | ✅ | ✅ | ✅ |
+| Timeout | Bound latency | 30s | 15s | 15s | 20s |
+| Response-size cap | Prevent memory exhaustion | 10 MB | 10 MB | 5 MB | 5 MB |
+| Rate limiter | Prevent upstream abuse | 1 req/s | 3 req/s | 2 req/s | 2 req/s |
 
 ## Input validation
 

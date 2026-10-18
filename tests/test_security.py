@@ -10,6 +10,7 @@ from __future__ import annotations
 import pytest
 
 from nih_reporter_mcp.utils import (
+    ALLOWED_HOSTS_CTGOV,
     ALLOWED_HOSTS_EUTILS,
     ALLOWED_HOSTS_REPORTER,
     ALLOWED_HOSTS_WSEARCH,
@@ -74,6 +75,22 @@ class TestHostAllowlist:
                 "MedlinePlus",
             )
 
+
+
+    def test_ctgov_allows_correct_host(self):
+        validate_host(
+            "https://clinicaltrials.gov/api/v2/studies/NCT04057716",
+            ALLOWED_HOSTS_CTGOV,
+            "ClinicalTrials.gov",
+        )
+
+    def test_ctgov_rejects_wrong_host(self):
+        with pytest.raises(ValueError, match="not in allowed set"):
+            validate_host(
+                "https://evil.example.com/api/v2/studies",
+                ALLOWED_HOSTS_CTGOV,
+                "ClinicalTrials.gov",
+            )
     def test_allowlist_rejects_none_host(self):
         """A relative URL or garbage string should not pass."""
         with pytest.raises(ValueError, match="not in allowed set"):
@@ -145,6 +162,9 @@ class TestAllowlistConstants:
 
     def test_eutils_hosts(self):
         assert ALLOWED_HOSTS_EUTILS == frozenset({"eutils.ncbi.nlm.nih.gov"})
+
+    def test_ctgov_hosts(self):
+        assert ALLOWED_HOSTS_CTGOV == frozenset({"clinicaltrials.gov"})
 
     def test_wsearch_hosts(self):
         assert ALLOWED_HOSTS_WSEARCH == frozenset({"wsearch.nlm.nih.gov"})

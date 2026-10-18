@@ -5,6 +5,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-10-18
+
+### Added
+- **clinical_trials_lookup** tool (14th tool): find clinical trials linked to
+  NIH grants or matching a condition via ClinicalTrials.gov v2 API.
+  - Forward direction (NCT → grants): parses secondaryIdInfos + orgStudyIdInfo
+  - Reverse direction (grant → NCTs): CT.gov query.id with project_num fallback
+  - Evidence classification: `source_asserted` (structural grant declaration)
+    vs `candidate` (condition search, no direct assertion)
+  - NIH-vs-FDA disambiguation: filters on `type=="NIH"` — an R01-shaped ID
+    from FDA appears as `type="OTHER_GRANT"`, never `type="NIH"`
+  - Interventional/observational distinction via `studyType`
+  - Registered-plan vs actual dates preserved as separate fields (TrialDatePair)
+  - No dollar attribution to trials (prevents double-counting)
+  - Boundary language on every response (link ≠ causation, absence ≠ no relationship)
+- Hardened ClinicalTrials.gov v2 HTTP client (`utils_ctgov.py`):
+  host allowlist, follow_redirects=False, trust_env=False, 20s timeout,
+  5 MB response cap, 0.5s rate limit, 15-min TTL cache.
+- 4 frozen test fixtures with decision ledger (`tests/fixtures/clinical_trials/`)
+- 23 new unit tests (`test_clinical_trials.py`): grant extraction, trial parsing,
+  fixture consistency, input validation, client robustness, counting discipline
+- SECURITY.md updated: 4 upstream origins (was 3)
+
 ## [0.10.0] - 2026-10-15
 
 ### Fixed

@@ -23,6 +23,7 @@ from nih_reporter_mcp.tools import (
     recent_awards,
     search_projects,
     study_section_workload,
+    clinical_trials,
     summarize_funding,
 )
 
@@ -42,6 +43,7 @@ def register_tools(mcp) -> None:
     recent_awards.register(mcp)
     evidence_bundle.register(mcp)
     explain_health_topic.register(mcp)
+    clinical_trials.register(mcp)
 
 
 __all__ = ["register_tools"]

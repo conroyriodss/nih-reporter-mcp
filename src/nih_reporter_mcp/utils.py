@@ -101,6 +101,7 @@ def validate_string_length(
 ALLOWED_HOSTS_REPORTER = frozenset({"api.reporter.nih.gov"})
 ALLOWED_HOSTS_EUTILS = frozenset({"eutils.ncbi.nlm.nih.gov"})
 ALLOWED_HOSTS_WSEARCH = frozenset({"wsearch.nlm.nih.gov"})
+ALLOWED_HOSTS_CTGOV = frozenset({"clinicaltrials.gov"})
 
 
 def validate_host(

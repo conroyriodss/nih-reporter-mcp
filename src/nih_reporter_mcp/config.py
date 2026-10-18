@@ -85,3 +85,12 @@ def resolve_spending_category(category: str | int) -> int:
         "Provide a numeric RCDC category ID instead if you know it (see NIH RePORTER API "
         "Data Elements Appendix I), or use the topic parameter for a free-text search instead."
     )
+
+# ── ClinicalTrials.gov v2 ───────────────────────────────────────────────────
+CTGOV_API_BASE = "https://clinicaltrials.gov/api/v2"
+CTGOV_STUDIES = f"{CTGOV_API_BASE}/studies"
+CTGOV_STUDY = f"{CTGOV_API_BASE}/studies/{{nct_id}}"
+CTGOV_TIMEOUT = 20.0
+CTGOV_MIN_REQUEST_INTERVAL = 0.5     # courtesy; no auth required
+CTGOV_MAX_RESPONSE_BYTES = 5 * 1024 * 1024  # 5 MB
+CTGOV_MAX_PAGE_SIZE = 20

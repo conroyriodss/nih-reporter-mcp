@@ -190,3 +190,110 @@ class PublicationList(BaseModel):
     truncated: bool
     publications: list[Publication]
     note: str
+
+
+# ── Clinical Trials Linkage ─────────────────────────────────────────────────
+
+EVIDENCE_CLASS_SOURCE_ASSERTED = "source_asserted"
+EVIDENCE_CLASS_CANDIDATE = "candidate"
+
+GRANT_TRIAL_BOUNDARY_NOTE = (
+    "A grant↔trial link indicates the trial record references the grant. "
+    "It does NOT establish that the grant caused a trial outcome, does NOT "
+    "identify which fiscal year's funding supported the trial, and a missing "
+    "link does NOT establish that no relationship exists. Registrants control "
+    "which grant IDs appear in a trial record; omissions and errors are common."
+)
+
+DOLLAR_ATTRIBUTION_NOTE = (
+    "No dollar figures are attributed to linked trials. A single NIH award "
+    "may fund multiple trials, and a single trial may cite multiple awards. "
+    "Multiplying grant funding across linked trials would double-count."
+)
+
+
+class TrialDatePair(BaseModel):
+    """Preserves the ClinicalTrials.gov distinction between estimated and actual."""
+    estimated: str | None = Field(None, description="Estimated date (from the registered plan).")
+    actual: str | None = Field(None, description="Actual date (from results reporting).")
+
+
+class LinkedGrant(BaseModel):
+    """A grant ID found in a trial record, with its evidence class."""
+    grant_id: str = Field(..., description="The grant identifier as registered in the trial record.")
+    id_type: str = Field(
+        ..., description="ClinicalTrials.gov secondaryIdInfo type: 'NIH', 'OTHER_GRANT', 'OTHER', 'REGISTRY', 'EUDRACT_NUMBER'."
+    )
+    id_source: str = Field(
+        ..., description="Where the ID appeared: 'secondaryIdInfos' or 'orgStudyIdInfo'."
+    )
+    is_nih: bool = Field(..., description="True if type=='NIH'. The only reliable NIH discriminator.")
+    domain: str | None = Field(
+        None, description="Funder domain (for non-NIH grants, e.g. 'Food and Drug Administration')."
+    )
+    reporter_link: str | None = Field(
+        None, description="Link to NIH RePORTER quick search (present only for type=='NIH')."
+    )
+
+
+class LinkedTrial(BaseModel):
+    """A clinical trial linked to one or more NIH grants."""
+    nct_id: str
+    brief_title: str | None = None
+    overall_status: str | None = None
+    study_type: str | None = Field(
+        None, description="'INTERVENTIONAL' or 'OBSERVATIONAL' (from designModule.studyType)."
+    )
+    phases: list[str] = Field(default_factory=list)
+    lead_sponsor: str | None = None
+    lead_sponsor_class: str | None = Field(
+        None, description="Sponsor class: 'NIH', 'FED', 'OTHER', 'INDUSTRY', etc."
+    )
+    nih_collaborators: list[str] = Field(
+        default_factory=list,
+        description="NIH institute/center collaborators (class=='NIH').",
+    )
+    start_date: TrialDatePair = Field(default_factory=TrialDatePair)
+    completion_date: TrialDatePair = Field(default_factory=TrialDatePair)
+    enrollment: int | None = Field(None, description="Target or actual enrollment count.")
+    enrollment_type: str | None = Field(None, description="'ESTIMATED' or 'ACTUAL'.")
+    linked_grants: list[LinkedGrant] = Field(
+        default_factory=list,
+        description="All grant IDs found in this trial record (NIH and non-NIH).",
+    )
+    nih_grant_ids: list[str] = Field(
+        default_factory=list,
+        description="Subset: only grant IDs with type=='NIH'.",
+    )
+    evidence_class: str = Field(
+        EVIDENCE_CLASS_SOURCE_ASSERTED,
+        description=(
+            "'source_asserted' when the trial record structurally declares "
+            "the NIH grant via type='NIH'; 'candidate' when the link is "
+            "inferred (e.g. condition search, text match without type field)."
+        ),
+    )
+    clinicaltrials_url: str | None = None
+
+
+class ClinicalTrialsResult(BaseModel):
+    """Result of clinical_trials_lookup."""
+    query_type: str = Field(
+        ..., description="'grant' or 'condition' — how the lookup was performed."
+    )
+    query_value: str = Field(..., description="The grant ID or condition searched.")
+    grant_id_variants_tried: list[str] = Field(
+        default_factory=list,
+        description="For grant lookups: all project_num variants tried against CT.gov.",
+    )
+    distinct_trials: int = Field(
+        ..., description="Count of distinct NCT IDs found."
+    )
+    distinct_relationships: int = Field(
+        ..., description="Count of distinct (core_project_num, nct_id) pairs."
+    )
+    trials: list[LinkedTrial]
+    boundary_note: str = GRANT_TRIAL_BOUNDARY_NOTE
+    dollar_attribution_note: str = DOLLAR_ATTRIBUTION_NOTE
+    source_api: str = "https://clinicaltrials.gov/api/v2"
+    retrieved_at: str = Field(..., description="UTC ISO timestamp.")

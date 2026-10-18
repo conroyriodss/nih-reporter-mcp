@@ -1,0 +1,21 @@
+{
+  "nct_id": "NCT00209235",
+  "expected_grant_id": "R21HD078864",
+  "expected_type": "NIH",
+  "expected_id_source": "secondaryIdInfos",
+  "expected_study_type": "INTERVENTIONAL",
+  "expected_evidence_class": "source_asserted",
+  "expected_nih_collaborator_contains": "NICHD",
+  "verified_date": "2026-10-18",
+  "verified_json_slice": {
+    "secondaryIdInfos": [
+      {
+        "id": "R21HD078864",
+        "type": "NIH",
+        "link": "https://reporter.nih.gov/quickSearch/R21HD078864"
+      }
+    ]
+  },
+  "reverse_lookup_grant_id": "R21HD078864",
+  "reverse_lookup_works_with_core": true
+}

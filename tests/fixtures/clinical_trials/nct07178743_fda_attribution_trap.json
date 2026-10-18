@@ -1,0 +1,20 @@
+{
+  "nct_id": "NCT07178743",
+  "expected_grant_id": "75F40122C00181",
+  "expected_type": "OTHER_GRANT",
+  "expected_id_source": "secondaryIdInfos",
+  "expected_is_nih": false,
+  "expected_domain": "Food and Drug Administration",
+  "expected_study_type": "INTERVENTIONAL",
+  "verified_date": "2026-10-18",
+  "verified_json_slice": {
+    "secondaryIdInfos": [
+      {
+        "id": "75F40122C00181",
+        "type": "OTHER_GRANT",
+        "domain": "Food and Drug Administration"
+      }
+    ]
+  },
+  "note": "Attribution trap: FDA contract. type=OTHER_GRANT, NOT type=NIH. Filtering on type=='NIH' correctly excludes this."
+}

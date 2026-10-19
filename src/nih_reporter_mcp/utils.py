@@ -260,6 +260,9 @@ async def paginate_all(
         offset = page * PAGE_SIZE
         if offset > offset_ceiling:
             break
+        # Clamp: don't request beyond known total (avoids 400 on offset > total)
+        if page > 0 and total > 0 and offset >= total:
+            break
         payload = {**base_payload, "offset": offset, "limit": PAGE_SIZE}
         data = await post_json(PROJECTS_SEARCH, payload)
         # Validate upstream response structure (defend against malformed 200s)

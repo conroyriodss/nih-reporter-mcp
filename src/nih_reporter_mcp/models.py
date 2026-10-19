@@ -297,3 +297,19 @@ class ClinicalTrialsResult(BaseModel):
     dollar_attribution_note: str = DOLLAR_ATTRIBUTION_NOTE
     source_api: str = "https://clinicaltrials.gov/api/v2"
     retrieved_at: str = Field(..., description="UTC ISO timestamp.")
+
+
+class GroupByBucket(BaseModel):
+    """One row of a group-by aggregation."""
+    key: str
+    project_count: int
+    total_award_amount_usd: float
+
+
+class GroupByResult(BaseModel):
+    """Ranked aggregation of a cohort by a grouping dimension."""
+    group_by: str
+    total_matching_projects: int
+    buckets: list[GroupByBucket]
+    cohort_complete: bool
+    note: str

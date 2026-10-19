@@ -32,8 +32,8 @@ def register(mcp: FastMCP) -> None:
     ) -> FundingSummary:
         """Quantify total NIH/HHS investment in a research topic (oversight view).
         Paginates through ALL matching projects (up to 10,000) for an exact total."""
-        if not topic and not spending_category and not activity_codes:
-            raise ValueError("Provide at least one of topic, spending_category, or activity_codes.")
+        if not topic and not spending_category and not activity_codes and not fiscal_years:
+            raise ValueError("Provide at least one of topic, spending_category, activity_codes, or fiscal_years.")
         if topic:
             topic = validate_topic(topic)
         fiscal_years = validate_fiscal_years(fiscal_years)
@@ -105,7 +105,7 @@ def register(mcp: FastMCP) -> None:
             )
 
         return FundingSummary(
-            topic=topic or (f"spending_category:{spending_category}" if spending_category else f"activity_codes:{activity_codes}"),
+            topic=topic or (f"spending_category:{spending_category}" if spending_category else (f"activity_codes:{activity_codes}" if activity_codes else f"all_nih_fy:{fiscal_years}")),
             fiscal_years=fiscal_years, total_matching_projects=total,
             projects_aggregated=agg.contributing_count,
             complete=complete, total_award_amount_usd=agg.total_award,

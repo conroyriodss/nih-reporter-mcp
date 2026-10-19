@@ -103,6 +103,31 @@ ALLOWED_HOSTS_EUTILS = frozenset({"eutils.ncbi.nlm.nih.gov"})
 ALLOWED_HOSTS_WSEARCH = frozenset({"wsearch.nlm.nih.gov"})
 ALLOWED_HOSTS_CTGOV = frozenset({"clinicaltrials.gov"})
 
+# ── Application type codes (leading digit of project_num) ───────────
+APPLICATION_TYPES = {
+    1: "New",
+    2: "Competing Renewal",
+    3: "Supplement",
+    4: "Extension",
+    5: "Non-Competing Continuation",
+    6: "Change of Grantee",
+    7: "Application",
+    9: "Other",
+}
+
+
+def parse_application_type(project_num: str | None) -> int | None:
+    """Extract the application type code from the leading digit of project_num.
+
+    NIH encodes the application lifecycle in the first character:
+    1=New, 2=Competing Renewal, 3=Supplement, 5=Non-Competing Continuation, etc.
+    Returns None if project_num is missing or doesn't start with a digit.
+    """
+    if not project_num or not project_num[0].isdigit():
+        return None
+    return int(project_num[0])
+
+
 
 def validate_host(
     url: str, allowed_hosts: frozenset[str], service_name: str,
@@ -303,7 +328,7 @@ def build_criteria(
     topic=None, fiscal_years=None, org_state=None, agencies=None,
     org_names=None, org_names_exact=None, pi_names=None,
     appl_ids=None, project_nums=None, spending_categories=None,
-    activity_codes=None,
+    activity_codes=None, application_types=None,
 ) -> dict:
     # Input-length guards (defense against pathological LLM-generated params)
     validate_list_length(agencies, "agencies")
@@ -334,6 +359,9 @@ def build_criteria(
         criteria["spending_categories"] = {"values": spending_categories, "match_all": False}
     if activity_codes:
         criteria["activity_codes"] = [a.upper().strip() for a in activity_codes]
+    # NOTE: RePORTER's appl_types filter doesn't work reliably server-side.
+    # Application type is filtered CLIENT-SIDE by parsing project_num leading digit.
+    # The application_types parameter is stored in criteria for documentation only.
     return criteria
 
 
@@ -346,12 +374,17 @@ def to_summary(rec: dict) -> ProjectSummary:
     ic = rec.get("agency_ic_admin") or {}
     pis = [p.get("full_name") for p in (rec.get("principal_investigators") or []) if p.get("full_name")]
     appl_id = rec.get("appl_id")
+    pnum = rec.get("project_num") or ""
+    app_type = parse_application_type(pnum)
+    app_type_label = APPLICATION_TYPES.get(app_type) if app_type else None
     return ProjectSummary(
         core_project_num=rec.get("core_project_num") or rec.get("project_num"),
         title=rec.get("project_title"),
         award_amount=rec.get("award_amount"),
         fiscal_year=rec.get("fiscal_year"),
         organization=org.get("org_name"),
+        application_type=app_type,
+        application_type_label=app_type_label,
         org_state=org.get("org_state"),
         principal_investigators=pis,
         administering_ic=ic.get("abbreviation") or ic.get("name"),

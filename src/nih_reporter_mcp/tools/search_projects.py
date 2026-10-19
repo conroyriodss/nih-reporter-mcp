@@ -12,6 +12,8 @@ from nih_reporter_mcp.config import PROJECTS_SEARCH
 from nih_reporter_mcp.models import GroupByBucket, GroupByResult, SearchResult
 from nih_reporter_mcp.utils import (
     AGG_FIELDS,
+    APPLICATION_TYPES,
+    parse_application_type,
     INCLUDE_FIELDS,
     build_criteria,
     paginate_all,
@@ -28,6 +30,7 @@ _GROUP_BY_FIELDS = {
     "activity_code": lambda r: r.get("activity_code") or "Unknown",
     "org_state": lambda r: (r.get("organization") or {}).get("org_state") or "Unknown",
     "administering_ic": lambda r: (r.get("agency_ic_admin") or {}).get("abbreviation") or "Unknown",
+    "application_type": lambda r: APPLICATION_TYPES.get(parse_application_type(r.get("project_num")), "Unknown"),
 }
 
 
@@ -60,11 +63,17 @@ def register(mcp: FastMCP) -> None:
         limit: Annotated[int, Field(ge=1, le=100, description="Max projects to return (1-100).")] = 25,
         sort_by_award: Annotated[bool, Field(description="If true, return the largest awards first.")] = True,
         active_only: Annotated[bool | None, Field(description="If true, restrict to currently active projects only, filtered client-side. If false, only inactive/expired. Omit for both.")] = None,
+        application_types: Annotated[list[int] | None, Field(description=(
+            "Filter by application type code (leading digit of the NIH project number). "
+            "1=New, 2=Competing Renewal, 3=Supplement, 5=Non-Competing Continuation. "
+            "Use this for lifecycle questions like 'non-competing continuations' or 'new awards only'. "
+            "Filtered client-side after retrieval. Example: application_types=[5] for non-competing continuations."
+        ))] = None,
         group_by: Annotated[str | None, Field(description=(
             "Instead of listing individual projects, GROUP results by this dimension "
             "and return a RANKED table of (key, project_count, total_award). "
             "Use this for 'which institution/state/IC got the most' questions. "
-            "Valid values: 'organization', 'activity_code', 'org_state', 'administering_ic'. "
+            "Valid values: 'organization', 'activity_code', 'org_state', 'administering_ic', 'application_type'. "
             "When group_by is set, the tool paginates the FULL matching cohort "
             "(up to 10,000 records) and returns the top groups ranked by project count. "
             "Example: activity_codes=['R21'], fiscal_years=[2018], group_by='organization' "
@@ -101,13 +110,16 @@ def register(mcp: FastMCP) -> None:
             extractor = _GROUP_BY_FIELDS[group_by]
             base = {
                 "criteria": criteria,
-                "include_fields": AGG_FIELDS + ["ActivityCode"],
+                "include_fields": AGG_FIELDS + ["ActivityCode", "ProjectNum"],
                 "sort_field": "award_amount",
                 "sort_order": "desc",
             }
             results, total, complete, pages, _ = await paginate_all(base)
             if active_only is not None:
                 results = [r for r in results if r.get("is_active") == active_only]
+            if application_types:
+                results = [r for r in results
+                           if parse_application_type(r.get("project_num")) in application_types]
 
             counts: Counter = Counter()
             dollars: defaultdict = defaultdict(float)
@@ -150,8 +162,11 @@ def register(mcp: FastMCP) -> None:
         total = (data.get("meta") or {}).get("total", 0)
         results = data.get("results") or []
         if active_only is not None:
-            results = [r for r in results if r.get("is_active") == active_only][:limit]
-        projects = [to_summary(r) for r in results]
+            results = [r for r in results if r.get("is_active") == active_only]
+        if application_types:
+            results = [r for r in results
+                       if parse_application_type(r.get("project_num")) in application_types]
+        projects = [to_summary(r) for r in results[:limit]]
         return SearchResult(
             total_matching_projects=total, returned=len(projects),
             truncated=total > len(projects), projects=projects,

@@ -77,6 +77,8 @@ class ProjectSummary(BaseModel):
     award_amount: float | None = Field(None, description="Award amount in USD for the fiscal year (NIH/CDC/FDA/ACF only).")
     fiscal_year: int | None = None
     organization: str | None = Field(None, description="Recipient organization name.")
+    application_type: int | None = Field(None, description="Application type code (leading digit of project_num): 1=New, 2=Competing Renewal, 3=Supplement, 5=Non-Competing Continuation.")
+    application_type_label: str | None = Field(None, description="Human-readable label for application_type.")
     org_state: str | None = None
     principal_investigators: list[str] = Field(default_factory=list)
     administering_ic: str | None = Field(None, description="Administering NIH Institute/Center or agency abbreviation.")

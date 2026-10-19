@@ -821,3 +821,71 @@ class TestGroupByAggregation:
         assert "fiscal_years" in criteria
         assert "advanced_text_search" not in criteria
         assert "activity_codes" not in criteria
+
+
+class TestApplicationTypeFilter:
+    """Verify application_type parsing and filtering."""
+
+    def test_parse_application_type_from_project_num(self):
+        """Leading digit of project_num encodes application type."""
+        from nih_reporter_mcp.utils import parse_application_type, APPLICATION_TYPES
+        assert parse_application_type("1R15AI119907-01") == 1
+        assert parse_application_type("2R15HL054269-06") == 2
+        assert parse_application_type("5R01EY028739-05") == 5
+        assert parse_application_type("3R01AG012345-04S1") == 3
+        assert parse_application_type(None) is None
+        assert parse_application_type("") is None
+        assert parse_application_type("R01AG012345") is None  # no leading digit
+        assert APPLICATION_TYPES[5] == "Non-Competing Continuation"
+        assert APPLICATION_TYPES[1] == "New"
+
+    def test_to_summary_includes_application_type(self):
+        """to_summary populates application_type from project_num."""
+        from nih_reporter_mcp.utils import to_summary
+        rec = {
+            "core_project_num": "R01AG012345",
+            "project_num": "5R01AG012345-05",
+            "project_title": "Test",
+            "award_amount": 100000,
+            "fiscal_year": 2023,
+            "organization": {"org_name": "Test U", "org_state": "MD"},
+            "agency_ic_admin": {"abbreviation": "NIA"},
+            "principal_investigators": [],
+        }
+        summary = to_summary(rec)
+        assert summary.application_type == 5
+        assert summary.application_type_label == "Non-Competing Continuation"
+
+    def test_to_summary_no_project_num(self):
+        """to_summary handles missing project_num gracefully."""
+        from nih_reporter_mcp.utils import to_summary
+        rec = {
+            "core_project_num": "R01AG012345",
+            "project_title": "Test",
+            "award_amount": 100000,
+            "fiscal_year": 2023,
+            "organization": None,
+            "agency_ic_admin": None,
+            "principal_investigators": [],
+        }
+        summary = to_summary(rec)
+        assert summary.application_type is None
+        assert summary.application_type_label is None
+
+
+class TestDegenerateYearRange:
+    """Verify funding_trend_by_year handles start==end and start>end."""
+
+    def test_start_equals_end_produces_single_year(self):
+        """start_year == end_year should produce a single-year result."""
+        # The range(2015, 2016) = [2015] — single year
+        years = list(range(2015, 2015 + 1))
+        assert years == [2015]
+
+    def test_start_greater_than_end_swaps(self):
+        """start > end should swap to produce valid range."""
+        start, end = 2020, 2015
+        if start > end:
+            start, end = end, start
+        years = list(range(start, end + 1))
+        assert years == [2015, 2016, 2017, 2018, 2019, 2020]

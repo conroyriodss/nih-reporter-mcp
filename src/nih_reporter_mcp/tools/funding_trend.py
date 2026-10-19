@@ -26,10 +26,13 @@ def register(mcp: FastMCP) -> None:
     ) -> FundingTrend:
         """Show NIH/HHS funding for a topic (or official spending category) broken out year by year."""
         if not topic and not spending_category and not activity_codes:
-            raise ValueError("Provide at least one of topic or spending_category.")
+            raise ValueError("Provide at least one of topic, spending_category, or activity_codes.")
         if topic:
             topic = validate_topic(topic)
         category_id = resolve_spending_category(spending_category) if spending_category else None
+        # Handle degenerate ranges: start==end → single year, start>end → swap
+        if start_year > end_year:
+            start_year, end_year = end_year, start_year
         years = validate_fiscal_years(list(range(start_year, end_year + 1)))
         if len(years) > 15:
             raise ValueError("Range too wide (max 15 fiscal years per call) to keep response times reasonable.")

@@ -112,6 +112,7 @@ APPLICATION_TYPES = {
     5: "Non-Competing Continuation",
     6: "Change of Grantee",
     7: "Application",
+    8: "Merit Extension",
     9: "Other",
 }
 

@@ -33,9 +33,18 @@ def register(mcp: FastMCP) -> None:
         # Handle degenerate ranges: start==end → single year, start>end → swap
         if start_year > end_year:
             start_year, end_year = end_year, start_year
-        years = validate_fiscal_years(list(range(start_year, end_year + 1)))
-        if len(years) > 15:
-            raise ValueError("Range too wide (max 15 fiscal years per call) to keep response times reasonable.")
+        all_years = list(range(start_year, end_year + 1))
+        if len(all_years) > 15:
+            # Clamp to most recent 15 instead of erroring
+            all_years = all_years[-15:]
+            _year_clamp_note = (
+                f"Range {start_year}-{end_year} spans {end_year - start_year + 1} years; "
+                f"clamped to the most recent 15 ({all_years[0]}-{all_years[-1]}) "
+                f"to keep response times reasonable."
+            )
+        else:
+            _year_clamp_note = None
+        years = validate_fiscal_years(all_years)
 
         if funding_basis not in ("whole_award", "all_records"):
             raise ValueError("funding_basis must be 'whole_award' or 'all_records'.")
@@ -115,6 +124,8 @@ def register(mcp: FastMCP) -> None:
                 "All years aggregated exactly: complete retrieval, "
                 "no missing amounts, no conflicting duplicates, no orphan subprojects."
             )
+        if _year_clamp_note:
+            note_parts.insert(0, _year_clamp_note)
         note = " ".join(note_parts)
         return FundingTrend(
             topic=topic or (f"spending_category:{spending_category}" if spending_category else f"activity_codes:{activity_codes}"),

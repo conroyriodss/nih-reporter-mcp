@@ -25,12 +25,23 @@ from nih_reporter_mcp.utils import (
     validate_topic,
 )
 
+# Multi-valued group_by dimensions (return a LIST of keys per record):
+_GROUP_BY_MULTI = {"principal_investigator"}
+
+
+def _extract_pis(r: dict) -> list[str]:
+    """Extract PI names from a record. Each listed PI is credited once per award."""
+    pis = r.get("principal_investigators") or []
+    return [p.get("full_name") or "Unknown" for p in pis if p.get("full_name")]
+
+
 _GROUP_BY_FIELDS = {
     "organization": lambda r: (r.get("organization") or {}).get("org_name") or "Unknown",
     "activity_code": lambda r: r.get("activity_code") or "Unknown",
     "org_state": lambda r: (r.get("organization") or {}).get("org_state") or "Unknown",
     "administering_ic": lambda r: (r.get("agency_ic_admin") or {}).get("abbreviation") or "Unknown",
     "application_type": lambda r: APPLICATION_TYPES.get(parse_application_type(r.get("project_num")), "Unknown"),
+    "principal_investigator": _extract_pis,  # multi-valued: returns list
 }
 
 
@@ -65,7 +76,9 @@ def register(mcp: FastMCP) -> None:
         active_only: Annotated[bool | None, Field(description="If true, restrict to currently active projects only, filtered client-side. If false, only inactive/expired. Omit for both.")] = None,
         application_types: Annotated[list[int] | None, Field(description=(
             "Filter by application type code (leading digit of the NIH project number). "
-            "1=New, 2=Competing Renewal, 3=Supplement, 5=Non-Competing Continuation. "
+            "1=New, 2=Competing Renewal, 3=Supplement, 4=Extension, "
+            "5=Non-Competing Continuation, 6=Change of Grantee, 7=Application, "
+            "8=Merit Extension, 9=Other. "
             "Use this for lifecycle questions like 'non-competing continuations' or 'new awards only'. "
             "Filtered SERVER-SIDE (exact counts, no 10K ceiling). Example: application_types=[5] for non-competing continuations."
         ))] = None,
@@ -73,7 +86,7 @@ def register(mcp: FastMCP) -> None:
             "Instead of listing individual projects, GROUP results by this dimension "
             "and return a RANKED table of (key, project_count, total_award). "
             "Use this for 'which institution/state/IC got the most' questions. "
-            "Valid values: 'organization', 'activity_code', 'org_state', 'administering_ic', 'application_type'. "
+            "Valid values: 'organization', 'activity_code', 'org_state', 'administering_ic', 'application_type', 'principal_investigator'. "
             "When group_by='application_type', counts are EXACT (server-side faceting). "
             "For other dimensions, grouping uses up to 10,000 records — honest truncation "
             "flags are included when the cohort exceeds this ceiling. "
@@ -91,7 +104,29 @@ def register(mcp: FastMCP) -> None:
         returns a ranked aggregation instead of individual project listings.
         For NIH-wide queries (all agencies, all mechanisms), you may omit topic and
         activity_codes if fiscal_years is provided — this enables questions like
-        'largest single award in FY2024' without requiring a topic filter."""
+        'largest single award in FY2024' without requiring a topic filter.
+
+        IMPORTANT — keyword search vs program membership:
+        topic= searches ALL text fields (title, abstract, terms). For named NIH programs
+        (HuBMAP, SPARC, All of Us, etc.), keyword search is an APPROXIMATION — it finds
+        projects that mention the program, not a program roster. RePORTER does not expose
+        a Common Fund or program-membership filter. When answering 'how many awards in
+        program X', state the keyword-based nature in the headline, not a footnote.
+
+        Response structure for count/total questions:
+        Lead with ONE number + its basis in the first sentence. Offer parent-vs-total or
+        keyword-vs-RCDC alternatives as labeled follow-ups. Never present competing
+        numbers without stating which question each answers.
+
+        IMPORTANT — records vs awards for center grants:
+        Center grants (P-series P30/P41/P50, U-series U54, etc.) fan out into many
+        subproject records per award. A raw record count massively overcounts awards.
+        group_by='application_type' already returns DEDUPLICATED award counts
+        (exclude_subprojects=True). For non-group_by queries, total_matching_projects
+        is a RECORD count. When answering 'how many awards/renewals', use the deduped
+        count as the headline. If only a record count is available, say so explicitly:
+        'N records (not deduplicated; center grants span multiple records per award)'
+        and do NOT compute percentage changes from inflated record counts."""
         if not topic and not activity_codes and not fiscal_years:
             raise ValueError("Provide at least topic, activity_codes, or fiscal_years.")
         if topic:
@@ -118,19 +153,26 @@ def register(mcp: FastMCP) -> None:
             # RePORTER lacks native facets, but we can synthesize exact
             # counts by issuing one count-only query per award_type code.
             # This avoids the 10K pagination ceiling entirely.
+            #
+            # IMPORTANT: counts use exclude_subprojects=True so that each
+            # core project is counted ONCE (award count, not record count).
+            # Without this, center grants (P30/P41/P50/U54) inflate by
+            # 5-100x because each subproject is a separate record.
             if group_by == "application_type":
                 from nih_reporter_mcp.utils import APPLICATION_TYPES
                 import asyncio as _aio
 
-                # Get baseline total
+                # Get baseline total (deduplicated: awards, not records)
+                _dedup_criteria = {**criteria, "exclude_subprojects": True}
                 _base_data = await post_json(
-                    PROJECTS_SEARCH, {"criteria": criteria, "offset": 0, "limit": 1}
+                    PROJECTS_SEARCH, {"criteria": _dedup_criteria, "offset": 0, "limit": 1}
                 )
                 total = (_base_data.get("meta") or {}).get("total", 0)
 
-                # Parallel count queries for each award type
+                # Parallel count queries for each award type (deduplicated)
                 async def _count_type(code: int) -> tuple[int, str, int]:
-                    c2 = {**criteria, "award_types": [str(code)]}
+                    c2 = {**criteria, "award_types": [str(code)],
+                          "exclude_subprojects": True}
                     d = await post_json(
                         PROJECTS_SEARCH, {"criteria": c2, "offset": 0, "limit": 1}
                     )
@@ -149,9 +191,19 @@ def register(mcp: FastMCP) -> None:
                     if cnt > 0
                 ]
                 group_sum = sum(b.project_count for b in buckets)
+                # Remainder bucket: catch any codes not in APPLICATION_TYPES
+                remainder = total - group_sum
+                if remainder > 0:
+                    buckets.append(GroupByBucket(
+                        key="Unclassified / other codes",
+                        project_count=remainder,
+                        total_award_amount_usd=0,
+                    ))
+                    group_sum = total  # parts now sum to whole
                 note = (
-                    f"Exact server-side counts by application type. "
-                    f"Total matching: {total:,}. Sum of types: {group_sum:,}. "
+                    f"Deduplicated award counts by application type "
+                    f"(subproject records excluded — each core project counted once). "
+                    f"Total matching awards: {total:,}. Sum of types: {group_sum:,}. "
                     f"These are COMPLETE counts, not limited by the 10K retrieval ceiling. "
                     f"Dollar amounts are not available in this mode — use application_types "
                     f"filter for dollar totals on a specific type."
@@ -166,9 +218,11 @@ def register(mcp: FastMCP) -> None:
 
             # ── Client-side grouping for other dimensions ─────────────
             extractor = _GROUP_BY_FIELDS[group_by]
+            is_multi = group_by in _GROUP_BY_MULTI
             base = {
                 "criteria": criteria,
-                "include_fields": AGG_FIELDS + ["ActivityCode", "ProjectNum"],
+                "include_fields": AGG_FIELDS + ["ActivityCode", "ProjectNum"]
+                    + (["PrincipalInvestigators"] if group_by == "principal_investigator" else []),
                 "sort_field": "award_amount",
                 "sort_order": "desc",
             }
@@ -178,18 +232,31 @@ def register(mcp: FastMCP) -> None:
             counts: Counter = Counter()
             dollars: defaultdict = defaultdict(float)
             for r in results:
-                key = extractor(r)
-                counts[key] += 1
-                dollars[key] += r.get("award_amount") or 0
+                amt = r.get("award_amount") or 0
+                if is_multi:
+                    # Multi-valued: each key credited once per award
+                    keys = extractor(r)
+                    for key in keys:
+                        counts[key] += 1
+                        dollars[key] += amt
+                else:
+                    key = extractor(r)
+                    counts[key] += 1
+                    dollars[key] += amt
 
             buckets = [
                 GroupByBucket(key=k, project_count=cnt, total_award_amount_usd=dollars[k])
                 for k, cnt in counts.most_common(50)  # cap at 50 rows
             ]
+            pi_note = (
+                " Multi-PI awards credit each listed PI once, so award-count "
+                "and dollar sums will exceed the project total."
+            ) if group_by == "principal_investigator" else ""
             if complete:
                 note = (
                     f"Grouped {len(results):,} records by {group_by} "
                     f"({len(counts):,} distinct values). Complete cohort retrieved."
+                    + pi_note
                 )
             else:
                 note = (
@@ -197,6 +264,7 @@ def register(mcp: FastMCP) -> None:
                     f"Counts are LOWER BOUNDS — the full cohort exceeds the 10K retrieval ceiling. "
                     f"Percentages are approximate. Rankings among top groups are reliable "
                     f"but small groups may be undercounted."
+                    + pi_note
                 )
             return GroupByResult(
                 group_by=group_by,

@@ -12,6 +12,7 @@ def register_resources(mcp) -> None:
     """Register all resources with the MCP server."""
     spending_categories.register(mcp)
     server_info.register(mcp)
+    response_guidelines.register(mcp)
 
 
 __all__ = ["register_resources"]

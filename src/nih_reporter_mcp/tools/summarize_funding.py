@@ -25,6 +25,12 @@ def register(mcp: FastMCP) -> None:
             "NIH activity codes to filter by, e.g. ['R01']. Use for mechanism-specific "
             "funding questions. Do NOT put activity codes in topic — use this parameter instead."
         ))] = None,
+        application_types: Annotated[list[int] | None, Field(description=(
+            "Filter by application type code: 1=New, 2=Competing Renewal, "
+            "3=Supplement, 4=Extension, 5=Non-Competing Continuation, "
+            "6=Change of Grantee, 7=Application, 8=Merit Extension, 9=Other. "
+            "Server-side filter."
+        ))] = None,
         spending_category: Annotated[str | int | None, Field(description="NIH RCDC spending category -- name (e.g. 'Alzheimer's Disease', 'Cancer', 'Long COVID') or numeric ID. Aggregates live RePORTER data tagged with this category; note this may differ from NIH's frozen published RCDC totals, which are point-in-time snapshots.")] = None,
         active_only: Annotated[bool | None, Field(description="If true, active projects only (client-side filtered). If false, inactive only. Omit for all.")] = None,
         funding_basis: Annotated[str, Field(description="'whole_award' (default, excludes subproject records to avoid double-counting) or 'all_records' (legacy, sums every record including subprojects).")] = "whole_award",
@@ -43,6 +49,7 @@ def register(mcp: FastMCP) -> None:
             topic=topic, fiscal_years=fiscal_years, agencies=agencies,
             spending_categories=[category_id] if category_id else None,
             activity_codes=activity_codes,
+            award_types=application_types,
         )
         if funding_basis not in ("whole_award", "all_records"):
             raise ValueError("funding_basis must be 'whole_award' or 'all_records'.")

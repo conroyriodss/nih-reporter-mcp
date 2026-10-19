@@ -197,3 +197,33 @@ Overall: **23/24 (96%)** — one call (Llama Q5) is structurally valid but runti
 **Why it matters:** This is the named benchmark metric for the eval. A 96% rate (with 100% structural validity and one runtime-admissibility failure) confirms that tool schemas are clear enough for correct invocations in nearly all cases. The Q5 gap reflects a schema design limitation: `get_project_by_id` marks both params as optional (JSON Schema has no native anyOf-required), so the at-least-one-of constraint is only discoverable from the description. Combined with Finding 14 (tool-selection: 92%) and Finding 15 (determinism: 100%), these three metrics form a complete picture of tool-use quality.
 
 **Notebook reference:** `notebook-merged`, §14e (cell 36). Notebook-only (requires model access).
+
+## 18. No structural Common Fund / program filter in RePORTER API
+
+NIH Common Fund programs (HuBMAP, SPARC, 4D Nucleome, etc.) are not
+identifiable via a single API criterion. Investigated all available fields:
+
+- **No `is_common_fund` flag** or program-level filter exists.
+- **`funding_mechanism`**: "Other" for Common Fund — returns 85K+ results, useless as a discriminator.
+- **`cfda_code`**: HuBMAP projects span 12+ CFDA codes (93.310, 93.172, 93.242, 93.351, ...).
+  93.310 ("Trans-NIH Research Support") IS the Common Fund code but not all HuBMAP projects use it.
+- **`opportunity_number` (FOA)**: HuBMAP spans 33+ FOAs from multiple ICs (RFA-RM-*, RFA-CA-*, PA-*, PAR-*).
+  The API accepts `foa` as a criterion but matching a program requires knowing ALL its FOAs.
+- **`agency_ic_admin`**: Most HuBMAP awards come from OD (Office of the Director), but not exclusively.
+
+**Best available approximation:** NIH tags projects with program names in the
+`terms` field (e.g., "Human BioMolecular Atlas Program"). Searching `terms` only
+returns 494 all-years results; our tool's free-text search (`search_field: "all"`)
+returns 561 — the 67 extra are projects that merely *mention* HuBMAP in their
+abstract without being part of the program.
+
+**Implication for the agent:** When a user asks "how many awards in the HuBMAP
+program," the tool cannot give the authoritative program-level count. The keyword-
+based approximation must be stated as the headline caveat, not buried. The tool
+should say: "Based on keyword search, ~X projects mention HuBMAP. This is an
+approximation — RePORTER does not expose a Common Fund program filter for exact
+counts."
+
+**Verified:** 2026-10-19. Free-text "HuBMAP" all-years=561, terms-only=494,
+delta=67 mention-only projects. No `foa` filter, no `funding_mechanism` filter,
+no `is_common_fund` field observed.

@@ -159,11 +159,33 @@ an RCDC category with published figures on report.nih.gov.
 
 ### Three-way comparison
 
-| FY | Free-text "arthritis" | Live RCDC (ID 55) | Published RCDC | Free-text / Published |
+ID 55 confirmed as "Arthritis" canonically via the `spending_categories_desc`
+field returned by the RePORTER API (verified across 5 projects + Alzheimer's
+control check: ID 40 → "Alzheimer's Disease").
+
+| FY | Free-text "arthritis" | Live RCDC (ID 55) whole_award | Published RCDC | Live / Published |
 |---|---|---|---|---|
-| 2016 | 1,321 proj / $544M | 600 proj / $222M | ~$248M | **2.2x** |
-| 2020 | 1,415 proj / $589M | 659 proj / $264M | ~$316M | **1.9x** |
-| 2023 | 1,403 proj / $709M | 658 proj / $292M | ~$361M | **2.0x** |
+| 2016 | 1,321 proj / $544M | 600 proj / $222M | ~$248M | **0.90x** |
+| 2020 | 1,415 proj / $589M | 659 proj / $264M | ~$316M | **0.84x** |
+| 2023 | 1,403 proj / $709M | 658 proj / $292M | ~$361M | **0.81x** |
+
+**The live RCDC path retrieves the COMPLETE cohort** (600-658 projects, well under
+the 10K ceiling). Pagination is not the issue — confirmed via `complete=True` on
+all three years.
+
+The 10-19% undercount vs published is a **methodological gap**, not a data gap:
+
+* **79 orphan subprojects** in FY2023 are excluded in `whole_award` mode because
+  their parent grants are not Arthritis-categorized (the parents are in broader
+  categories like Aging or Bioengineering). The RCDC algorithm assigns fractional
+  credit to these subprojects; we don't.
+* Using `all_records` (which includes subprojects) narrows the gap to ~10%:
+  $326M vs $361M published.
+* The remaining ~10% gap is the RCDC cost-categorization algorithm's fractional
+  attribution, which we cannot replicate from the `award_amount` field alone.
+* **Control check**: Alzheimer's Disease (ID 40) FY2023 returns **$2,678,302,832
+  whole_award = published RCDC exactly (1.00x)**. The methodology is accurate
+  for categories where most projects are primary-focus (few orphan subprojects).
 
 Free-text consistently returns **~2x the published RCDC figure**.
 

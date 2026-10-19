@@ -22,6 +22,7 @@ MAX_RESULT_SET = 10000
 
 SPENDING_CATEGORIES: dict[str, int] = {
     "alzheimer's disease": 40,
+    "arthritis": 55,
     "alzheimer's disease including adrd": 3246,
     "cancer": 132,
     "breast cancer": 120,

@@ -682,51 +682,90 @@ class TestOrphanSubprojectCorrectness:
 
 
 class TestPaginationClamping:
-    """Verify paginate_all clamps offset to total and never requests beyond it."""
+    """Verify paginate_all clamps offset to total and never requests beyond it.
 
-    def test_offset_clamped_to_total(self):
-        """Pagination loop must stop when offset >= known total, not emit a 400."""
+    Regression: two live transcripts hit 400 errors from offset > total:
+    - R21 FY2018: total=1528, offset=2000 requested
+    - arthritis FY2016: total=1415, offset=1500 requested
+    Both are non-multiples of PAGE_SIZE=500 — the exact boundary class that
+    must be tested.
+    """
+
+    def _run_pagination(self, total_records):
+        """Mock paginate_all with a given total and check for offset overflow."""
         import asyncio
-        from unittest.mock import AsyncMock, patch
-
+        from unittest.mock import patch
         from nih_reporter_mcp.utils import paginate_all
 
-        # Simulate a cohort of 1528 records with PAGE_SIZE=500
-        # Pages: 0→500, 500→1000, 1000→1500, 1500→1528
-        # Should NOT request offset=2000
-        call_count = 0
-        offsets_requested = []
+        offsets = []
 
         async def mock_post(url, payload):
-            nonlocal call_count
-            call_count += 1
             offset = payload.get("offset", 0)
-            offsets_requested.append(offset)
+            offsets.append(offset)
             limit = payload.get("limit", 500)
-
-            total = 1528
-            # Return records for valid offsets
-            remaining = max(0, total - offset)
+            remaining = max(0, total_records - offset)
             count = min(limit, remaining)
             results = [
-                {"appl_id": offset + i, "core_project_num": f"R21EY{offset+i:06d}",
+                {"appl_id": offset + i, "core_project_num": f"R01XX{offset+i:06d}",
                  "subproject_id": None, "award_amount": 100000,
-                 "fiscal_year": 2018, "organization": None, "agency_ic_admin": None}
+                 "fiscal_year": 2023, "organization": None, "agency_ic_admin": None}
                 for i in range(count)
             ]
-            return {"meta": {"total": total}, "results": results}
+            return {"meta": {"total": total_records}, "results": results}
 
         with patch("nih_reporter_mcp.utils.post_json", new=mock_post):
-            base = {"criteria": {}, "include_fields": [], "sort_field": "award_amount", "sort_order": "desc"}
+            base = {"criteria": {}, "include_fields": []}
             results, total, complete, pages, _ = asyncio.get_event_loop().run_until_complete(
                 paginate_all(base)
             )
+        return results, total, complete, pages, offsets
 
+    def test_offset_never_exceeds_total_1528(self):
+        """R21 FY2018 transcript: total=1528, must not request offset=2000."""
+        results, total, complete, pages, offsets = self._run_pagination(1528)
         assert total == 1528
         assert complete
-        assert 2000 not in offsets_requested, f"Requested offset 2000 (beyond total 1528): {offsets_requested}"
-        assert max(offsets_requested) <= 1500, f"Max offset should be 1500, got {max(offsets_requested)}"
+        assert all(o < 1528 or o == 0 for o in offsets[1:]), f"Offsets past total: {offsets}"
         assert len(results) == 1528
+
+    def test_offset_never_exceeds_total_1415(self):
+        """Arthritis FY2016 transcript: total=1415, must not request offset=1500."""
+        results, total, complete, pages, offsets = self._run_pagination(1415)
+        assert total == 1415
+        assert complete
+        assert 1500 not in offsets, f"Requested offset 1500 (>= total 1415): {offsets}"
+        assert len(results) == 1415
+
+    def test_exact_multiple_of_page_size(self):
+        """total=1000 (exact multiple of 500) — stop after page 2, not page 3."""
+        results, total, complete, pages, offsets = self._run_pagination(1000)
+        assert total == 1000
+        assert complete
+        assert pages == 2
+        assert offsets == [0, 500]
+
+    def test_one_more_than_multiple(self):
+        """total=1001 — need 3 pages: 0, 500, 1000."""
+        results, total, complete, pages, offsets = self._run_pagination(1001)
+        assert total == 1001
+        assert complete
+        assert pages == 3
+        assert offsets == [0, 500, 1000]
+
+    def test_single_page(self):
+        """total=250 — single page, no overflow possible."""
+        results, total, complete, pages, offsets = self._run_pagination(250)
+        assert total == 250
+        assert complete
+        assert pages == 1
+        assert offsets == [0]
+
+    def test_empty_result_set(self):
+        """total=0 — one page request, empty results."""
+        results, total, complete, pages, offsets = self._run_pagination(0)
+        assert total == 0
+        assert complete
+        assert len(results) == 0
 
 
 class TestGroupByAggregation:

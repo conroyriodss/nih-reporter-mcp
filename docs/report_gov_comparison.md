@@ -152,6 +152,68 @@ is available through the RePORTER API.
 
 ---
 
+## Worked Example: Arthritis (RCDC vs Free-Text Divergence)
+
+This section demonstrates the divergence mechanism concretely using Arthritis,
+an RCDC category with published figures on report.nih.gov.
+
+### Three-way comparison
+
+| FY | Free-text "arthritis" | Live RCDC (ID 55) | Published RCDC | Free-text / Published |
+|---|---|---|---|---|
+| 2016 | 1,321 proj / $544M | 600 proj / $222M | ~$248M | **2.2x** |
+| 2020 | 1,415 proj / $589M | 659 proj / $264M | ~$316M | **1.9x** |
+| 2023 | 1,403 proj / $709M | 658 proj / $292M | ~$361M | **2.0x** |
+
+Free-text consistently returns **~2x the published RCDC figure**.
+
+### Root cause: spot-check of top 5 free-text hits (FY2023)
+
+| Rank | Award | Project | Arthritis-primary? | Why it matched |
+|---|---|---|---|---|
+| #1 | $24.3M | ZICAI001051 — Infectious Diseases Resources | **NO** | Terms field match only (not title or abstract) |
+| #2 | $12.1M | OT2OD036445 — All of Us (precision medicine) | **NO** | Terms field match only |
+| #3 | $11.6M | ZIDAR041180 — NIAMS Clinical Support | Partial | Institute name contains "Arthritis" (NIAMS) |
+| #4 | $11.5M | U19AG076471 — MOST4 Osteoarthritis Study | **YES** | Title and abstract: genuine arthritis research |
+| #5 | $9.5M | ZIGHD008806 — Research Animal Management | **NO** | Terms field match only |
+
+**3 of 5 top-dollar hits are not arthritis research.** They matched because
+"arthritis" appears in the terms index (likely via NIAMS institute affiliation
+or MeSH terms that mention arthritis as a related condition).
+
+### Why the overcount is ~2x, not 10x
+
+The free-text search matches any project that *mentions* arthritis anywhere
+in its text (title, abstract, project terms). This captures:
+
+1. **Genuine arthritis research** — the RCDC-classified core
+2. **Cross-disease studies** — projects that study arthritis alongside other
+   conditions (e.g. pain, aging, autoimmunity) but aren't classified as
+   arthritis-primary
+3. **Infrastructure grants** — NIAMS-funded cores and resources whose
+   institute name contains "Arthritis"
+4. **Broad-scope projects** — All of Us, clinical networks, etc. that list
+   arthritis as one of many conditions studied
+
+The RCDC classification applies a curated algorithm that attributes funding
+only to projects where arthritis is a *primary* focus. Free-text search
+has no such attribution logic — it counts every mention at full whole-award value.
+
+### Implication for tool users
+
+When a user asks "how much does NIH spend on arthritis?", the tool should:
+
+1. **Return the RCDC figure** (via `spending_category="Arthritis"`) as the
+   primary answer — this is the closest match to the curated published total
+2. **Optionally show the free-text figure** with an explicit caveat that it
+   includes mention-only matches and will be ~2x the RCDC figure
+3. **Never present the free-text total as equivalent to the published RCDC figure**
+
+This pattern applies to any condition that is both an RCDC category and a
+searchable text term.
+
+---
+
 ## Location filter gaps — decision record
 
 | Filter | API parameter | Supported by RePORTER? | Exposed by our tools? | Priority |

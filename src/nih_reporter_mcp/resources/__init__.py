@@ -5,7 +5,7 @@ Each resource module exposes a ``register(mcp)`` function.
 
 from __future__ import annotations
 
-from nih_reporter_mcp.resources import server_info, spending_categories
+from nih_reporter_mcp.resources import response_guidelines, server_info, spending_categories
 
 
 def register_resources(mcp) -> None:

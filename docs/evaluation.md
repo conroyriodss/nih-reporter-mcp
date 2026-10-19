@@ -42,7 +42,7 @@ The notebook (`notebook-merged`, Cell 12) runs 18 automated assertions against t
 
 | Test | What it verifies |
 |---|---|
-| t1 | Exact-total pagination: CRISPR gene editing FY2023 == 1,739 matching projects, $836,981,580 whole_award, complete=True |
+| t1 | Full-pagination aggregation: CRISPR gene editing FY2023 == 1,739 matching projects, $836,981,580 whole_award, complete=True. Note: `is_exact=False` — 166 orphan subprojects (CRISPR-mentioning sub-components of non-CRISPR umbrella grants) and 7 records with missing amounts are flagged transparently. |
 | t2 | 10,000-record retrieval cap honestly flagged (complete=False, aggregated=10,000 of 23,486 matching) |
 | t3 | Exact org-name match isolates a single institution (Boston University Medical Campus: 348 projects) |
 | t4 | Official RCDC spending category vs. free-text search: documented divergence ($199.6M RCDC vs. $891.7M free-text for "long covid") |

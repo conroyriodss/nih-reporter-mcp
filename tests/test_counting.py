@@ -590,3 +590,92 @@ class TestActivityCodeVsTextSearch:
         from nih_reporter_mcp.utils import build_criteria
         with pytest.raises(ValueError, match="Too many activity_codes"):
             build_criteria(activity_codes=["R01"] * 25)
+
+
+class TestOrphanSubprojectCorrectness:
+    """Verify orphan detection is genuine, not an over-flag.
+
+    Context: CRISPR FY2023 reports 166 orphan children with is_exact=False.
+    Manual inspection (2026-10-19) confirmed all 166 are genuine cases:
+    each is a CRISPR-mentioning subproject of a non-CRISPR umbrella grant
+    (P30, U19, P50, etc.) whose parent didn't match the topic text search.
+    """
+
+    def _make_parent(self, appl_id, core, fy, amount):
+        return {
+            "appl_id": appl_id, "core_project_num": core,
+            "subproject_id": None, "award_amount": amount,
+            "fiscal_year": fy, "organization": None,
+            "agency_ic_admin": None,
+        }
+
+    def _make_child(self, appl_id, core, sub, fy, amount):
+        return {
+            "appl_id": appl_id, "core_project_num": core,
+            "subproject_id": sub, "award_amount": amount,
+            "fiscal_year": fy, "organization": None,
+            "agency_ic_admin": None,
+        }
+
+    def test_orphan_when_parent_not_in_cohort(self):
+        """A subproject whose parent is NOT in the cohort → orphan (genuine)."""
+        from nih_reporter_mcp.utils import aggregate_funding
+        records = [
+            # Parent NOT in cohort (would be a non-CRISPR P30 core)
+            # Only the child matched the text search
+            self._make_child(999, "P30CA008748", "5299", 2023, 1_002_583),
+        ]
+        agg = aggregate_funding(records, funding_basis="whole_award")
+        assert len(agg.orphan_children) == 1
+        assert agg.orphan_children[0] == 999
+        assert not agg.is_exact  # orphan → not exact
+
+    def test_no_orphan_when_parent_in_cohort_same_fy(self):
+        """A subproject whose parent IS in the cohort (same FY) → excluded normally, not orphan."""
+        from nih_reporter_mcp.utils import aggregate_funding
+        records = [
+            self._make_parent(100, "P30CA008748", 2023, 5_000_000),
+            self._make_child(101, "P30CA008748", "5299", 2023, 1_002_583),
+        ]
+        agg = aggregate_funding(records, funding_basis="whole_award")
+        assert len(agg.orphan_children) == 0
+        assert agg.subproject_excluded_count == 1
+        assert agg.total_award == 5_000_000  # only parent counted
+
+    def test_multi_orphan_same_core(self):
+        """Multiple subprojects from the same core, all orphaned."""
+        from nih_reporter_mcp.utils import aggregate_funding
+        records = [
+            self._make_child(201, "P30CA021765", "5518", 2023, 917_012),
+            self._make_child(202, "P30CA021765", "5533", 2023, 840_647),
+        ]
+        agg = aggregate_funding(records, funding_basis="whole_award")
+        assert len(agg.orphan_children) == 2
+        assert set(agg.orphan_children) == {201, 202}
+        assert agg.total_award == 0  # both excluded, no parent to count
+
+    def test_mixed_cohort_with_genuine_orphans(self):
+        """Cohort with both matched parents and genuine orphans — realistic scenario.
+
+        Simulates: topic search returns some full parent+child families
+        AND some subprojects whose parent didn't match the text search.
+        """
+        from nih_reporter_mcp.utils import aggregate_funding
+        records = [
+            # Family 1: parent + child both matched (normal)
+            self._make_parent(301, "R01AI123456", 2023, 500_000),
+            self._make_child(302, "R01AI123456", "0001", 2023, 100_000),
+            # Family 2: orphan child only (parent is non-CRISPR umbrella)
+            self._make_child(303, "P30CA008748", "5299", 2023, 1_002_583),
+            # Standalone R01 (no subproject complications)
+            self._make_parent(304, "R01HG012345", 2023, 400_000),
+        ]
+        agg = aggregate_funding(records, funding_basis="whole_award")
+        # 301 (parent, counted) + 302 (child, excluded, parent present) +
+        # 303 (child, excluded, parent absent → orphan) + 304 (parent, counted)
+        assert agg.contributing_count == 2  # 301 + 304
+        assert agg.total_award == 900_000   # 500k + 400k
+        assert agg.subproject_excluded_count == 2  # 302 (has parent) + 303 (orphan)
+        assert len(agg.orphan_children) == 1  # 303 (no parent)
+        assert agg.orphan_children[0] == 303
+        assert not agg.is_exact  # orphan present → not exact

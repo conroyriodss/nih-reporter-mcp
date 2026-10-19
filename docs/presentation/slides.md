@@ -127,6 +127,7 @@ CRISPR gene editing FY2023:
 
 ### Known Limitations (honestly documented)
 
+- Topic-search orphan subprojects: CRISPR-mentioning subprojects of non-CRISPR umbrella grants are excluded and flagged (`is_exact=False`, 166 orphans for CRISPR FY2023)
 - 10,000-record API ceiling → flagged via `complete=False`
 - Substring org-name matching upstream → tool defaults to exact match
 - 38 of ~300 RCDC spending categories covered; others need numeric ID

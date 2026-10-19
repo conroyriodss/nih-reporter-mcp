@@ -84,7 +84,7 @@ async def smoke_tests(
                 f"${d.total_award_amount_usd:,.0f}",
             )
         await check("t1",
-            "t1: Exact-total pagination (CRISPR FY2023 == 1,739 matching records)", t1
+            "t1: Full-pagination aggregation (CRISPR FY2023 — 1,739 projects, is_exact=False: 166 orphans, 7 missing)", t1
         )
 
         # t2 — 10,000-record retrieval cap

@@ -20,11 +20,12 @@ def register(mcp: FastMCP) -> None:
         end_year: Annotated[int, Field(description="Last fiscal year to include.")],
         topic: Annotated[str | None, Field(description="Research topic or keywords, e.g. 'long COVID'. Omit if using spending_category instead.")] = None,
         agencies: Annotated[list[str] | None, Field(description="Limit to agency/IC abbreviations.")] = None,
+        activity_codes: Annotated[list[str] | None, Field(description="NIH activity codes, e.g. ['R01']. Use for mechanism-specific trends.")] = None,
         spending_category: Annotated[str | int | None, Field(description="NIH RCDC spending category -- name (e.g. 'Cancer', 'Long COVID') or numeric ID. Aggregates live RePORTER data tagged with this category; note this may differ from NIH's frozen published RCDC totals.")] = None,
         funding_basis: Annotated[str, Field(description="'whole_award' (default) or 'all_records'.")] = "whole_award",
     ) -> FundingTrend:
         """Show NIH/HHS funding for a topic (or official spending category) broken out year by year."""
-        if not topic and not spending_category:
+        if not topic and not spending_category and not activity_codes:
             raise ValueError("Provide at least one of topic or spending_category.")
         if topic:
             topic = validate_topic(topic)
@@ -41,6 +42,7 @@ def register(mcp: FastMCP) -> None:
                 "criteria": build_criteria(
                     topic=topic, fiscal_years=[year], agencies=agencies,
                     spending_categories=[category_id] if category_id else None,
+                    activity_codes=activity_codes,
                 ),
                 "include_fields": AGG_FIELDS,
             }
@@ -112,6 +114,6 @@ def register(mcp: FastMCP) -> None:
             )
         note = " ".join(note_parts)
         return FundingTrend(
-            topic=topic or f"spending_category:{spending_category}",
+            topic=topic or (f"spending_category:{spending_category}" if spending_category else f"activity_codes:{activity_codes}"),
             years=year_results, note=note,
         )

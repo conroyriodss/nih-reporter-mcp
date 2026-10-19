@@ -68,6 +68,7 @@ All three HTTP clients enforce all five protections on every outbound request:
 | Parameter | Cap | Enforced by |
 |---|---:|---|
 | `fiscal_years` | 20 items | `validate_fiscal_years()` |
+| `activity_codes` | 20 items | `validate_list_length()` |
 | `agencies` / `org_names` | 20 items | `validate_list_length()` |
 | `pmids` | 200 items | inline in `get_publication_details` |
 

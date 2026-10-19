@@ -300,11 +300,13 @@ def build_criteria(
     topic=None, fiscal_years=None, org_state=None, agencies=None,
     org_names=None, org_names_exact=None, pi_names=None,
     appl_ids=None, project_nums=None, spending_categories=None,
+    activity_codes=None,
 ) -> dict:
     # Input-length guards (defense against pathological LLM-generated params)
     validate_list_length(agencies, "agencies")
     validate_list_length(org_names, "org_names")
     validate_list_length(org_names_exact, "org_names_exact")
+    validate_list_length(activity_codes, "activity_codes")
 
     criteria: dict = {}
     if topic:
@@ -327,6 +329,8 @@ def build_criteria(
         criteria["project_nums"] = project_nums
     if spending_categories:
         criteria["spending_categories"] = {"values": spending_categories, "match_all": False}
+    if activity_codes:
+        criteria["activity_codes"] = [a.upper().strip() for a in activity_codes]
     return criteria
 
 

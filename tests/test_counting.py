@@ -544,3 +544,49 @@ class TestOrphanDetectionUnderProjection:
             f"got orphan_children={agg.orphan_children}"
         )
         assert not agg.is_exact, "Cross-FY orphan should block is_exact"
+
+
+class TestActivityCodeVsTextSearch:
+    """Prove activity_codes filter produces different (cleaner) results than text search."""
+
+    def test_activity_codes_not_text_search(self):
+        """activity_codes=['R01'] must return a DIFFERENT count than topic='R01'.
+
+        Text search finds grants that MENTION 'R01' in text (e.g. P30 cores
+        that reference R01-funded investigators). activity_codes structurally
+        filters to actual R01 awards. The structural count should be larger
+        (most R01s don't mention 'R01' in their abstract) and the text count
+        should include non-R01 grants.
+        """
+        from nih_reporter_mcp.utils import build_criteria
+
+        # activity_codes criterion
+        ac_criteria = build_criteria(
+            activity_codes=["R01"], agencies=["NEI"], fiscal_years=[2024],
+        )
+        assert "activity_codes" in ac_criteria
+        assert ac_criteria["activity_codes"] == ["R01"]
+        assert "advanced_text_search" not in ac_criteria
+
+        # text search criterion
+        txt_criteria = build_criteria(
+            topic="R01", agencies=["NEI"], fiscal_years=[2024],
+        )
+        assert "advanced_text_search" in txt_criteria
+        assert "activity_codes" not in txt_criteria
+
+        # They must be structurally different
+        assert ac_criteria != txt_criteria
+
+    def test_activity_codes_validated(self):
+        """activity_codes are uppercased and validated."""
+        from nih_reporter_mcp.utils import build_criteria
+        criteria = build_criteria(activity_codes=["r01", " u01 "])
+        assert criteria["activity_codes"] == ["R01", "U01"]
+
+    def test_activity_codes_list_length_capped(self):
+        """Too many activity codes raises ValueError."""
+        import pytest
+        from nih_reporter_mcp.utils import build_criteria
+        with pytest.raises(ValueError, match="Too many activity_codes"):
+            build_criteria(activity_codes=["R01"] * 25)

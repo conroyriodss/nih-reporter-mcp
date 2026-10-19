@@ -21,6 +21,10 @@ def register(mcp: FastMCP) -> None:
         topic: Annotated[str | None, Field(description="Research topic or keywords to total funding for. Omit if using spending_category instead.")] = None,
         fiscal_years: Annotated[list[int] | None, Field(description="Fiscal years to include, e.g. [2022, 2023, 2024].")] = None,
         agencies: Annotated[list[str] | None, Field(description="Limit to agency/IC abbreviations, e.g. ['NCI'].")] = None,
+        activity_codes: Annotated[list[str] | None, Field(description=(
+            "NIH activity codes to filter by, e.g. ['R01']. Use for mechanism-specific "
+            "funding questions. Do NOT put activity codes in topic — use this parameter instead."
+        ))] = None,
         spending_category: Annotated[str | int | None, Field(description="NIH RCDC spending category -- name (e.g. 'Alzheimer's Disease', 'Cancer', 'Long COVID') or numeric ID. Aggregates live RePORTER data tagged with this category; note this may differ from NIH's frozen published RCDC totals, which are point-in-time snapshots.")] = None,
         active_only: Annotated[bool | None, Field(description="If true, active projects only (client-side filtered). If false, inactive only. Omit for all.")] = None,
         funding_basis: Annotated[str, Field(description="'whole_award' (default, excludes subproject records to avoid double-counting) or 'all_records' (legacy, sums every record including subprojects).")] = "whole_award",
@@ -28,8 +32,8 @@ def register(mcp: FastMCP) -> None:
     ) -> FundingSummary:
         """Quantify total NIH/HHS investment in a research topic (oversight view).
         Paginates through ALL matching projects (up to 10,000) for an exact total."""
-        if not topic and not spending_category:
-            raise ValueError("Provide at least one of topic or spending_category.")
+        if not topic and not spending_category and not activity_codes:
+            raise ValueError("Provide at least one of topic, spending_category, or activity_codes.")
         if topic:
             topic = validate_topic(topic)
         fiscal_years = validate_fiscal_years(fiscal_years)
@@ -38,6 +42,7 @@ def register(mcp: FastMCP) -> None:
         criteria = build_criteria(
             topic=topic, fiscal_years=fiscal_years, agencies=agencies,
             spending_categories=[category_id] if category_id else None,
+            activity_codes=activity_codes,
         )
         if funding_basis not in ("whole_award", "all_records"):
             raise ValueError("funding_basis must be 'whole_award' or 'all_records'.")
@@ -100,7 +105,7 @@ def register(mcp: FastMCP) -> None:
             )
 
         return FundingSummary(
-            topic=topic or f"spending_category:{spending_category}",
+            topic=topic or (f"spending_category:{spending_category}" if spending_category else f"activity_codes:{activity_codes}"),
             fiscal_years=fiscal_years, total_matching_projects=total,
             projects_aggregated=agg.contributing_count,
             complete=complete, total_award_amount_usd=agg.total_award,

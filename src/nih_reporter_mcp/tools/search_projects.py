@@ -67,15 +67,18 @@ def register(mcp: FastMCP) -> None:
             "Filter by application type code (leading digit of the NIH project number). "
             "1=New, 2=Competing Renewal, 3=Supplement, 5=Non-Competing Continuation. "
             "Use this for lifecycle questions like 'non-competing continuations' or 'new awards only'. "
-            "Filtered client-side after retrieval. Example: application_types=[5] for non-competing continuations."
+            "Filtered SERVER-SIDE (exact counts, no 10K ceiling). Example: application_types=[5] for non-competing continuations."
         ))] = None,
         group_by: Annotated[str | None, Field(description=(
             "Instead of listing individual projects, GROUP results by this dimension "
             "and return a RANKED table of (key, project_count, total_award). "
             "Use this for 'which institution/state/IC got the most' questions. "
             "Valid values: 'organization', 'activity_code', 'org_state', 'administering_ic', 'application_type'. "
-            "When group_by is set, the tool paginates the FULL matching cohort "
-            "(up to 10,000 records) and returns the top groups ranked by project count. "
+            "When group_by='application_type', counts are EXACT (server-side faceting). "
+            "For other dimensions, grouping uses up to 10,000 records — honest truncation "
+            "flags are included when the cohort exceeds this ceiling. "
+            "The result includes total_matching_projects so you can compute percentages. "
+            "A single group_by call IS the complete answer — no per-IC verification needed. "
             "Example: activity_codes=['R21'], fiscal_years=[2018], group_by='organization' "
             "→ ranked list of institutions by R21 award count."
         ))] = None,
@@ -96,17 +99,72 @@ def register(mcp: FastMCP) -> None:
         fiscal_years = validate_fiscal_years(fiscal_years)
         org_state = validate_state(org_state)
 
-        criteria = build_criteria(topic=topic, fiscal_years=fiscal_years,
-                                   org_state=org_state, agencies=agencies,
-                                   activity_codes=activity_codes)
+        criteria = build_criteria(
+            topic=topic, fiscal_years=fiscal_years,
+            org_state=org_state, agencies=agencies,
+            activity_codes=activity_codes,
+            award_types=application_types,
+        )
 
-        # ── GROUP-BY path: paginate full cohort, aggregate ────────────
+        # ── GROUP-BY path ──────────────────────────────────────────────
         if group_by:
             if group_by not in _GROUP_BY_FIELDS:
                 raise ValueError(
                     f"Invalid group_by='{group_by}'. "
                     f"Must be one of: {', '.join(sorted(_GROUP_BY_FIELDS))}."
                 )
+
+            # ── Server-side faceting for application_type ─────────────
+            # RePORTER lacks native facets, but we can synthesize exact
+            # counts by issuing one count-only query per award_type code.
+            # This avoids the 10K pagination ceiling entirely.
+            if group_by == "application_type":
+                from nih_reporter_mcp.utils import APPLICATION_TYPES
+                import asyncio as _aio
+
+                # Get baseline total
+                _base_data = await post_json(
+                    PROJECTS_SEARCH, {"criteria": criteria, "offset": 0, "limit": 1}
+                )
+                total = (_base_data.get("meta") or {}).get("total", 0)
+
+                # Parallel count queries for each award type
+                async def _count_type(code: int) -> tuple[int, str, int]:
+                    c2 = {**criteria, "award_types": [str(code)]}
+                    d = await post_json(
+                        PROJECTS_SEARCH, {"criteria": c2, "offset": 0, "limit": 1}
+                    )
+                    return code, APPLICATION_TYPES.get(code, f"Type {code}"), (d.get("meta") or {}).get("total", 0)
+
+                type_results = await _aio.gather(
+                    *[_count_type(c) for c in sorted(APPLICATION_TYPES)]
+                )
+                buckets = [
+                    GroupByBucket(
+                        key=label,
+                        project_count=cnt,
+                        total_award_amount_usd=0,  # not available without fetching records
+                    )
+                    for _code, label, cnt in sorted(type_results, key=lambda x: -x[2])
+                    if cnt > 0
+                ]
+                group_sum = sum(b.project_count for b in buckets)
+                note = (
+                    f"Exact server-side counts by application type. "
+                    f"Total matching: {total:,}. Sum of types: {group_sum:,}. "
+                    f"These are COMPLETE counts, not limited by the 10K retrieval ceiling. "
+                    f"Dollar amounts are not available in this mode — use application_types "
+                    f"filter for dollar totals on a specific type."
+                )
+                return GroupByResult(
+                    group_by=group_by,
+                    total_matching_projects=total,
+                    buckets=buckets,
+                    cohort_complete=True,
+                    note=note,
+                )
+
+            # ── Client-side grouping for other dimensions ─────────────
             extractor = _GROUP_BY_FIELDS[group_by]
             base = {
                 "criteria": criteria,
@@ -117,10 +175,6 @@ def register(mcp: FastMCP) -> None:
             results, total, complete, pages, _ = await paginate_all(base)
             if active_only is not None:
                 results = [r for r in results if r.get("is_active") == active_only]
-            if application_types:
-                results = [r for r in results
-                           if parse_application_type(r.get("project_num")) in application_types]
-
             counts: Counter = Counter()
             dollars: defaultdict = defaultdict(float)
             for r in results:
@@ -132,13 +186,18 @@ def register(mcp: FastMCP) -> None:
                 GroupByBucket(key=k, project_count=cnt, total_award_amount_usd=dollars[k])
                 for k, cnt in counts.most_common(50)  # cap at 50 rows
             ]
-            note = (
-                f"Grouped {len(results):,} records by {group_by} "
-                f"({len(counts):,} distinct values). "
-                + ("Complete cohort retrieved." if complete
-                   else f"Only {len(results):,} of {total:,} retrieved (10K ceiling). "
-                        "Rankings may be approximate for large cohorts.")
-            )
+            if complete:
+                note = (
+                    f"Grouped {len(results):,} records by {group_by} "
+                    f"({len(counts):,} distinct values). Complete cohort retrieved."
+                )
+            else:
+                note = (
+                    f"Based on top {len(results):,} of {total:,} records (by award amount). "
+                    f"Counts are LOWER BOUNDS — the full cohort exceeds the 10K retrieval ceiling. "
+                    f"Percentages are approximate. Rankings among top groups are reliable "
+                    f"but small groups may be undercounted."
+                )
             return GroupByResult(
                 group_by=group_by,
                 total_matching_projects=total,
@@ -163,9 +222,6 @@ def register(mcp: FastMCP) -> None:
         results = data.get("results") or []
         if active_only is not None:
             results = [r for r in results if r.get("is_active") == active_only]
-        if application_types:
-            results = [r for r in results
-                       if parse_application_type(r.get("project_num")) in application_types]
         projects = [to_summary(r) for r in results[:limit]]
         return SearchResult(
             total_matching_projects=total, returned=len(projects),

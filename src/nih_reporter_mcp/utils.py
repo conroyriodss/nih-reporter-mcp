@@ -328,7 +328,7 @@ def build_criteria(
     topic=None, fiscal_years=None, org_state=None, agencies=None,
     org_names=None, org_names_exact=None, pi_names=None,
     appl_ids=None, project_nums=None, spending_categories=None,
-    activity_codes=None, application_types=None,
+    activity_codes=None, award_types=None,
 ) -> dict:
     # Input-length guards (defense against pathological LLM-generated params)
     validate_list_length(agencies, "agencies")
@@ -359,9 +359,13 @@ def build_criteria(
         criteria["spending_categories"] = {"values": spending_categories, "match_all": False}
     if activity_codes:
         criteria["activity_codes"] = [a.upper().strip() for a in activity_codes]
-    # NOTE: RePORTER's appl_types filter doesn't work reliably server-side.
-    # Application type is filtered CLIENT-SIDE by parsing project_num leading digit.
-    # The application_types parameter is stored in criteria for documentation only.
+    if award_types:
+        # RePORTER's server-side filter key is "award_types" (not appl_types,
+        # not appl_type_codes — those are silently ignored). Values are STRING
+        # representations of the leading digit: "1"=New, "2"=Competing Renewal,
+        # "3"=Supplement, "5"=Non-Competing Continuation, "7"=Application.
+        # Verified 2026-10-19: sum-of-types == baseline for R01 NEI FY2024.
+        criteria["award_types"] = [str(t) for t in award_types]
     return criteria
 
 

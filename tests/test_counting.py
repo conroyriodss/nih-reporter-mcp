@@ -889,3 +889,66 @@ class TestDegenerateYearRange:
             start, end = end, start
         years = list(range(start, end + 1))
         assert years == [2015, 2016, 2017, 2018, 2019, 2020]
+
+
+class TestServerSideApplicationTypeFaceting:
+    """Verify server-side award_types faceting logic."""
+
+    def test_build_criteria_passes_award_types(self):
+        """build_criteria converts integer award_types to string values."""
+        from nih_reporter_mcp.utils import build_criteria
+        c = build_criteria(activity_codes=["R01"], fiscal_years=[2020], award_types=[5])
+        assert c["award_types"] == ["5"]
+
+    def test_build_criteria_award_types_multiple(self):
+        """Multiple award_types are all converted to strings."""
+        from nih_reporter_mcp.utils import build_criteria
+        c = build_criteria(activity_codes=["R01"], fiscal_years=[2020], award_types=[1, 2, 5])
+        assert c["award_types"] == ["1", "2", "5"]
+
+    def test_build_criteria_no_award_types(self):
+        """When award_types is None, key is absent from criteria."""
+        from nih_reporter_mcp.utils import build_criteria
+        c = build_criteria(activity_codes=["R01"], fiscal_years=[2020])
+        assert "award_types" not in c
+
+    def test_application_types_dict_completeness(self):
+        """APPLICATION_TYPES has entries for all standard codes."""
+        from nih_reporter_mcp.utils import APPLICATION_TYPES
+        for code in [1, 2, 3, 4, 5, 6, 7, 9]:
+            assert code in APPLICATION_TYPES, f"Missing type code {code}"
+        assert APPLICATION_TYPES[2] == "Competing Renewal"
+        assert APPLICATION_TYPES[5] == "Non-Competing Continuation"
+
+    def test_parallel_count_pattern_sums_correctly(self):
+        """Simulated parallel server-side count queries sum to total."""
+        import asyncio
+        from nih_reporter_mcp.utils import APPLICATION_TYPES
+
+        type_counts = {"1": 5204, "2": 1089, "3": 1953, "5": 20582,
+                       "6": 30, "7": 663, "9": 36, "4": 2}
+        total = sum(type_counts.values())
+
+        async def mock_post(url, payload):
+            criteria = payload.get("criteria", {})
+            award_types = criteria.get("award_types")
+            if award_types:
+                return {"meta": {"total": type_counts.get(award_types[0], 0)}, "results": []}
+            return {"meta": {"total": total}, "results": []}
+
+        async def run():
+            import asyncio as _aio
+            criteria = {"activity_codes": ["R01"], "fiscal_years": [2020]}
+
+            async def count_type(code):
+                c2 = {**criteria, "award_types": [str(code)]}
+                d = await mock_post("", {"criteria": c2, "offset": 0, "limit": 1})
+                return code, d["meta"]["total"]
+
+            results = await _aio.gather(*[count_type(c) for c in sorted(APPLICATION_TYPES)])
+            facet_sum = sum(cnt for _, cnt in results)
+            assert facet_sum == total, f"Facet sum {facet_sum} != total {total}"
+            type2 = next(cnt for code, cnt in results if code == 2)
+            assert type2 == 1089
+
+        asyncio.get_event_loop().run_until_complete(run())

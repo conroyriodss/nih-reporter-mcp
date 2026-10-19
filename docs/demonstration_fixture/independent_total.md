@@ -67,3 +67,13 @@ This matches:
 * `tool_output.json` total_award_amount_usd: $19,790,134.00
 
 All three figures agree to the dollar.
+
+## Re-verification at v0.13.0
+
+* **Re-run date:** 2026-10-19T23:21:16Z
+* **Tag:** v0.13.0 @ `6ad354deac8710f4f4a92b2d53701baf1f796804`
+* **Live API returns identical data:** 38 raw records, 0 field-level diffs vs stored `raw_records.json`
+* **Dollar total:** $19,790,134.00 (exact match)
+* **raw_records.json SHA-256:** `ff178702ec35720c88b7f85900db60d6fc9380e000fbf9aaacda20617a7f789d` (verified on disk)
+* **Schema validation:** `tool_output.json` passes `FundingSummary.model_validate()` at v0.13.0 (16/16 fields, 0 missing)
+* **Verdict:** VERIFIED AT HEAD — not frozen, not drifted.

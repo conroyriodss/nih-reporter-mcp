@@ -715,7 +715,7 @@ class TestPaginationClamping:
 
         with patch("nih_reporter_mcp.utils.post_json", new=mock_post):
             base = {"criteria": {}, "include_fields": []}
-            results, total, complete, pages, _ = asyncio.get_event_loop().run_until_complete(
+            results, total, complete, pages, _ = asyncio.run(
                 paginate_all(base)
             )
         return results, total, complete, pages, offsets
@@ -951,7 +951,7 @@ class TestServerSideApplicationTypeFaceting:
             type2 = next(cnt for code, cnt in results if code == 2)
             assert type2 == 1089
 
-        asyncio.get_event_loop().run_until_complete(run())
+        asyncio.run(run())
 
 
 class TestPrincipalInvestigatorGroupBy:

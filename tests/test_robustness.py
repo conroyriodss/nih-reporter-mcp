@@ -30,8 +30,14 @@ MCP_URL = os.environ.get("MCP_URL", "http://localhost:8000/mcp")
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+# Module-level event loop — shared across fixtures and tests so the
+# MCP Client's async context manager enter/exit use the same loop.
+_loop = asyncio.new_event_loop()
+
+
 def run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    """Run an async coroutine on the module's event loop (Python 3.12+ safe)."""
+    return _loop.run_until_complete(coro)
 
 
 @pytest.fixture(scope="module")

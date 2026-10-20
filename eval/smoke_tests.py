@@ -153,7 +153,11 @@ async def smoke_tests(
                 await c.call_tool("search_funded_projects", {"topic": ""})
                 return (False, "did not raise")
             except Exception as e:
-                return ("empty" in str(e).lower(), str(e)[:100])
+                msg = str(e).lower()
+                return (
+                    "provide at least" in msg or "empty" in msg,
+                    str(e)[:100],
+                )
         await check("t5",
             "t5: Empty topic raises clean validation error", t5
         )

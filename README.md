@@ -19,7 +19,7 @@ Rather than wrapping RePORTER's raw REST endpoints 1:1, every tool here is desig
 
 | Tool | Purpose |
 |---|---|
-| `search_funded_projects` | Find funded projects matching a topic, with filters (fiscal year, state, agency, active/inactive) |
+| `search_funded_projects` | Find funded projects matching a topic, with filters (fiscal year, state, agency, active/inactive, `application_types`, `activity_codes`). Supports server-side `group_by` faceting (`application_type`, `organization`, `administering_ic`) for deduped award counts that bypass the 10,000-record pagination ceiling |
 | `summarize_funding_by_topic` | Exact total NIH/HHS investment in a topic, via full pagination (not a 500-record estimate). Accepts either free-text or an official NIH spending category |
 | `funding_trend_by_year` | Year-by-year funding trend for a topic or spending category |
 | `organization_funding_profile` | Funding profile for a named institution, with exact-name matching by default to avoid silently combining similarly-named institutions |
@@ -73,7 +73,7 @@ uv sync
 uv run python main.py
 ```
 
-Server starts on stdio by default (for local MCP client testing, e.g. Claude Desktop or MCP Inspector). Set `PORT` or `DATABRICKS_APP_PORT` to serve Streamable HTTP instead. For Databricks Apps deployment, see [`deploy/databricks/app.yaml`](deploy/databricks/app.yaml).
+Server starts on stdio by default (for local MCP client testing, e.g. Claude Desktop or MCP Inspector). Set `PORT` or `DATABRICKS_APP_PORT` to serve Streamable HTTP instead. For Databricks Apps deployment, see [`app.yaml`](app.yaml).
 
 No API key or authentication is required for the underlying NIH RePORTER or NCBI E-utilities APIs.
 
@@ -81,19 +81,20 @@ No API key or authentication is required for the underlying NIH RePORTER or NCBI
 
 Three test tiers, each runnable independently:
 
-**Model-free CI (GitHub Actions, every push/PR):** 75 pytest pass + 2 xfail across `test_counting` (synthetic aggregate_funding unit tests), `test_security` (host-allowlist and input-size guards), `test_prompt_contracts` (every prompt references only existing tools with correct parameter names), and `test_robustness::TestPartC` (mocked upstream failure handling: HTTP 500, 429 retry, timeout, oversized response, malformed JSON). No network, no server, no model access required.
+**Model-free CI (GitHub Actions, every push/PR):** 154 pytest pass + 2 xfail across `test_counting` (67p + 2xf: synthetic aggregate_funding unit tests including pagination clamping, server-side faceting, PI group-by), `test_security` (24p: host-allowlist and input-size guards), `test_prompt_contracts` (29p: every prompt references only existing tools with correct parameter names), `test_clinical_trials` (23p: ClinicalTrials.gov v2 integration, evidence-class classification, NIH-vs-FDA disambiguation), and `test_robustness::TestPartC` (11p: mocked upstream failure handling: HTTP 500, 429 retry, timeout, oversized response, malformed JSON). No network, no server, no model access required.
 
-**Live-server integration (local, requires running MCP server):** 18 automated assertions against live RePORTER data (not mocked), covering exact-total correctness, the 10,000-record retrieval cap, organization-name disambiguation, RCDC-category-vs-free-text divergence, input validation, injection-style input handling, investigator overlap/exclusion logic, funded-project study-section distribution, recent-awards sort validation, provenance/counting-unit transparency, evidence-bundle export inspection, whole_award vs all_records dedup verification, cache correctness, and MedlinePlus health-topic lookup. Also includes a measured, reproducible LLM agent-efficiency improvement (tool-call count per question: 2.0 avg / stdev 1.7 → 1.0 avg / stdev 0.0, attributable to a single tool-description clarification, model held constant). 5 additional correctness tests (`tests/test_correctness.py`) prove funding arithmetic against independently-derived ground truth.
+**Live-server integration (local, requires running MCP server):** 17 standalone smoke tests (`eval/smoke_tests.py`) against live RePORTER data (not mocked), covering exact-total correctness, the 10,000-record retrieval cap, organization-name disambiguation, RCDC-category-vs-free-text divergence, input validation, injection-style input handling, investigator overlap/exclusion logic, funded-project study-section distribution, recent-awards sort validation, provenance/counting-unit transparency, evidence-bundle export inspection, whole_award vs all_records dedup verification, cache correctness, and MedlinePlus health-topic lookup. A single tool-description clarification dramatically reduced redundant agent calls (BC-1: 32→1 calls; BC-2: 18→1 calls; real traces at v0.14.0). 8 additional correctness tests (`tests/test_correctness.py`) prove funding arithmetic against independently-derived ground truth. 49 robustness tests (`tests/test_robustness.py`, Parts A–E) exercise live-server error handling, rate-limit recovery, and boundary conditions (43 stable + 6 pass-with-retry under transient upstream timeout).
 
 **Multi-model agent eval (Databricks notebook only):** Tool-selection accuracy across 3 model families (GPT-5-5, Claude Sonnet 4-6, Llama 3.3 70B): 22/24 (92%). Determinism: 3/3 stable over 5 repeats. Argument validity: 24/24 (100%). See `notebook-merged` §14.
 
-See [`eval/README.md`](eval/README.md) for how to run each tier and [`docs/findings.md`](docs/findings.md) for the full writeup of 16 documented findings.
+See [`eval/README.md`](eval/README.md) for how to run each tier and [`docs/findings.md`](docs/findings.md) for the full writeup of documented findings.
 
 ```bash
 # Model-free CI tests (no server needed)
 PYTHONPATH=src pytest tests/test_counting.py tests/test_security.py \
-  tests/test_prompt_contracts.py \
+  tests/test_prompt_contracts.py tests/test_clinical_trials.py \
   tests/test_robustness.py::TestPartC_MockedUpstreamFailures -v
+# All 154 tests pass in bare subprocess on Python 3.11/3.12 (no nest_asyncio needed).
 
 # Live-server smoke tests
 uv run python main.py &
@@ -103,7 +104,7 @@ uv run python eval/smoke_tests.py --quick        # quick: 5 tests (~8s)
 uv run python eval/smoke_tests.py --sequential   # full sequential (~100s)
 ```
 
-The `--quick` flag runs only single-call tests (no full pagination) for fast iteration. The default full mode runs all 17 tests concurrently with per-test timeouts; `--sequential` runs them one at a time (useful for debugging or avoiding API rate-limit pressure). The full 18-test suite (including t9, the LLM agent-efficiency regression guard) runs inside the companion Databricks notebook (`notebook-merged`).
+The `--quick` flag runs only single-call tests (no full pagination) for fast iteration. The default full mode runs all 17 tests concurrently with per-test timeouts; `--sequential` runs them one at a time (useful for debugging or avoiding API rate-limit pressure). Test t9 (LLM agent-efficiency regression guard) runs only inside the companion Databricks notebook (`notebook-merged`), as it requires the Foundation Model API.
 
 ## Known limitations
 
@@ -111,7 +112,7 @@ The `--quick` flag runs only single-call tests (no full pagination) for fast ite
 - Organization name matching is substring-based by default upstream; `organization_funding_profile` defaults to exact-name matching to avoid combining similarly-named institutions, with guidance to discover the correct exact name if needed.
 - `summarize_funding_by_topic`'s curated spending-category lookup covers ~38 commonly-queried NIH RCDC categories out of ~300 total; others require the numeric category ID (see NIH RePORTER API Data Elements, Appendix I).
 - `investigator_portfolio` matches on name text, not a stable person ID; common surnames require a first name to disambiguate.
-- Two tools are stubbed but not implemented: ClinicalTrials.gov cross-linking and USAspending.gov cross-agency comparison. See [`docs/roadmap.md`](docs/roadmap.md).
+- One tool is stubbed but not implemented: USAspending.gov cross-agency comparison. See [`docs/roadmap.md`](docs/roadmap.md). ClinicalTrials.gov cross-linking (`clinical_trials_lookup`) is now fully implemented and registered, with 23 offline tests.
 
 ## License
 

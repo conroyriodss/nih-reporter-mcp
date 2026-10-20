@@ -26,19 +26,20 @@ October 2026
 
 ## Solution: Goal-Oriented MCP Server
 
-### 13 tools, each designed around a user goal — not an API endpoint
+### 14 tools, each designed around a user goal — not an API endpoint
 
 | Category | Tools | Key capability |
 |---|---|---|
 | **Funding analysis** | `summarize_funding_by_topic`, `funding_trend_by_year`, `organization_funding_profile` | Full pagination (up to 10,000 records), subproject deduplication, honest completeness flagging |
-| **Project discovery** | `search_funded_projects`, `get_project_by_id`, `search_recent_awards` | Filtered search with fiscal year, state, agency, sort-by-award |
+| **Project discovery** | `search_funded_projects`, `get_project_by_id`, `search_recent_awards` | Filtered search with fiscal year, state, agency, sort-by-award; server-side `group_by` faceting for deduped award counts |
 | **Investigator tools** | `investigator_portfolio`, `check_investigator_overlap` | Full pagination (no 100-record cap), explicit project exclusion for Other Support review |
 | **Peer review** | `funded_projects_by_study_section` | Study section distribution of funded projects |
 | **Publications** | `list_publications_for_project`, `get_publication_details` | PubMed linkage via NCBI E-utilities |
+| **Clinical trials** | `clinical_trials_lookup` | ClinicalTrials.gov v2: grant-linked trials, evidence-class classification, NIH-vs-FDA disambiguation |
 | **Audit & transparency** | `export_evidence_bundle` | Source record IDs, query criteria, reproduction steps |
 | **Health context** | `explain_health_topic` | MedlinePlus plain-language explanations (EN/ES) |
 
-**Plus:** 9 prompts across 3 audiences (analyst, program officer, citizen scientist), 2 resources, and a Databricks-hosted web app.
+**Plus:** 9 prompts across 3 audiences (analyst, program officer, citizen scientist), 3 resources (server_info, response_guidelines, spending_categories), and a Databricks-hosted web app.
 
 ---
 
@@ -52,14 +53,14 @@ October 2026
 AI Agent (any model) → MCP Protocol → NIH RePORTER MCP Server
                                            │
                                      ┌─────┴─────┐
-                                     │ 13 Tools  │
-                                     │ 9 Prompts │
-                                     │ 2 Resources│
-                                     └─────┬─────┘
-                                           │
-                          ┌─────────────┼────────────┐
-                          │              │             │
-                   RePORTER API    NCBI E-utils  MedlinePlus
+                                     │ 14 Tools  │
+                                      │ 9 Prompts │
+                                      │ 3 Resources│
+                                      └─────┬─────┘
+                                            │
+                      ┌────────┼────────┼─────────┐
+                      │        │        │         │
+               RePORTER API  NCBI   MedlinePlus  ClinicalTrials.gov
 ```
 
 ### Key Decision 1: Deduplication over naive summation
@@ -78,7 +79,9 @@ Every aggregation result includes `complete: true/false`, `total_matching`, and 
 
 ### Key Decision 3: Tool descriptions drive agent behavior
 
-A single docstring edit to `search_funded_projects` reduced average tool calls per question from **2.0 to 1.0** (model held constant). Multi-model eval confirms: descriptions clear enough for one model family work for all three tested.
+A single docstring edit to `search_funded_projects` dramatically reduced redundant tool calls: BC-1 (competitive renewal %) dropped from 32 calls to 1; BC-2 (top institution) dropped from 18 calls to 1 (real agent traces, `databricks-claude-sonnet-4-5`, v0.14.0). Multi-model eval confirms: descriptions clear enough for one model family work for all three tested (92% across GPT, Claude, Llama).
+
+**Note on `group_by` faceting:** `search_funded_projects` with `group_by='application_type'` uses server-side faceting with `exclude_subprojects=True`, returning **deduped award counts** directly from the API. This path is not subject to the 10,000-record pagination ceiling — it returns exact bucket counts regardless of cohort size (e.g., 29,560 R01 awards in FY2020, 9 buckets, sum = total, 0 remainder).
 
 ### Key Decision 4: Full pagination for overlap checking
 
@@ -90,7 +93,7 @@ Upgraded `check_investigator_overlap` from a single 100-record API call to full 
 
 ## Demonstration
 
-### Live results from October 16, 2026 notebook run
+### Live results (A5 batch 2026-10-19, verified at v0.14.0)
 
 **Q: "How much has NIH spent on CRISPR gene editing?"**
 
@@ -112,18 +115,20 @@ CRISPR gene editing FY2023:
 | 4 | RF1AG083764 | Brigham and Women's | $2,451,933 |
 | 5 | R01AG082046 | Boston University | $2,320,702 |
 
-*85 matching projects; tool-call efficiency: 1.0 calls (single round-trip)*
+*85 matching projects; single round-trip tool call*
 
 ### Test Results Summary
 
 | Tier | Result |
 |---|---|
-| Model-free CI (pytest) | 75 passed + 2 xfailed |
-| Live-server smoke tests | 18/18 passed |
-| Multi-model tool selection | 22/24 correct (92%) across GPT-5-5, Claude Sonnet 4-6, Llama 3.3 70B |
-| Tool-selection determinism | 3/3 stable (5 repeats each) |
-| Argument validity | 24/24 (100%) |
-| CRISPR FY2024 fixture | $19,790,134.00 — exact match |
+| Model-free CI (pytest) | 154 passed + 2 xfail (5 CI targets: 4 unit files + robustness Part C, no network) |
+| Live-server smoke tests | 17/17 passed |
+| Live robustness (server-req) | 49 pass (43 stable + 6 pass-with-retry; transient upstream timeout) |
+| Live correctness (ground truth) | 8/8 passed against independently-derived values |
+| Multi-model tool selection | 22/24 correct (92%) across GPT-5-5, Claude Sonnet 4-6, Llama 3.3 70B (re-verified 2026-10-20) |
+| Tool-selection determinism | 3/3 stable (5 repeats each, re-verified) |
+| Argument validity | 24/24 (100%, re-verified) |
+| CRISPR sickle cell FY2024 fixture | $19,790,134.00 — exact match (A4 re-verified 2026-10-19) |
 
 ### Known Limitations (honestly documented)
 
@@ -131,7 +136,7 @@ CRISPR gene editing FY2023:
 - 10,000-record API ceiling → flagged via `complete=False`
 - Substring org-name matching upstream → tool defaults to exact match
 - 38 of ~300 RCDC spending categories covered; others need numeric ID
-- 2 stub tools (ClinicalTrials.gov, USAspending.gov) → documented in roadmap
+- 1 stub tool remaining (USAspending.gov cross-agency comparison) → documented in roadmap. ClinicalTrials.gov is now **implemented and registered** (`clinical_trials_lookup`, 23 offline tests)
 
 ---
 
@@ -141,14 +146,15 @@ CRISPR gene editing FY2023:
 
 ```
 nih-reporter-mcp/
-├── src/nih_reporter_mcp/     13 tools, 9 prompts, 2 resources
-├── tests/                   5 test files, 121 test functions
-│   ├── test_counting.py       22 tests (20p + 2xf)
-│   ├── test_security.py       21 tests
-│   ├── test_prompt_contracts.py 24 tests
-│   ├── test_correctness.py    6 tests (live server)
-│   └── test_robustness.py     48 tests (10 mocked + 38 live)
-├── eval/smoke_tests.py       18 assertions
+├── src/nih_reporter_mcp/     14 tools, 9 prompts, 3 resources
+├── tests/                   6 test files, 202 test functions
+│   ├── test_counting.py       69 tests (67p + 2xf)
+│   ├── test_security.py       24 tests
+│   ├── test_prompt_contracts.py 29 tests
+│   ├── test_clinical_trials.py 23 tests
+│   ├── test_correctness.py    8 tests (live server)
+│   └── test_robustness.py     49 tests (10 mocked + 39 live)
+├── eval/smoke_tests.py       17 assertions (standalone; t9 LLM-only in notebook)
 ├── docs/                     8 documents + 2 fixture dirs
 ├── .github/workflows/ci.yml  Python 3.11 + 3.12
 ├── notebook-merged           37-cell Databricks notebook

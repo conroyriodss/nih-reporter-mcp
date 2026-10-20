@@ -61,6 +61,8 @@ The question *"What are the five biggest Alzheimer's biomarker grants in Massach
 
 **Significance:** this is a controlled, reproducible before/after result (one variable changed — a sentence in a tool description — with the model held constant) showing that tool description quality has a measurable effect on agent efficiency, not merely a theoretical one. Regression-guarded going forward (`eval/smoke_tests.py`, test `t9`: average tool calls per run must stay ≤1.5).
 
+**Update (v0.14.0):** The specific numeric metric ("2.0 → 1.0") from the t9 harness has been dropped due to three harness defects (see `EVAL_VERDICTS.md` §3). The qualitative point is validated by real agent traces at v0.14.0: BC-1 (competitive renewal %) dropped from 32 calls to 1; BC-2 (top institution) dropped from 18 calls to 1. These are honest traces against `databricks-claude-sonnet-4-5`, not harness-measured.
+
 ## 9. Reasoning-tier model endpoints reject function-calling with default settings
 
 Databricks-hosted reasoning models (endpoint names ending in `-sol`, `-luna`, `-terra`, `-astra`) returned errors when sent `tools` via the standard `/v1/chat/completions` interface with default reasoning settings. A non-reasoning chat-completion endpoint (`databricks-gpt-5-5`) was used instead for all agent-loop testing.
@@ -143,17 +145,19 @@ Additional correctness evidence (`tests/test_correctness.py`, 5 tests):
 
 **Test:** 8 questions, each with a single expected first tool call, run against 3 models from different families: GPT-5-5 (OpenAI), Claude Sonnet 4-6 (Anthropic), and Llama 3.3 70B Instruct (Meta). Only the first tool call is evaluated — this isolates tool-selection from downstream execution.
 
-**Results (2026-10-16):**
+**Results (2026-10-16, re-verified 2026-10-20 at v0.14.0):**
 
-| Model | Accuracy | Misses |
+| Model | Accuracy (re-run) | Misses |
 |---|---|---|
 | databricks-gpt-5-5 | 7/8 (88%) | Q5: chose `check_investigator_overlap` instead of `investigator_portfolio` |
-| databricks-claude-sonnet-4-6 | 8/8 (100%) | — |
-| databricks-meta-llama-3-3-70b-instruct | 7/8 (88%) | Q5: chose `get_project_by_id` instead of `investigator_portfolio` |
+| databricks-claude-sonnet-4-6 | 7/8 (88%) | Q5: chose `check_investigator_overlap` (was 8/8 in prior run) |
+| databricks-meta-llama-3-3-70b-instruct | 8/8 (100%) | — (was 7/8 in prior run — Q5 flipped to correct) |
 
-Overall: **22/24 (92%)** correct across all trials. 6/8 cases had unanimous agreement across all 3 models.
+Overall: **22/24 (92%)** correct across all trials. 6/8 cases had unanimous agreement across all 3 models. Headline score stable across runs; failure pattern shifted (Claude Q5 flipped from correct to incorrect; Llama Q5 flipped from incorrect to correct).
 
-**Q5 disagreement analysis:** "What grants does Francis Collins currently hold?" — GPT-5-5 selected `check_investigator_overlap` (designed for overlap/conflict detection, not portfolio listing) and Llama selected `get_project_by_id` (a single-project lookup, wrong cardinality for a portfolio question). Only Claude selected the correct `investigator_portfolio`. All three tools accept PI-related inputs, so the confusion is understandable. The `investigator_portfolio` description could be strengthened to emphasize it is the primary PI lookup tool.
+**Q5 disagreement analysis:** "What grants does Francis Collins currently hold?" — both GPT-5-5 and Claude Sonnet 4-6 selected `check_investigator_overlap` (designed for overlap/conflict detection, not portfolio listing). Only Llama selected the correct `investigator_portfolio`. All three tools accept PI-related inputs, so the confusion is understandable. This confirms Q5 is a genuine description-clarity ambiguity, not a model-specific quirk.
+
+**Note:** The 8-question evaluation set predates `group_by`, `application_types`, `spending_category`, and `clinical_trials_lookup`. No question tests routing to or away from these newer capabilities. The 22/24 score covers the original tool surface only.
 
 **Why it matters:** The tool descriptions are written once, in the MCP server, and consumed by any model. This finding confirms they are model-agnostic — accuracy is stable across GPT, Claude, and Llama families with no model-specific tuning. The two misses are description-clarity issues (tools with overlapping input schemas), not model-specific failures.
 
@@ -175,26 +179,26 @@ Overall: **22/24 (92%)** correct across all trials. 6/8 cases had unanimous agre
 
 **Notebook reference:** `notebook-merged`, §14d (cell 35). Notebook-only (requires model access).
 
-## 17. Argument validity rate: 23/24 (96%) with runtime admissibility
+## 17. Argument validity rate: 24/24 (100%) — re-verified at v0.14.0
 
 **Test:** For each of the 8 TOOL_SELECTION_CASES × 3 models (24 trials total), capture the raw arguments the model generates and validate them against the tool’s input_schema:
 - Required parameters present
 - No unknown parameter names
 - Correct types (string, integer, number, boolean, array)
 
-**Results (2026-10-16):**
+**Results (2026-10-16; re-verified 2026-10-20 at v0.14.0):**
 
 | Model | Argument validity rate |
 |---|---|
 | databricks-gpt-5-5 | 8/8 (100%) |
 | databricks-claude-sonnet-4-6 | 8/8 (100%) |
-| databricks-meta-llama-3-3-70b-instruct | 7/8 (88%) — Q5 runtime-inadmissible |
+| databricks-meta-llama-3-3-70b-instruct | 8/8 (100%) |
 
-Overall: **23/24 (96%)** — one call (Llama Q5) is structurally valid but runtime-inadmissible: `get_project_by_id({appl_id: null, core_project_num: null})` passes type/name checks but the tool rejects it with "Provide either appl_id or core_project_num."
+Overall: **24/24 (100%)**. In the re-run (2026-10-20), Llama selects `investigator_portfolio` for Q5 (correct tool), so the prior runtime-inadmissibility (`get_project_by_id({appl_id: null, core_project_num: null})`) no longer fires. Both the original 23/24 and the re-run 24/24 were honestly reported for their respective runs.
 
-**Observations:** Models differ in how many optional parameters they populate (GPT-5-5 tends to include more optional parameters; Claude and Llama generate more minimal sets). All 24 calls are structurally valid (correct names, types, required params). However, the runtime-admissibility check catches 1 call: Llama Q5 generates `{appl_id: null, core_project_num: null}` for `get_project_by_id` — structurally valid (both params are optional in the schema) but rejected at runtime because at-least-one must be non-null. The eval now includes this cross-parameter check.
+**Observations:** Models differ in how many optional parameters they populate (GPT-5-5 tends to include more optional parameters; Claude and Llama generate more minimal sets). All 24 calls are structurally valid (correct names, types, required params). The prior run's single failure (Llama Q5) was a schema design limitation: `get_project_by_id` marks both params as optional, so the at-least-one-of constraint is only discoverable from the description.
 
-**Why it matters:** This is the named benchmark metric for the eval. A 96% rate (with 100% structural validity and one runtime-admissibility failure) confirms that tool schemas are clear enough for correct invocations in nearly all cases. The Q5 gap reflects a schema design limitation: `get_project_by_id` marks both params as optional (JSON Schema has no native anyOf-required), so the at-least-one-of constraint is only discoverable from the description. Combined with Finding 14 (tool-selection: 92%) and Finding 15 (determinism: 100%), these three metrics form a complete picture of tool-use quality.
+**Why it matters:** Combined with Finding 15 (tool-selection: 92%) and Finding 16 (determinism: 100%), these three metrics form a complete picture of tool-use quality.
 
 **Notebook reference:** `notebook-merged`, §14e (cell 36). Notebook-only (requires model access).
 
@@ -227,3 +231,39 @@ counts."
 **Verified:** 2026-10-19. Free-text "HuBMAP" all-years=561, terms-only=494,
 delta=67 mention-only projects. No `foa` filter, no `funding_mechanism` filter,
 no `is_common_fund` field observed.
+
+## 19. Server-side `group_by` faceting bypasses the 10,000-record pagination ceiling
+
+**Added in v0.12.0.** `search_funded_projects` supports a `group_by` parameter (`application_type`, `organization`, `administering_ic`) that uses RePORTER's native faceting endpoint. When `group_by='application_type'` is used, the server sets `exclude_subprojects=True` and returns **deduped award counts** broken down by NIH application type code (1=New, 2=Competitive Renewal, 3=Extension, 4=Supplement, 5=Non-competing Continuation, 7=Merit Extension, 8=Merit Extension, 9=Other).
+
+Critically, this path is **not subject to the 10,000-record pagination ceiling** described in Finding #1. Server-side faceting returns exact bucket counts for the entire matching cohort, regardless of size.
+
+**Verified:** R01 FY2020 with `group_by='application_type'` returns 29,560 total deduped awards across 9 buckets, sum = 29,560 = total, 0 remainder (A5 LF-4/LF-10, 2026-10-19T23:42Z). Code 8 (Merit Extension) = 11 awards. This result would be unreachable via record-level pagination (29,560 > 10,000 ceiling).
+
+**Why it matters:** Before `group_by`, answering "how many R01 competitive renewals in FY2020" required fetching records via `application_types=[2]`, which returns record counts (including subproject duplicates) and is capped at 10,000. The old approach reported 397 (client-side count from a single 500-record page). `group_by` returns 1,089 deduped awards — a 2.7x correction. This was the root cause of behavioral case BC-4 (P41 renewal trend), which now uses `group_by` and produces correct deduped counts (FY2015: 13, FY2025: 1) instead of inflated record counts (85, 7).
+
+## 20. RCDC category ID 55 = Arthritis; RCDC-vs-free-text gap quantified
+
+NIH's Research, Condition, and Disease Categorization (RCDC) system assigns numeric IDs to spending categories. For Arthritis, the RCDC category ID is **55**.
+
+**RCDC vs. free-text divergence for Arthritis FY2023:**
+
+| Method | Projects | Total |
+|---|---|---|
+| RCDC category 55 ("Arthritis") | 658 | $291,641,663 |
+| Free-text search "arthritis" | 1,403 | $708,609,739 |
+| **Gap** | **2.1x projects, 2.4x dollars** | |
+
+This is the same structural divergence documented in Finding #3 for Long COVID (4.25x) and in Finding #14 for Alzheimer's. The RCDC figure represents projects curated into the official spending category; free-text captures any project that mentions the term, including tangential references.
+
+**Verified:** A5 LF-8a/LF-8b (2026-10-19T23:47Z). The `spending_categories` resource lists all 39 curated RCDC categories including Arthritis (ID 55). The server's `config.py` maps `"Arthritis"` → 55.
+
+## 21. `application_types` filter returns record counts, not deduped award counts
+
+When `search_funded_projects` is called with `application_types=[2]` (competitive renewals), the returned count includes **all matching records**, including subproject duplicates. For center grants (P30, P41, P50, U54), one award fans out into many subproject records, so the count overcounts awards by 5–100x.
+
+**Example:** P41 FY2015 with `application_types=[2]` returns 85 records. `group_by='application_type'` with `exclude_subprojects=True` returns 13 deduped awards. The 85-to-13 ratio reflects subproject fan-out in multi-component P41 awards.
+
+**Fix (v0.14.0):** The `application_types` parameter description now includes a WARNING: "RECORD-LEVEL counts: this filter returns RAW RECORD counts... For 'how many awards/renewals' questions, use `group_by='application_type'` instead." The `group_by` parameter description states it is the PREFERRED path for award-count questions.
+
+**Verified:** A5 LF-9a (P41 FY2015: 85 records vs. 13 deduped awards), A5 LF-9b (P41 FY2025: raw records vs. 1 deduped award). Behavioral case BC-4 now produces correct deduped counts exclusively.

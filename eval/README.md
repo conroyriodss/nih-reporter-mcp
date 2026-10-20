@@ -4,7 +4,7 @@ The hackathon template intentionally ships no eval harness, leaving it to each t
 
 ## What's tested, and why each category matters
 
-**Functional smoke tests** (`eval/smoke_tests.py` standalone or Cell 12 of the companion notebook) — 18 assertions against a live server instance. Three run modes:
+**Functional smoke tests** (`eval/smoke_tests.py` standalone or Cell 12 of the companion notebook) — 17 standalone assertions against a live server instance (+ t9 LLM agent-efficiency, notebook-only). Three run modes:
 
 - **Quick mode** (`--quick`, \~8s): 5 single-call tests (t3, t5, t6, t10, t13) — no full pagination. Intended for fast iteration during development.
 - **Full parallel mode** (default, \~60–90s): all 17 standalone tests (t1–t8, t10–t18) run concurrently via `asyncio.gather`, with 90s per-test timeouts. Wall-clock time is bounded by the slowest concurrent test.
@@ -15,13 +15,13 @@ Tests are split into two kinds, deliberately distinguished:
 - *Hard invariants*: behaviors that should never change regardless of live data drift (the 10,000-record retrieval cap triggers `complete=False`, not silent truncation; a SQL-injection-style input produces a clean error, not a leaked traceback; two tools querying the same criteria agree on totals).
 - *Drift-tolerant assertions*: live NIH data changes as new awards post, so exact-equality checks against specific dollar figures would eventually fail for reasons unrelated to a real regression. These use structural checks instead (nonzero values, correct ordering, count reconciliation).
 
-**Tool-selection accuracy** — a battery of 8 natural-language questions (`TOOL_SELECTION_CASES`), each with one clearly-expected tool, run against live Databricks-hosted LLMs with all 13 tools available via function-calling. Scores whether the model picks the correct first tool, independent of whether its final written answer is well-phrased.
+**Tool-selection accuracy** — a battery of 8 natural-language questions (`TOOL_SELECTION_CASES`), each with one clearly-expected tool, run against live Databricks-hosted LLMs with all 14 tools available via function-calling. Scores whether the model picks the correct first tool, independent of whether its final written answer is well-phrased.
 
 **Multi-model eval (§14a–c, notebook-only):** The same 8 cases are run across 3 models from different families (GPT, Claude, Llama) to verify tool descriptions are agent-agnostic. This requires live Databricks serving endpoints and runs only in the notebook — it is not part of the pytest suite. See `docs/findings.md` #14 for results and analysis. As of 2026-10-16: 22/24 trials correct (92%), with 6/8 cases unanimous across all 3 models.
 
 **Tool-selection determinism (§14d, notebook-only):** 3 representative questions each run 5 times on GPT-5-5. Measures whether tool SELECTION is stable across repeats (distinct from the call-count efficiency guard in §13). As of 2026-10-16: 3/3 stable, zero flickers. See `docs/findings.md` #15.
 
-**Argument validity rate (§14e, notebook-only):** For each of the 8 cases × 3 models, validates that model-generated tool arguments conform to the tool’s input schema (correct param names, correct types, required params present) AND pass runtime admissibility (cross-parameter constraints like at-least-one-of). This is the named benchmark metric. As of 2026-10-18: **23/24 (96%)** — one call (Llama Q5: `get_project_by_id({appl_id: null, core_project_num: null})`) is structurally valid but runtime-inadmissible. See `docs/findings.md` #17.
+**Argument validity rate (§14e, notebook-only):** For each of the 8 cases × 3 models, validates that model-generated tool arguments conform to the tool’s input schema (correct param names, correct types, required params present) AND pass runtime admissibility (cross-parameter constraints like at-least-one-of). This is the named benchmark metric. As of v0.14.0 re-run: **24/24 (100%)** — the prior 23/24 (Llama Q5 mis-route) resolved when Llama selected a different tool on re-run. See `docs/findings.md` #17 and `EVAL_VERDICTS.md` Claim 2.
 
 **Tool-call efficiency regression guard** — a specific, previously-observed failure mode (an LLM agent re-querying near-identical phrasings believing minor rewording changes results) is now a permanent assertion: the same question run 3 times must average ≤1.5 tool calls. See `docs/findings.md` #8 for the full before/after measurement that motivated this.
 
@@ -49,13 +49,13 @@ uv run python eval/smoke_tests.py
 uv run python eval/smoke_tests.py --sequential
 ```
 
-**Full suite including t9** (requires Databricks Foundation Model API access): use the companion Databricks notebook (`notebook-merged`). Cells 1–10 copy the project source, start the MCP server, and confirm registration. Cell 12 executes all 18 assertions including the LLM agent-efficiency regression guard.
+**Full suite including t9** (requires Databricks Foundation Model API access): use the companion Databricks notebook (`notebook-merged`). Cells 1–10 copy the project source, start the MCP server, and confirm registration. Cell 12 executes all 17 standalone assertions plus the LLM agent-efficiency regression guard (t9).
 
 For the LLM-driven tool-selection and efficiency tests, see `notebook-merged` sections 10–13 — these run interactively since they need Databricks model endpoints.
 
 ## Correctness against independent ground truth
 
-**Funding arithmetic tests** (`tests/test_correctness.py`, 6 tests) — proves the v0.8.0 counting fix produces correct funding totals by comparing tool output against independently-fetched, hand-computed reference values. Every assertion uses the `whole_award` basis (the corrected default), not the inflated `all_records` figures. Requires a running MCP server.
+**Funding arithmetic tests** (`tests/test_correctness.py`, 8 tests) — proves the v0.8.0 counting fix produces correct funding totals by comparing tool output against independently-fetched, hand-computed reference values. Every assertion uses the `whole_award` basis (the corrected default), not the inflated `all_records` figures. Requires a running MCP server.
 
 ```bash
 # Via pytest:
@@ -65,7 +65,7 @@ PYTHONPATH=src pytest tests/test_correctness.py -v
 MCP_URL=http://localhost:8000/mcp python tests/test_correctness.py
 ```
 
-The six tests:
+Key tests include:
 
 1. **Ground-truth exact match** — a small cohort ("CRISPR sickle cell" FY2024, 38 records) was independently fetched via direct API call, and the whole_award total hand-computed by applying the same rules the code enforces (exclude subprojects, dedupe appl_ids, exclude null amounts). The tool's output must match **to the dollar** ($19,790,134). Fixture data in `tests/fixtures/`.
 2. **Double-counting proof** — U19AG068753 FY2024 (a confirmed multi-component grant) has 1 parent ($5.13M) + 7 subprojects (sum $5.13M). The test verifies `all_records` ($10.26M) > `whole_award` ($5.13M), and the delta **exactly** equals the summed subproject amounts — proving the fix removes real double-counted dollars.
@@ -74,7 +74,7 @@ The six tests:
 5. **Cross-tool basis consistency** — for a subproject-bearing topic, `whole_award` is strictly less than `all_records` with nonzero `subproject_excluded_count`.
 6. **Overlap completeness flag** — verifies `check_investigator_overlap` returns `complete` and `total_matching` fields, and that `complete=True` when all matching records are retrieved.
 
-**Synthetic oracle tests** (`tests/test_counting.py`, 20 pass + 2 xfail) — unit tests against synthetic data with known oracle values, verifying `aggregate_funding()` directly without the MCP server. No network required.
+**Synthetic oracle tests** (`tests/test_counting.py`, 67 pass + 2 xfail) — unit tests against synthetic data with known oracle values, verifying `aggregate_funding()` directly without the MCP server. No network required.
 
 **Before/after quantification** (see `docs/findings.md` #13):
 

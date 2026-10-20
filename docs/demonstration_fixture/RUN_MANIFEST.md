@@ -1,7 +1,8 @@
-# Clean-Room Run Manifest — v0.13.0
+# Clean-Room Run Manifest — v0.14.0
 
 > Single source of truth for reproducing every result in the evidence package.
-> Generated 2026-10-19. All runs executed on Databricks serverless compute.
+> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-20 for submission tag v0.14.0.
+> All runs executed on Databricks serverless compute.
 
 ---
 
@@ -9,11 +10,13 @@
 
 | Field | Value |
 | --- | --- |
-| Tag | `v0.13.0` |
-| Full SHA | `6ad354deac8710f4f4a92b2d53701baf1f796804` |
-| Annotated | Yes (`git tag -a v0.13.0 -m "..."`) |
-| Pushed | `git push origin v0.13.0` |
+| Submission tag | `v0.14.0` |
+| Full SHA | `4eec13cc4b3f1e418c890fed8c2b592a8a352190` |
+| Tag date | 2026-10-20T03:09:36Z |
+| Annotated | Yes (`git tag -a v0.14.0 -m "..."`) |
+| Pushed | `git push origin v0.14.0` |
 | Repository | `https://github.com/conroyriodss/nih-reporter-mcp` (public) |
+| Prior tag | `v0.13.0` (`6ad354deac8710f4f4a92b2d53701baf1f796804`) — A1–A5 runs below were executed at this tag. See §10 for what changed. |
 
 ## 2. Dependency Lock
 
@@ -252,3 +255,50 @@ only available in the companion notebook (`notebook-merged.ipynb`, Cell 12).
 supersede their old wrong values with documented root causes. Evidence bundle
 is complete (7 files + this manifest). Test suite non-passing items are
 fully explained (event-loop harness issue + offline-only integration tests).
+
+---
+
+## 10. Tag Bump: v0.13.0 → v0.14.0 (2026-10-20)
+
+Runs A1–A5 were executed at v0.13.0 (`6ad354d`). Four commits were added
+before the submission tag v0.14.0 (`4eec13c`). This section documents what
+changed and why the A1–A5 results remain valid.
+
+### Commits between tags
+
+| SHA | Subject |
+| --- | --- |
+| `b954516` | fix: tool descriptions — deduped grain routing, unsupported-capability abstention |
+| `8f2222a` | fix: asyncio harness + t5 smoke assertion |
+| `b03fa12` | docs: eval claim verdicts — re-run + behavioral traces |
+| `4eec13c` | release: v0.14.0 — all fixes included, new submission tag |
+
+### What changed
+
+| Area | v0.13.0 state | v0.14.0 state | Impact on A-runs |
+| --- | --- | --- | --- |
+| Tool descriptions (`search_projects.py`) | No grain warning, no unsupported-capability list | WARNING on `application_types`, UNSUPPORTED list in docstring, PREFERRED note on `group_by` | No change to tool logic or API calls. A5 figures identical. Behavioral cases BC-3/4/5 now route correctly (see EVAL_VERDICTS). |
+| Asyncio harness (`test_counting.py`, `test_robustness.py`) | `asyncio.get_event_loop()` — 55 event-loop failures in subprocess | `asyncio.run()` / `asyncio.new_event_loop()` — 0 event-loop failures | A3 results change: 138p → 155p (offline deterministic). 17 newly-passing tests were blocked by harness, not production defects. |
+| Smoke assertion (`eval/smoke_tests.py` t5) | Checks `"empty" in msg` — FAIL | Checks `"provide at least" in msg or "empty" in msg` — PASS | A3b results change: 16/17 → 17/17. Test bug, not production defect. |
+| `clinical_trials_lookup` TOOL_INPUTS | Missing from `test_robustness.py` | Present (normal, zero, boundary) | `test_all_tools_have_test_inputs` now passes. |
+| Version stamps | 0.13.0 | 0.14.0 | No functional change. |
+| `requirements.txt` | SHA-256 `6f09f52a...` | SHA-256 `6f09f52a...` (identical) | No dependency change. |
+
+### Updated headline counts at v0.14.0
+
+202 tests collected: 154 pass + 2 xfail offline (CI: 4 unit files + robustness Part C);
+8 live-integration pass against NIH API; 38 server-robustness pass (32 stable, 6 pass
+with retry). Smoke: 17/17.
+
+### Validity of A4/A5 results
+
+A4 (demonstration fixture) and A5 (live figures) depend only on tool logic and
+the NIH RePORTER API. No tool logic changed between v0.13.0 and v0.14.0 — only
+tool *descriptions*, test harnesses, and documentation. Therefore:
+
+- **A4 fixture:** Valid at v0.14.0. `FundingSummary.model_validate()` produces
+  identical results (16/16 fields, $19,790,134.00 exact match).
+- **A5 figures:** Valid at v0.14.0. All 15 figures are deterministic API calls
+  unaffected by description changes.
+- **A3/A3b:** Superseded by v0.14.0 counts above. The v0.13.0 numbers are
+  retained in §5 as the historical record of what was actually executed.

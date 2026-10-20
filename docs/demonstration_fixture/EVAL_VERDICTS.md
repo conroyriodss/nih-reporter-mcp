@@ -1,8 +1,12 @@
-# Eval Claim Verdicts — v0.13.0
+# Eval Claim Verdicts — v0.14.0
 
-> Re-run 2026-10-20T00:15–00:25Z on Databricks serverless.
-> Server: v0.13.0 clean checkout @ `6ad354d`, 14 tools.
+> **Submission tag:** v0.14.0 @ `4eec13cc4b3f1e418c890fed8c2b592a8a352190`
+>
+> STEP 1–3 re-runs: 2026-10-20T00:15–00:25Z, server at v0.13.0 (`6ad354d`), 14 tools.
 > Models: databricks-gpt-5-5, databricks-claude-sonnet-4-6, databricks-meta-llama-3-3-70b-instruct.
+>
+> STEP 4 (freeze-blocker re-runs): 2026-10-20, server at v0.14.0 (`4eec13c`), 14 tools.
+> Model: databricks-claude-sonnet-4-5 via FMAPI. Real LLM agent loop, not simulated.
 
 ---
 
@@ -52,13 +56,15 @@
 ### Claim 5 — 18/18 smoke tests
 
 **Old claim:** 18/18 (notebook Cell 12).
-**Actual (clean-room A3b):** **16/17** standalone + t9 notebook-only.
-**Verdict: STALE.** t5 fails (stale assertion: checks for “empty” in error message, but validation says “Provide at least topic, activity_codes, or fiscal_years”). Must be updated to 16/17 or t5 fixed.
+**At v0.13.0 (clean-room A3b):** 16/17 standalone + t9 notebook-only.
+**At v0.14.0:** **17/17** standalone (t5 assertion fixed at `8f2222a`). t9 remains notebook-only.
+**Verdict: FIXED at v0.14.0.** Was STALE at v0.13.0 (t5 stale assertion bug); now 17/17.
 
 ### Claim 6 — CI: 75 passed + 2 xfailed
 
-**Actual (clean-room A3):** 202 collected, 138 passed + 2 xfailed.
-**Verdict: STALE.** Test count grew from 77 to 202 across v0.10→v0.13. 55 event-loop failures and 7 live-server failures are environment issues, not production defects. Must be updated.
+**At v0.13.0 (clean-room A3):** 202 collected, 138 passed + 2 xfailed, 55 event-loop + 7 live-server failures.
+**At v0.14.0:** 202 collected, 154 pass + 2 xfail offline (CI: 4 unit files + robustness Part C); 8 live-integration pass; 38 server-robustness pass (32 stable + 6 pass-with-retry). Smoke: 17/17.
+**Verdict: FIXED at v0.14.0.** Was STALE at v0.13.0; headline now stable.
 
 ### Claim 7 — Agent battery: 7/7 in-scope, 3/3 abstain
 
@@ -173,6 +179,45 @@ The eval doc (§2.2) cites “avg 2.0 (before) → 1.0 (after)” from the smoke
 
 ---
 
+## STEP 4: Freeze-Blocker Re-Runs at v0.14.0 (real agent loop)
+
+> Server: v0.14.0 @ `4eec13c`, 14 tools.
+> Model: `databricks-claude-sonnet-4-5` via Databricks Foundation Model API.
+> Real LLM agent loop (not simulated). Tool descriptions updated with
+> grain warnings, unsupported-capability abstention list, and `group_by` PREFERRED note.
+
+BC-3/4/5 were freeze-blockers at v0.13.0. The v0.14.0 tool-description fixes
+(commit `b954516`) targeted these exact failure modes. Re-run results:
+
+### BC-3 (v0.14.0): Longest-running R01 -- CLOSED
+**Tool calls:** 0
+**Response:** Clean abstention. The model recognized that duration/longevity is not a
+searchable or sortable field in RePORTER and declined without making any tool calls.
+The UNSUPPORTED list in the `search_funded_projects` description explicitly includes
+"duration/longevity" which prevented the text-search flailing seen at v0.13.0 (7 calls).
+
+### BC-4 (v0.14.0): P41 competitive renewal trend -- CLOSED
+**Tool calls:** 11 (1 per year, FY2015--FY2025)
+**Trace:** All 11 calls used `group_by="application_type"` (not `application_types=[2]`).
+**Results:** FY2015: 13 deduped awards --> FY2025: 1 deduped award.
+The WARNING on `application_types` ("RECORD-LEVEL counts") and the PREFERRED note on
+`group_by` ("deduped award counts") steered the agent to the correct path. The v0.13.0
+run returned 85 --> 7 (record counts including subproject fan-out).
+
+### BC-5 (v0.14.0): HuBMAP program count -- CLOSED
+**Tool calls:** 1
+**Trace:**
+```
+search_funded_projects(topic="HuBMAP", active_only=true, limit=1)
+```
+**Response:** Reported the keyword-based count with an explicit caveat that text search
+includes mention-only grants and does not equal Common Fund program membership.
+1 call instead of 6 (v0.13.0). The model stopped after the first result instead of
+retrying variant phrasings, consistent with the Finding #18 limitation being
+acknowledged rather than worked around.
+
+---
+
 ## Summary Table
 
 | Claim | Old | Re-run | Verdict |
@@ -181,16 +226,19 @@ The eval doc (§2.2) cites “avg 2.0 (before) → 1.0 (after)” from the smoke
 | Argument validity | 24/24 or 23/24 | 24/24 (100%) | **RE-VERIFIED** (contradiction resolved) |
 | Determinism | 3/3 stable | 3/3 stable | **RE-VERIFIED** |
 | Efficiency metric | avg 1.0 | (harness invalid) | **DROPPED** (qualitative point kept) |
-| Smoke tests | 18/18 | 16/17 | **STALE** (t5 assertion bug) |
-| CI test count | 75+2xf | 138+2xf | **STALE** (grew to 202) |
+| Smoke tests | 18/18 | 17/17 (at v0.14.0) | **FIXED** (t5 assertion fixed at `8f2222a`) |
+| CI test count | 75+2xf | 154+2xf (at v0.14.0; CI now includes CT + Part C) | **FIXED** (asyncio harness + CI scope) |
 | Agent battery 7/7+3/3 | at fa76deb | not re-run | **DEMOTED** (predates v0.13.0 surface) |
 
-| Behavioral Case | Calls | Result | Correct? |
-| --- | --- | --- | --- |
-| BC-1: Competitive renewal % | 1 | 1,089/29,560 = 3.7% | Yes (was 32 calls) |
-| BC-2: R21 top institution | 1 | Johns Hopkins: 96 | Yes (was 18 calls) |
-| BC-3: Longest-running R01 | 7 | Flailed, max rounds | **No — should abstain** |
-| BC-3b: Trainee outcomes | 0 | Clean abstain | Yes |
-| BC-3c: Cross-agency budget | 3 | Partial + decline | Yes |
-| BC-4: P41 renewal trend | 11 | Record counts, not awards | **No — wrong grain** |
-| BC-5: HuBMAP program count | 6 | Flailed, max rounds | **No — Finding #18** |
+| Behavioral Case | Tag | Calls | Result | Correct? |
+| --- | --- | --- | --- | --- |
+| BC-1: Competitive renewal % | v0.13.0 | 1 | 1,089/29,560 = 3.7% | Yes (was 32 calls) |
+| BC-2: R21 top institution | v0.13.0 | 1 | Johns Hopkins: 96 | Yes (was 18 calls) |
+| BC-3: Longest-running R01 | v0.13.0 | 7 | Flailed, max rounds | **No — should abstain** |
+| BC-3: Longest-running R01 | **v0.14.0** | **0** | **Clean abstain** | **Yes — CLOSED** |
+| BC-3b: Trainee outcomes | v0.13.0 | 0 | Clean abstain | Yes |
+| BC-3c: Cross-agency budget | v0.13.0 | 3 | Partial + decline | Yes |
+| BC-4: P41 renewal trend | v0.13.0 | 11 | Record counts (85/7) | **No — wrong grain** |
+| BC-4: P41 renewal trend | **v0.14.0** | **11** | **Deduped via group_by (13/1)** | **Yes — CLOSED** |
+| BC-5: HuBMAP program count | v0.13.0 | 6 | Flailed, max rounds | **No — Finding #18** |
+| BC-5: HuBMAP program count | **v0.14.0** | **1** | **Keyword approx + caveat** | **Yes — CLOSED** |

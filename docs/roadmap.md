@@ -2,9 +2,9 @@
 
 ## Done
 
-- **13 tools**: 9 RePORTER-native (search, exact-total summarization with opt-in provenance, year-over-year trends, org profiles with opt-in provenance, investigator portfolios, investigator overlap/duplication check, funded-project distribution by study section, recent awards tracking, direct ID lookup) + 1 cross-API (PubMed citation resolution via NCBI E-utilities) + 1 hybrid (publication linking) + 1 audit (evidence bundle export with full provenance, source record IDs, and reproduction note) + 1 consumer health (plain-language health-topic explanations from MedlinePlus in English/Spanish via NLM Web Search)
+- **14 tools**: 9 RePORTER-native (search, exact-total summarization with opt-in provenance, year-over-year trends, org profiles with opt-in provenance, investigator portfolios, investigator overlap/duplication check, funded-project distribution by study section, recent awards tracking, direct ID lookup) + 1 cross-API (PubMed citation resolution via NCBI E-utilities) + 1 hybrid (publication linking) + 1 audit (evidence bundle export with full provenance, source record IDs, and reproduction note) + 1 consumer health (plain-language health-topic explanations from MedlinePlus in English/Spanish via NLM Web Search) + 1 clinical trials (ClinicalTrials.gov v2 API lookup connecting funded projects to registered trials)
 - **9 prompts** across 3 audiences (general/analyst, program officer, citizen scientist): `funding_overview`, `institution_report`, `compare_rcdc_vs_freetext`, `research_landscape_summary`, `portfolio_brief`, `other_support_review` (public funded-award screening), `investment_to_outputs`, `explain_funding_landscape`, `follow_the_evidence` — reusable prompt templates that compose the same tools with audience-appropriate framing and boundary language
-- **2 resources**: `nih-reporter://spending-categories` (browsable RCDC category lookup table), `nih-reporter://server-info` (version, constraints, upstream API metadata)
+- **3 resources**: `nih-reporter://spending-categories` (browsable RCDC category lookup table), `nih-reporter://server-info` (version, constraints, upstream API metadata), `nih-reporter://response-guidelines` (behavioral guidelines for agent responses)
 - **2 custom HTTP routes**: `/health` (liveness probe for load balancers / Databricks Apps) and `/version` (capability report with tool/prompt/resource counts)
 - Full pagination for exact totals (not a single-page estimate)
 - Official NIH spending-category support (38 curated categories by name, any category by numeric ID) alongside free-text search, exposed as a deliberate choice rather than one hidden method
@@ -16,19 +16,19 @@
 - Audience-specific prompt sets: 9 prompts across 3 audiences (general/analyst,
   program officer, citizen scientist) composing the same tools with different
   framing and boundary language
-- 18-assertion automated eval suite against live data (17 standalone + t9 LLM agent-efficiency in notebook), with hard invariants and drift-tolerant thresholds correctly distinguished
-- 5 correctness-against-ground-truth tests (`tests/test_correctness.py`) proving funding arithmetic matches independently hand-computed reference values to the dollar
-- 7 synthetic oracle tests + 21 security tests (`tests/test_counting.py`, `tests/test_security.py`)
+- 17-assertion standalone smoke suite against live data + t9 LLM agent-efficiency (notebook-only), with hard invariants and drift-tolerant thresholds correctly distinguished
+- 8 correctness-against-ground-truth tests (`tests/test_correctness.py`) proving funding arithmetic matches independently hand-computed reference values to the dollar
+- 202 pytest tests across 6 files: 154 pass + 2 xfail offline (CI), 8 live-integration pass, 38 server-robustness pass
 - Measured, regression-guarded LLM agent tool-selection accuracy (100% across 8 held-out questions) and tool-call efficiency (mean 1.0 calls/question after a documented tool-description fix)
 - Reasoning-vs-chat-completion model endpoint compatibility documented and handled
 
-## Stubbed, not implemented (see `src/nih_reporter_mcp/tools/*.py` for placeholder files)
-
-**`clinical_trials_lookup`** — query ClinicalTrials.gov's v2 API to connect a funded project to any registered clinical trials, closing the loop from "NIH funds this research" to "this is now recruiting patients" or "this trial produced these results." The strongest available service-delivery complement to this server's current oversight-leaning tool set. No API key required.
+## Stubbed, not implemented
 
 **`usaspending_comparison`** — query USAspending.gov, the federal government's cross-agency spending API, to compare NIH's investment in a topic against total federal spending on that topic across all agencies. Answers a genuinely distinct oversight question RePORTER alone cannot: "how does NIH's piece compare to the whole federal picture?" No API key required.
 
-Both are deliberately left unregistered (not exposed as live tools) rather than half-implemented, so the active tool set remains fully tested rather than including unverified behavior.
+Deliberately left unregistered (not exposed as a live tool) rather than half-implemented, so the active tool set remains fully tested rather than including unverified behavior.
+
+**`clinical_trials_lookup`** was promoted from stub to fully registered tool at v0.13.0. It queries ClinicalTrials.gov's v2 API via `utils_ctgov.py`, with 23 offline tests in `test_clinical_trials.py`.
 
 ## Considered, not pursued
 

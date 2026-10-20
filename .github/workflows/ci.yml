@@ -8,6 +8,7 @@
 #   - tests/test_counting.py    — synthetic-fixture unit tests for aggregate_funding()
 #   - tests/test_security.py    — host-allowlist and input-guard unit tests
 #   - tests/test_prompt_contracts.py — prompt-to-tool contract validation
+#   - tests/test_clinical_trials.py — CT.gov fixture/mock tests (parse, validate, robustness)
 #   - tests/test_robustness.py::TestPartC_MockedUpstreamFailures
 #                               — mocked httpx tests for HTTP 500, 429, timeout, etc.
 #
@@ -29,7 +30,7 @@
 #     → Run Parts A/B/D/E locally with a running server.
 #
 #   eval/smoke_tests.py
-#     18-assertion smoke suite that exercises every tool against live NIH
+#     17-assertion standalone smoke suite that exercises every tool against live NIH
 #     data. Depends on outbound HTTPS to api.reporter.nih.gov and on a
 #     running MCP server. Would be flaky/blocked in CI.
 #     → Run locally: uv run python eval/smoke_tests.py
@@ -77,5 +78,6 @@ jobs:
             tests/test_counting.py \
             tests/test_security.py \
             tests/test_prompt_contracts.py \
+            tests/test_clinical_trials.py \
             tests/test_robustness.py::TestPartC_MockedUpstreamFailures \
             -v --tb=short

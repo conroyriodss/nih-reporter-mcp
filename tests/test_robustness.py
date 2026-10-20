@@ -129,6 +129,11 @@ TOOL_INPUTS = {
         "zero":     {"topic": "zzznotarealcondition999"},
         "boundary": {"topic": "asthma", "language": "es"},
     },
+    "clinical_trials_lookup": {
+        "normal":   {"core_project_num": "R01HL147914"},
+        "zero":     {"core_project_num": "ZZ99ZZ999999"},
+        "boundary": {"condition": "sickle cell disease"},
+    },
 }
 
 

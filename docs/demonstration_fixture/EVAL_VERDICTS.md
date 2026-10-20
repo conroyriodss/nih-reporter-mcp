@@ -1,6 +1,6 @@
 # Eval Claim Verdicts
 
-> **Submission tag:** v0.14.2 (commit SHA recorded only in RUN_MANIFEST §1)
+> **Submission tag:** v0.14.3 (commit SHA recorded only in RUN_MANIFEST §1)
 >
 > STEP 1–3 re-runs: 2026-10-20T00:15–00:25Z, server at v0.13.0, 14 tools.
 > Models: databricks-gpt-5-5, databricks-claude-sonnet-4-6, databricks-meta-llama-3-3-70b-instruct.

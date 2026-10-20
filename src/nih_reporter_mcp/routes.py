@@ -38,14 +38,22 @@ def register_routes(mcp: FastMCP) -> None:
 
     @mcp.custom_route("/version", methods=["GET"])
     async def version(request: Request) -> Response:
-        """Detailed version and capability report."""
+        """Detailed version and capability report.
+
+        Counts are computed from the live registries at request time, using
+        the same list_* calls that back the MCP tools/list, prompts/list and
+        resources/list methods, so this report can't drift from them.
+        """
+        tools = await mcp.list_tools()
+        prompts = await mcp.list_prompts()
+        resources = await mcp.list_resources()
         return JSONResponse(
             {
                 "server": "nih-reporter-mcp",
                 "version": __version__,
-                "tools": 14,
-                "prompts": 9,
-                "resources": 2,
+                "tools": len(tools),
+                "prompts": len(prompts),
+                "resources": len(resources),
                 "spending_categories": len(SPENDING_CATEGORIES),
                 "upstream_api": API_BASE,
             }

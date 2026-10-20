@@ -5,7 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.2] - 2026-10-20
+## [0.14.3] - 2026-10-20
+
+### Fixed
+- `/version` computes `tools`, `prompts` and `resources` from the registered server on every request (`list_tools`/`list_prompts`/`list_resources`), so it can't disagree with the MCP list methods. v0.14.2 hardcoded `resources: 2`; the live count is 3.
+- `test_prompt_contracts.py`: "13 tools" docstring and assert message corrected to 14.
+
+### Removed
+- `docs/run_manifest.md` (superseded 2026-10-18 manifest: 85 CI / 18 smoke). `docs/demonstration_fixture/RUN_MANIFEST.md` is now the only manifest; the old file is still in git history at v0.14.2 and earlier.
+
+## [0.14.2] - 2026-10-20 (superseded by 0.14.3)
 
 ### Fixed
 - Robustness counts now use one wording everywhere: 49 = 11 mocked (Part C, inside the 154 CI figure) + 38 server-dependent (32 stable + 6 pass-with-retry). v0.14.1 docs counted Part C twice.

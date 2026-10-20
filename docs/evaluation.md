@@ -3,8 +3,8 @@
 **Project:** NIH RePORTER MCP Server 
 **Team:** Rich Conroy (conroyri@nih.gov), NIH/OD/ODSS 
 **Hackathon:** GSA MCP Server and AI Agent Government Hackathon 
-**Version:** v0.14.2 
-**Tag:** `v0.14.2` (commit SHA recorded only in [RUN_MANIFEST §1](demonstration_fixture/RUN_MANIFEST.md)) 
+**Version:** v0.14.3 
+**Tag:** `v0.14.3` (commit SHA recorded only in [RUN_MANIFEST §1](demonstration_fixture/RUN_MANIFEST.md)) 
 **Date:** October 20, 2026
 
 ---

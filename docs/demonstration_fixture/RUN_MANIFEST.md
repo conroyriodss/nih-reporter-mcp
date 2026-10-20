@@ -1,7 +1,7 @@
-# Clean-Room Run Manifest — v0.14.2
+# Clean-Room Run Manifest — v0.14.3
 
 > Single source of truth for reproducing every result in the evidence package.
-> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-20 for submission tag v0.14.2.
+> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-20 for submission tag v0.14.3.
 > **SHA-citation rule:** every other document cites tag names only. Literal commit SHAs appear only in this manifest.
 > All runs executed on Databricks serverless compute.
 
@@ -11,12 +11,13 @@
 
 | Field | Value |
 | --- | --- |
-| Submission tag | `v0.14.2`: resolve via `git rev-parse v0.14.2^{commit}`. SHA as of writing: a commit can't contain its own SHA, so this row records the tagged commit's **parent**, `c992bd92e02f440c8bd81e66c3121ea1e6b5c95e` (check with `git rev-parse v0.14.2^{commit}^`). |
-| Tag date | `git for-each-ref refs/tags/v0.14.2 --format='%(taggerdate:iso8601)'` |
-| Annotated | Yes (`git tag -a v0.14.2`) |
-| Pushed | `git push origin v0.14.2` |
+| Submission tag | `v0.14.3`: resolve via `git rev-parse v0.14.3^{commit}`. SHA as of writing: a commit can't contain its own SHA, so this row records the tagged commit's **parent**, `ed75e071437f63417ffed0ed637ba38c0a8ff19c` (the v0.14.2 commit; check with `git rev-parse v0.14.3^{commit}^`). |
+| Tag date | `git for-each-ref refs/tags/v0.14.3 --format='%(taggerdate:iso8601)'` |
+| Annotated | Yes (`git tag -a v0.14.3`) |
+| Pushed | `git push origin v0.14.3` |
+| Post-tag verification | Recorded in the GitHub release notes for v0.14.3 (a commit can't record verification of itself). Each check is labeled deployed-app-verified, running-process-verified, or code-level. |
 | Repository | `https://github.com/conroyriodss/nih-reporter-mcp` (public) |
-| Prior tags | `v0.14.1` (superseded: robustness counts double-counted Part C), `v0.14.0` (superseded: docs predate reconciliation), `v0.13.0` (`6ad354deac8710f4f4a92b2d53701baf1f796804`): A1–A5 runs below were executed at this tag. See §10. |
+| Prior tags | `v0.14.2` (superseded: `/version` hardcoded `resources: 2`; duplicate `docs/run_manifest.md`), `v0.14.1` (superseded: robustness counts double-counted Part C), `v0.14.0` (superseded: docs predate reconciliation), `v0.13.0` (`6ad354deac8710f4f4a92b2d53701baf1f796804`): A1–A5 runs below were executed at this tag. See §10. |
 
 ## 2. Dependency Lock
 
@@ -258,10 +259,10 @@ fully explained (event-loop harness issue + offline-only integration tests).
 
 ---
 
-## 10. Tag History: v0.13.0 → v0.14.0 → v0.14.1 → v0.14.2 (2026-10-20)
+## 10. Tag History: v0.13.0 → v0.14.0 → v0.14.1 → v0.14.2 → v0.14.3 (2026-10-20)
 
 Runs A1–A5 were executed at v0.13.0 (`6ad354d`). Four commits were added
-before v0.14.0, then documentation/CI/test-harness-only commits for v0.14.1 and v0.14.2. This section documents what
+before v0.14.0, then documentation/CI/test-harness-only commits for v0.14.1, v0.14.2 and v0.14.3 (v0.14.3 also changes `routes.py` `/version` to compute its counts). This section documents what
 changed and why the A1–A5 results remain valid.
 
 ### Commits between tags
@@ -275,6 +276,7 @@ changed and why the A1–A5 results remain valid.
 | `ea9a870` | docs: Part B reconciliation + CI fix + stub cleanup |
 | `017c97a` | release: v0.14.1 stamp update |
 | `c992bd9` | docs: propagate v0.14.1 SHA (tag v0.14.1) |
+| `ed75e07` | release: v0.14.2 (tag v0.14.2) |
 
 ### What changed
 

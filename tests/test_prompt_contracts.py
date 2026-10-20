@@ -140,8 +140,8 @@ PROMPT_TEXTS = _extract_prompt_texts()
 
 
 def test_all_tools_discovered():
-    """Sanity: we should find all 13 tools."""
-    assert len(TOOL_PARAMS) == 14, f"Expected 13 tools, found {len(TOOL_PARAMS)}: {sorted(TOOL_PARAMS)}"
+    """Sanity: we should find all 14 tools."""
+    assert len(TOOL_PARAMS) == 14, f"Expected 14 tools, found {len(TOOL_PARAMS)}: {sorted(TOOL_PARAMS)}"
 
 
 def test_all_prompts_discovered():

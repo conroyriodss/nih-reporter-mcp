@@ -1,4 +1,6 @@
-# Clean-Room Execution Manifest
+# Clean-Room Execution Manifest (SUPERSEDED, 2026-10-18)
+
+> **Historical record only.** Superseded by [`docs/demonstration_fixture/RUN_MANIFEST.md`](demonstration_fixture/RUN_MANIFEST.md), the single manifest for the submission tag. Counts below (85 CI, 18 smoke) are as of 2026-10-18 and are not current.
 
 Single-provenance execution record for the NIH RePORTER MCP server
 submission notebook and test suite.
@@ -7,7 +9,7 @@ submission notebook and test suite.
 
 | Property | Value |
 |---|---|
-| Commit | `f665e305e9dec626ea3a6d9c8117861ad8f6e960` |
+| Commit | H2 in RUN_MANIFEST §11 (2026-10-18, pre-v0.13.0) |
 | Commit message | fix: tighten smoke-test assertions to match their descriptions |
 | Commit date | 2026-10-18 17:54:39 UTC |
 | Python | 3.12.3 |
@@ -86,7 +88,7 @@ MCP_URL=http://localhost:8000/mcp PYTHONPATH=src pytest tests/test_correctness.p
 | Agent loop endpoint | `databricks-gpt-5-5` (via serving endpoint in app.yaml) |
 | Cache state | Enabled (production default; rate limiter + response cache) |
 
-## Eval metrics (from prior frozen run, commit ff119dd)
+## Eval metrics (from prior frozen run, commit H1 in RUN_MANIFEST §11, v0.10.2)
 
 | Metric | Value |
 |---|---|

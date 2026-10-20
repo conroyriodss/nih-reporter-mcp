@@ -12,7 +12,7 @@ graph TB
     subgraph Server["NIH RePORTER MCP Server (FastMCP + Starlette)"]
         direction TB
 
-        subgraph Tools["13 Tools"]
+        subgraph Tools["14 Tools"]
             direction LR
             T1["search_funded_projects"]
             T2["summarize_funding_by_topic"]
@@ -27,6 +27,7 @@ graph TB
             T11["search_recent_awards"]
             T12["export_evidence_bundle"]
             T13["explain_health_topic"]
+            T14["clinical_trials_lookup"]
         end
 
         subgraph Prompts["9 Prompts (3 audiences)"]
@@ -36,9 +37,10 @@ graph TB
             P3["PI/PD<br/>(landscape_analysis,<br/>peer_benchmarking,<br/>trend_analysis)"]
         end
 
-        subgraph Resources["2 Resources + 2 Routes"]
+        subgraph Resources["3 Resources + 2 Routes"]
             R1["spending_categories<br/>(RCDC list)"]
             R2["server_info<br/>(version, capabilities)"]
+            R3["response_guidelines"]
             RT1["GET /health"]
             RT2["GET /version"]
         end

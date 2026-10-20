@@ -93,7 +93,7 @@ Upgraded `check_investigator_overlap` from a single 100-record API call to full 
 
 ## Demonstration
 
-### Live results (A5 batch 2026-10-19, verified at v0.14.1)
+### Live results (A5 batch 2026-10-19 at v0.13.0, re-confirmed at v0.14.0)
 
 **Q: "How much has NIH spent on CRISPR gene editing?"**
 
@@ -123,7 +123,7 @@ CRISPR gene editing FY2023:
 |---|---|
 | Model-free CI (pytest) | 154 passed + 2 xfail (5 CI targets: 4 unit files + robustness Part C, no network) |
 | Live-server smoke tests | 17/17 passed |
-| Live robustness (server-req) | 49 pass (43 stable + 6 pass-with-retry; transient upstream timeout) |
+| Live robustness (server-req) | 38 (32 stable + 6 pass-with-retry); transient upstream timeout. Part C's 11 mocked tests are in the 154 above |
 | Live correctness (ground truth) | 8/8 passed against independently-derived values |
 | Multi-model tool selection | 22/24 correct (92%) across GPT-5-5, Claude Sonnet 4-6, Llama 3.3 70B (re-verified 2026-10-20) |
 | Tool-selection determinism | 3/3 stable (5 repeats each, re-verified) |
@@ -153,7 +153,7 @@ nih-reporter-mcp/
 │   ├── test_prompt_contracts.py 29 tests
 │   ├── test_clinical_trials.py 23 tests
 │   ├── test_correctness.py    8 tests (live server)
-│   └── test_robustness.py     49 tests (10 mocked + 39 live)
+│   └── test_robustness.py     49 tests (11 mocked + 38 live)
 ├── eval/smoke_tests.py       17 assertions (standalone; t9 LLM-only in notebook)
 ├── docs/                     8 documents + 2 fixture dirs
 ├── .github/workflows/ci.yml  Python 3.11 + 3.12

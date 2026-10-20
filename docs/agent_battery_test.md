@@ -1,6 +1,6 @@
 # Agent Battery Test — Live Functional Evaluation
 
-Executed 2026-10-19 against live deployed server at commit `fa76deb`
+Executed 2026-10-19 against live deployed server at a pre-v0.13.0 development commit (RUN_MANIFEST §11 H3)
 (14 tools, 115 CI tests passing). All tool calls hit the live RePORTER,
 ClinicalTrials.gov, and NCBI APIs — no mocks, no cached fixtures.
 

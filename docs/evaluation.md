@@ -3,8 +3,8 @@
 **Project:** NIH RePORTER MCP Server 
 **Team:** Rich Conroy (conroyri@nih.gov), NIH/OD/ODSS 
 **Hackathon:** GSA MCP Server and AI Agent Government Hackathon 
-**Version:** v0.14.1 
-**Tag SHA:** `017c97a51b40cd6241319e834af2dc8688e605ce` 
+**Version:** v0.14.2 
+**Tag:** `v0.14.2` (commit SHA recorded only in [RUN_MANIFEST §1](demonstration_fixture/RUN_MANIFEST.md)) 
 **Date:** October 20, 2026
 
 ---
@@ -71,7 +71,7 @@ Additionally, `tests/test_correctness.py` contains 8 tests that verify funding a
 
 **Status: ✅ Re-verified at v0.14.0 — results below**
 
-Notebook cells 32–36 run a structured evaluation of tool-selection accuracy across three model families to demonstrate that the server's tool descriptions are agent-agnostic. Re-run 2026-10-20T00:15–00:25Z on Databricks serverless, server at v0.14.0 clean checkout (`4eec13c`), 14 tools:
+Notebook cells 32–36 run a structured evaluation of tool-selection accuracy across three model families to demonstrate that the server's tool descriptions are agent-agnostic. Re-run 2026-10-20T00:15–00:25Z on Databricks serverless, server at v0.13.0 clean checkout, 14 tools:
 
 | Eval | Result | Evidence tier |
 |---|---|---|
@@ -253,7 +253,7 @@ TestPartC (mocked upstream failures) catches regressions in error-handling code 
 | Unit tests (model-free) | `tests/test_counting.py`, `test_security.py`, `test_prompt_contracts.py`, `test_clinical_trials.py` | ✅ 154p + 2xf (CI: 4 unit files + robustness Part C) |
 | Robustness tests (mocked) | `tests/test_robustness.py::TestPartC` | ✅ 11p |
 | Correctness tests (live) | `tests/test_correctness.py` | ✅ 8 tests |
-| Robustness tests (live) | `tests/test_robustness.py` Parts A/B/D/E | ✅ 49 tests (43 stable + 6 pass-with-retry) |
+| Robustness tests (live) | `tests/test_robustness.py` Parts A/B/D/E | ✅ 38 (32 stable + 6 pass-with-retry); Part C's 11 mocked tests are counted in the 154 CI figure |
 | CI workflow | `.github/workflows/ci.yml` | ✅ |
 | Ground truth fixture | `tests/fixtures/crispr_sickle_cell_fy2024.json` | ✅ |
 | Smoke tests | `eval/smoke_tests.py` | ✅ 17/17 |
@@ -278,12 +278,12 @@ TestPartC (mocked upstream failures) catches regressions in error-handling code 
 
 ## Appendix: Reconciliation Change Log (v0.14.0)
 
-Changes applied to this document during the B1 reconciliation pass (2026-10-20), reconciling against the frozen canonical values block at v0.14.0 (`4eec13c`).
+Changes applied to this document during the B1 reconciliation pass (2026-10-20), reconciling against the frozen canonical values block at v0.14.0.
 
 | # | Location | Old value | New value | Canonical source |
 |---|---|---|---|---|
 | 1 | Header line 6 | v0.10.2-dev | v0.14.0 | Tag |
-| 2 | Header line 7 | (absent) | Tag SHA `4eec13c...` | Tag |
+| 2 | Header line 7 | (absent) | Tag-name reference; SHA only in RUN_MANIFEST §1 | Tag |
 | 3 | Header line 8 | October 16, 2026 | October 20, 2026 | Tag date |
 | 4 | §1.1 Tier 1 status | 75 passed + 2 xfailed | 154 pass + 2 xfail offline (CI) | CI scope: 4 unit files + Part C |
 | 5 | §1.1 test_counting | 20p + 2xf | 67p + 2xf | Subprocess pytest |
@@ -309,5 +309,5 @@ Changes applied to this document during the B1 reconciliation pass (2026-10-20),
 | 25 | Appendix resources | 2 resources | 3 resources | Server inventory |
 | 26 | Appendix unit tests | 65p + 2xf | 154p + 2xf (CI: 4 unit files + robustness Part C) | Subprocess pytest |
 | 27 | Appendix correctness | 6 tests | 8 tests | Subprocess pytest |
-| 28 | Appendix robustness | 38 tests | 49 tests (43 stable + 6 retry) | Subprocess pytest |
+| 28 | Appendix robustness | 38 tests | 38 (32 stable + 6 pass-with-retry) server-dependent; Part C 11 counted in CI 154 | Subprocess pytest (an interim "49 (43+6)" value counted Part C twice and was corrected) |
 | 29 | Appendix smoke | 18/18 | 17/17 | t5 fixed, t9 notebook-only |

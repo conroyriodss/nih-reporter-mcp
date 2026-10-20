@@ -1,11 +1,11 @@
-# Eval Claim Verdicts — v0.14.0
+# Eval Claim Verdicts
 
-> **Submission tag:** v0.14.1 @ `017c97a51b40cd6241319e834af2dc8688e605ce`
+> **Submission tag:** v0.14.2 (commit SHA recorded only in RUN_MANIFEST §1)
 >
-> STEP 1–3 re-runs: 2026-10-20T00:15–00:25Z, server at v0.13.0 (`6ad354d`), 14 tools.
+> STEP 1–3 re-runs: 2026-10-20T00:15–00:25Z, server at v0.13.0, 14 tools.
 > Models: databricks-gpt-5-5, databricks-claude-sonnet-4-6, databricks-meta-llama-3-3-70b-instruct.
 >
-> STEP 4 (freeze-blocker re-runs): 2026-10-20, server at v0.14.1 (`017c97a`), 14 tools.
+> STEP 4 (freeze-blocker re-runs): 2026-10-20, server at v0.14.0, 14 tools.
 > Model: databricks-claude-sonnet-4-5 via FMAPI. Real LLM agent loop, not simulated.
 
 ---
@@ -57,7 +57,7 @@
 
 **Old claim:** 18/18 (notebook Cell 12).
 **At v0.13.0 (clean-room A3b):** 16/17 standalone + t9 notebook-only.
-**At v0.14.0:** **17/17** standalone (t5 assertion fixed at `8f2222a`). t9 remains notebook-only.
+**At v0.14.0:** **17/17** standalone (t5 assertion fixed before v0.14.0; RUN_MANIFEST §11 H5). t9 remains notebook-only.
 **Verdict: FIXED at v0.14.0.** Was STALE at v0.13.0 (t5 stale assertion bug); now 17/17.
 
 ### Claim 6 — CI: 75 passed + 2 xfailed
@@ -68,7 +68,7 @@
 
 ### Claim 7 — Agent battery: 7/7 in-scope, 3/3 abstain
 
-**Old claim (agent_battery_test.md):** 10 questions at commit `fa76deb`.
+**Old claim (agent_battery_test.md):** 10 questions at a pre-v0.13.0 commit (RUN_MANIFEST §11 H3).
 **Verdict: DEMOTED to “team-reported at prior commit, predates v0.13.0 tool surface.”** The battery was run before `group_by`, `application_types`, and `spending_category` existed. The questions don’t test these capabilities. Re-running the exact same 10 questions at v0.13.0 would produce the same routing (the 10 Qs map to unchanged tools), but would not validate the new surface.
 
 ---
@@ -181,13 +181,13 @@ The eval doc (§2.2) cites “avg 2.0 (before) → 1.0 (after)” from the smoke
 
 ## STEP 4: Freeze-Blocker Re-Runs at v0.14.0 (real agent loop)
 
-> Server: v0.14.1 @ `017c97a`, 14 tools.
+> Server: v0.14.0, 14 tools.
 > Model: `databricks-claude-sonnet-4-5` via Databricks Foundation Model API.
 > Real LLM agent loop (not simulated). Tool descriptions updated with
 > grain warnings, unsupported-capability abstention list, and `group_by` PREFERRED note.
 
 BC-3/4/5 were freeze-blockers at v0.13.0. The v0.14.0 tool-description fixes
-(commit `b954516`) targeted these exact failure modes. Re-run results:
+(included in v0.14.0; RUN_MANIFEST §11 H4) targeted these exact failure modes. Re-run results:
 
 ### BC-3 (v0.14.0): Longest-running R01 -- CLOSED
 **Tool calls:** 0
@@ -226,9 +226,9 @@ acknowledged rather than worked around.
 | Argument validity | 24/24 or 23/24 | 24/24 (100%) | **RE-VERIFIED** (contradiction resolved) |
 | Determinism | 3/3 stable | 3/3 stable | **RE-VERIFIED** |
 | Efficiency metric | avg 1.0 | (harness invalid) | **DROPPED** (qualitative point kept) |
-| Smoke tests | 18/18 | 17/17 (at v0.14.0) | **FIXED** (t5 assertion fixed at `8f2222a`) |
+| Smoke tests | 18/18 | 17/17 (at v0.14.0) | **FIXED** (t5 assertion fixed before v0.14.0; RUN_MANIFEST §11 H5) |
 | CI test count | 75+2xf | 154+2xf (at v0.14.0; CI now includes CT + Part C) | **FIXED** (asyncio harness + CI scope) |
-| Agent battery 7/7+3/3 | at fa76deb | not re-run | **DEMOTED** (predates v0.13.0 surface) |
+| Agent battery 7/7+3/3 | pre-v0.13.0 (H3) | not re-run | **DEMOTED** (predates v0.13.0 surface) |
 
 | Behavioral Case | Tag | Calls | Result | Correct? |
 | --- | --- | --- | --- | --- |

@@ -1,7 +1,8 @@
-# Clean-Room Run Manifest — v0.14.0
+# Clean-Room Run Manifest — v0.14.2
 
 > Single source of truth for reproducing every result in the evidence package.
-> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-20 for submission tag v0.14.1.
+> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-20 for submission tag v0.14.2.
+> **SHA-citation rule:** every other document cites tag names only. Literal commit SHAs appear only in this manifest.
 > All runs executed on Databricks serverless compute.
 
 ---
@@ -10,13 +11,12 @@
 
 | Field | Value |
 | --- | --- |
-| Submission tag | `v0.14.1` |
-| Full SHA | `017c97a51b40cd6241319e834af2dc8688e605ce` |
-| Tag date | 2026-10-20T03:09:36Z |
-| Annotated | Yes (`git tag -a v0.14.1 -m "..."`) |
-| Pushed | `git push origin v0.14.0` |
+| Submission tag | `v0.14.2`: resolve via `git rev-parse v0.14.2^{commit}`. SHA as of writing: a commit can't contain its own SHA, so this row records the tagged commit's **parent**, `c992bd92e02f440c8bd81e66c3121ea1e6b5c95e` (check with `git rev-parse v0.14.2^{commit}^`). |
+| Tag date | `git for-each-ref refs/tags/v0.14.2 --format='%(taggerdate:iso8601)'` |
+| Annotated | Yes (`git tag -a v0.14.2`) |
+| Pushed | `git push origin v0.14.2` |
 | Repository | `https://github.com/conroyriodss/nih-reporter-mcp` (public) |
-| Prior tag | `v0.13.0` (`6ad354deac8710f4f4a92b2d53701baf1f796804`) — A1–A5 runs below were executed at this tag. See §10 for what changed. |
+| Prior tags | `v0.14.1` (superseded: robustness counts double-counted Part C), `v0.14.0` (superseded: docs predate reconciliation), `v0.13.0` (`6ad354deac8710f4f4a92b2d53701baf1f796804`): A1–A5 runs below were executed at this tag. See §10. |
 
 ## 2. Dependency Lock
 
@@ -258,10 +258,10 @@ fully explained (event-loop harness issue + offline-only integration tests).
 
 ---
 
-## 10. Tag Bump: v0.13.0 → v0.14.1 (2026-10-20)
+## 10. Tag History: v0.13.0 → v0.14.0 → v0.14.1 → v0.14.2 (2026-10-20)
 
 Runs A1–A5 were executed at v0.13.0 (`6ad354d`). Four commits were added
-before the submission tag v0.14.1 (`017c97a`). This section documents what
+before v0.14.0, then documentation/CI/test-harness-only commits for v0.14.1 and v0.14.2. This section documents what
 changed and why the A1–A5 results remain valid.
 
 ### Commits between tags
@@ -271,7 +271,10 @@ changed and why the A1–A5 results remain valid.
 | `b954516` | fix: tool descriptions — deduped grain routing, unsupported-capability abstention |
 | `8f2222a` | fix: asyncio harness + t5 smoke assertion |
 | `b03fa12` | docs: eval claim verdicts — re-run + behavioral traces |
-| `4eec13c` | release: v0.14.0 — all fixes included, new submission tag |
+| `4eec13c` | release: v0.14.0 (tag v0.14.0) |
+| `ea9a870` | docs: Part B reconciliation + CI fix + stub cleanup |
+| `017c97a` | release: v0.14.1 stamp update |
+| `c992bd9` | docs: propagate v0.14.1 SHA (tag v0.14.1) |
 
 ### What changed
 
@@ -302,3 +305,19 @@ tool *descriptions*, test harnesses, and documentation. Therefore:
   unaffected by description changes.
 - **A3/A3b:** Superseded by v0.14.0 counts above. The v0.13.0 numbers are
   retained in §5 as the historical record of what was actually executed.
+
+
+---
+
+## 11. Historical Commit Index
+
+Other documents refer to untagged commits by these IDs instead of by SHA.
+
+| ID | SHA | Date | Subject |
+| --- | --- | --- | --- |
+| H1 | `ff119dd5dc558cfe971844e7f789e653fe154eba` | 2026-10-16 | v0.10.2: trust-contract fixes, evidence-export cap, overlap pagination, prompt-schema alignment, full eval suite |
+| H2 | `f665e305e9dec626ea3a6d9c8117861ad8f6e960` | 2026-10-18 | fix: tighten smoke-test assertions to match their descriptions |
+| H3 | `fa76deba99606cab7e6be6982a9da6b9799f1ee1` | 2026-10-19 | feat: activity_codes filter + RePORT.gov ground-truth comparison (115 tests) |
+| H4 | `b95451641ff08a37bbeea49bebfd46bb49415921` | 2026-10-20 | fix: tool descriptions (deduped grain routing, unsupported-capability abstention) |
+| H5 | `8f2222a517be93ae006cb5b0938d98adb7316170` | 2026-10-20 | fix: asyncio harness + t5 smoke assertion |
+| H6 | `b03fa12a8372838a236f01bb0357b2df7872c38d` | 2026-10-20 | docs: eval claim verdicts (re-run + behavioral traces) |

@@ -5,6 +5,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.2] - 2026-10-20
+
+### Fixed
+- Robustness counts now use one wording everywhere: 49 = 11 mocked (Part C, inside the 154 CI figure) + 38 server-dependent (32 stable + 6 pass-with-retry). v0.14.1 docs counted Part C twice.
+- `docs/robustness.md`, `docs/architecture.md`, and the notebook updated to 14 tools / 3 resources; the notebook tool-count assertion was still `== 13`.
+- Provenance corrections: model re-runs dated to v0.13.0; the STEP 4 behavioral traces and the A5 re-confirmation dated to v0.14.0.
+- SHA-citation rule: document bodies cite tag names only; literal SHAs live only in `docs/demonstration_fixture/RUN_MANIFEST.md`.
+- `docs/run_manifest.md` marked superseded.
+
+## [0.14.1] - 2026-10-20 (superseded by 0.14.2)
+
+### Changed
+- CI now runs `tests/test_clinical_trials.py`: 154 pass + 2 xfail.
+- `test_clinical_trials.py` uses `asyncio.run()`.
+- Removed the dead `tools/clinical_trials_lookup.py` stub (the live tool is `tools/clinical_trials.py`).
+- Part B document reconciliation (evaluation.md, slides.md, roadmap, eval/README).
+
+## [0.14.0] - 2026-10-20 (superseded)
+
+### Fixed
+- Tool descriptions: deduped-grain routing and unsupported-capability abstention.
+- Asyncio test harness; t5 smoke assertion (17/17).
+
 ## [0.11.0] - 2026-10-18
 
 ### Added

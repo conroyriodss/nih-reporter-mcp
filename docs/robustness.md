@@ -1,18 +1,22 @@
 # Robustness & Stability Evaluation Report
 
 This report documents the evidence for four hackathon judging criteria,
-produced by `tests/test_robustness.py` (46 tests, all passing).
+produced by `tests/test_robustness.py`.
+
+**Current counts (v0.14.2):** 49 robustness tests = 11 mocked (Part C, counted within the 154 CI figure) + 38 server-dependent (Parts A/B/D/E: 32 stable + 6 pass-with-retry). All 14 registered tools have `TOOL_INPUTS` coverage, enforced by `test_all_tools_have_test_inputs`.
+
+> The per-row detail tables in Parts A, B, D and E come from the earlier 13-tool run, before `clinical_trials_lookup` was registered. They show *what* each part checks; current pass counts are in the Test Counts table at the end. `clinical_trials_lookup` is covered by Parts A and B through `TOOL_INPUTS`, but it doesn't have its own row in the historical latency table.
 
 ## Summary
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Thoughtful eval design | 13 tools × 3 input variants + parameterized error matrix + mocked upstream failures + stability runs + latency profile | 46 tests, 100% pass |
-| Well-formed responses | Every tool tested with normal, zero-result, and boundary inputs; all return validated Pydantic models (never raw dict/None) | 13/13 tools clean |
-| Graceful error handling | 29 error conditions tested (missing params, wrong types, nonexistent IDs, oversized inputs) + 8 mocked upstream failures (500, timeout, 429, oversized, malformed JSON, network error, 400, 403) | 37/37 conditions handled cleanly |
+| Thoughtful eval design | 14 tools × 3 input variants + parameterized error matrix + mocked upstream failures + stability runs + latency profile | 49 tests: 11 mocked (in CI 154) + 38 server-dependent (32 stable + 6 pass-with-retry) |
+| Well-formed responses | Every tool tested with normal, zero-result, and boundary inputs; all return validated Pydantic models (never raw dict/None) | 14/14 tools covered (`TOOL_INPUTS`) |
+| Graceful error handling | 28 parameterized error conditions tested (missing params, wrong types, nonexistent IDs, oversized inputs) + 11 mocked upstream failures (500, timeout, 429, oversized, malformed JSON, network error, 400, 403, and 3 malformed-200 payload cases) | 39/39 conditions handled cleanly |
 | Stable performance | 3 tools × 5 runs with cache on + 2 tools × 5 runs with cache off; dollar figures identical across all runs | 0 variance detected |
 
-## Part A — Well-Formed Responses (13 tools × 3 cases)
+## Part A — Well-Formed Responses (14 tools × 3 cases)
 
 Tool list discovered programmatically from `list_tools()` — a newly-added tool
 cannot be silently omitted from coverage.
@@ -23,7 +27,7 @@ cannot be silently omitted from coverage.
 | Zero-result (valid input, no matches) | 13 | 13/13 return valid empty model |
 | Boundary (limit=1, single year, etc.) | 10 (3 N/A) | 10/10 return structured model |
 
-## Part B — Error Handling Matrix (29 conditions)
+## Part B — Error Handling Matrix (28 parameterized conditions)
 
 | Condition | Tools tested | Expected | Result |
 |---|---|---|---|
@@ -35,7 +39,7 @@ cannot be silently omitted from coverage.
 No tool ever leaked an httpx traceback, produced an unhandled exception, or
 returned a 500-equivalent.
 
-## Part C — Mocked Upstream Failures (8 unit tests)
+## Part C — Mocked Upstream Failures (11 unit tests, run in CI)
 
 These prove error handling for conditions that cannot be triggered with live
 calls (you can't force the live API to 500 on demand).
@@ -50,6 +54,9 @@ calls (you can't force the live API to 500 on demand).
 | Network error (connect refused) | `RuntimeError("Network error")` | PASS |
 | HTTP 400 | `ValueError("rejected (400)")` | PASS |
 | HTTP 403 | `ValueError("blocked (403)")` | PASS |
+| HTTP 200 with malformed body | Error raised, not silently empty | PASS |
+| HTTP 200 with partial keys | Error raised | PASS |
+| `meta` present but no `total` key | Error raised | PASS |
 
 ## Part D — Stability Across Repeated Calls
 
@@ -83,7 +90,7 @@ and the upstream data is stable within the test window.
 | funded_projects_by_study_section | 0.07s | OK |
 | summarize_funding_by_topic | 0.02s | OK |
 
-All 13 tools respond under 1 second cold. Most tools respond in under 100ms
+All 13 tools measured in this (historical) run responded under 1 second cold. Most tools respond in under 100ms
 (cache warm from earlier test runs in the session). `get_publication_details`
 is the slowest at 0.56s (hits NCBI E-utilities, the most latency-variable
 upstream). No tool exceeds the 10-second flag threshold.
@@ -92,9 +99,9 @@ upstream). No tool exceeds the 10-second flag threshold.
 
 | Test file | Tests | Status |
 |---|---|---|
-| tests/test_robustness.py Part A | 4 | 4 passed |
-| tests/test_robustness.py Part B | 29 | 29 passed |
-| tests/test_robustness.py Part C | 8 | 8 passed |
-| tests/test_robustness.py Part D | 5 | 5 passed |
-| tests/test_robustness.py Part E | 1 (covers 13 tools) | 1 passed |
-| **Total** | **46** | **46 passed** |
+| tests/test_robustness.py Part A | 4 (1 coverage check + 3 cases × 14 tools) | server-dependent |
+| tests/test_robustness.py Part B | 28 | server-dependent |
+| tests/test_robustness.py Part C | 11 | 11 passed (mocked, in CI) |
+| tests/test_robustness.py Part D | 5 | server-dependent |
+| tests/test_robustness.py Part E | 1 (covers 14 tools) | server-dependent |
+| **Total** | **49** | **11 mocked (in CI 154) + 38 server-dependent: 32 stable + 6 pass-with-retry** |

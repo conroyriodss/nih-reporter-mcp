@@ -21,8 +21,8 @@ excluded, or why.
 
 ## What this server does
 
-NIH RePORTER MCP exposes 13 goal-oriented tools over three upstream APIs
-(RePORTER, NCBI E-utilities, MedlinePlus) through the Model Context
+NIH RePORTER MCP exposes 14 goal-oriented tools over four upstream APIs
+(RePORTER, NCBI E-utilities, MedlinePlus, ClinicalTrials.gov) through the Model Context
 Protocol. Every dollar figure carries machine-readable provenance: the
 exact query, every contributing record's appl_id, subproject exclusion
 counts, deduplication flags, and a numbered reproduction procedure that

@@ -93,7 +93,7 @@ Upgraded `check_investigator_overlap` from a single 100-record API call to full 
 
 ## Demonstration
 
-### Live results (A5 batch 2026-10-19, verified at v0.14.0)
+### Live results (A5 batch 2026-10-19, verified at v0.14.1)
 
 **Q: "How much has NIH spent on CRISPR gene editing?"**
 

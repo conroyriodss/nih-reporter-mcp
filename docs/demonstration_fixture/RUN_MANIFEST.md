@@ -1,7 +1,7 @@
 # Clean-Room Run Manifest — v0.14.0
 
 > Single source of truth for reproducing every result in the evidence package.
-> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-20 for submission tag v0.14.0.
+> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-20 for submission tag v0.14.1.
 > All runs executed on Databricks serverless compute.
 
 ---
@@ -10,10 +10,10 @@
 
 | Field | Value |
 | --- | --- |
-| Submission tag | `v0.14.0` |
-| Full SHA | `4eec13cc4b3f1e418c890fed8c2b592a8a352190` |
+| Submission tag | `v0.14.1` |
+| Full SHA | `ea9a8706f312ea51d96abb25663dfcee07b00159` |
 | Tag date | 2026-10-20T03:09:36Z |
-| Annotated | Yes (`git tag -a v0.14.0 -m "..."`) |
+| Annotated | Yes (`git tag -a v0.14.1 -m "..."`) |
 | Pushed | `git push origin v0.14.0` |
 | Repository | `https://github.com/conroyriodss/nih-reporter-mcp` (public) |
 | Prior tag | `v0.13.0` (`6ad354deac8710f4f4a92b2d53701baf1f796804`) — A1–A5 runs below were executed at this tag. See §10 for what changed. |
@@ -258,10 +258,10 @@ fully explained (event-loop harness issue + offline-only integration tests).
 
 ---
 
-## 10. Tag Bump: v0.13.0 → v0.14.0 (2026-10-20)
+## 10. Tag Bump: v0.13.0 → v0.14.1 (2026-10-20)
 
 Runs A1–A5 were executed at v0.13.0 (`6ad354d`). Four commits were added
-before the submission tag v0.14.0 (`4eec13c`). This section documents what
+before the submission tag v0.14.1 (`ea9a870`). This section documents what
 changed and why the A1–A5 results remain valid.
 
 ### Commits between tags

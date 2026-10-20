@@ -3,8 +3,8 @@
 **Project:** NIH RePORTER MCP Server 
 **Team:** Rich Conroy (conroyri@nih.gov), NIH/OD/ODSS 
 **Hackathon:** GSA MCP Server and AI Agent Government Hackathon 
-**Version:** v0.14.0 
-**Tag SHA:** `4eec13cc4b3f1e418c890fed8c2b592a8a352190` 
+**Version:** v0.14.1 
+**Tag SHA:** `ea9a8706f312ea51d96abb25663dfcee07b00159` 
 **Date:** October 20, 2026
 
 ---
@@ -17,7 +17,7 @@ All tests are in the `tests/` directory and runnable with standard `pytest`. The
 
 #### Tier 1: Model-Free CI (GitHub Actions, every push/PR)
 
-**Status: ✅ Verified at v0.14.0 — 154 pass + 2 xfail offline (CI)**
+**Status: ✅ Verified at v0.14.1 — 154 pass + 2 xfail offline (CI)**
 
 | Test file | Tests | What it covers |
 |---|---|---|

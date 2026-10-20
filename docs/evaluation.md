@@ -4,7 +4,7 @@
 **Team:** Rich Conroy (conroyri@nih.gov), NIH/OD/ODSS 
 **Hackathon:** GSA MCP Server and AI Agent Government Hackathon 
 **Version:** v0.14.1 
-**Tag SHA:** `ea9a8706f312ea51d96abb25663dfcee07b00159` 
+**Tag SHA:** `017c97a51b40cd6241319e834af2dc8688e605ce` 
 **Date:** October 20, 2026
 
 ---

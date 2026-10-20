@@ -1,11 +1,11 @@
 # Eval Claim Verdicts — v0.14.0
 
-> **Submission tag:** v0.14.1 @ `ea9a8706f312ea51d96abb25663dfcee07b00159`
+> **Submission tag:** v0.14.1 @ `017c97a51b40cd6241319e834af2dc8688e605ce`
 >
 > STEP 1–3 re-runs: 2026-10-20T00:15–00:25Z, server at v0.13.0 (`6ad354d`), 14 tools.
 > Models: databricks-gpt-5-5, databricks-claude-sonnet-4-6, databricks-meta-llama-3-3-70b-instruct.
 >
-> STEP 4 (freeze-blocker re-runs): 2026-10-20, server at v0.14.1 (`ea9a870`), 14 tools.
+> STEP 4 (freeze-blocker re-runs): 2026-10-20, server at v0.14.1 (`017c97a`), 14 tools.
 > Model: databricks-claude-sonnet-4-5 via FMAPI. Real LLM agent loop, not simulated.
 
 ---
@@ -181,7 +181,7 @@ The eval doc (§2.2) cites “avg 2.0 (before) → 1.0 (after)” from the smoke
 
 ## STEP 4: Freeze-Blocker Re-Runs at v0.14.0 (real agent loop)
 
-> Server: v0.14.1 @ `ea9a870`, 14 tools.
+> Server: v0.14.1 @ `017c97a`, 14 tools.
 > Model: `databricks-claude-sonnet-4-5` via Databricks Foundation Model API.
 > Real LLM agent loop (not simulated). Tool descriptions updated with
 > grain warnings, unsupported-capability abstention list, and `group_by` PREFERRED note.

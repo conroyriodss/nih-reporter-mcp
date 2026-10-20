@@ -11,7 +11,7 @@
 | Field | Value |
 | --- | --- |
 | Submission tag | `v0.14.1` |
-| Full SHA | `ea9a8706f312ea51d96abb25663dfcee07b00159` |
+| Full SHA | `017c97a51b40cd6241319e834af2dc8688e605ce` |
 | Tag date | 2026-10-20T03:09:36Z |
 | Annotated | Yes (`git tag -a v0.14.1 -m "..."`) |
 | Pushed | `git push origin v0.14.0` |
@@ -261,7 +261,7 @@ fully explained (event-loop harness issue + offline-only integration tests).
 ## 10. Tag Bump: v0.13.0 → v0.14.1 (2026-10-20)
 
 Runs A1–A5 were executed at v0.13.0 (`6ad354d`). Four commits were added
-before the submission tag v0.14.1 (`ea9a870`). This section documents what
+before the submission tag v0.14.1 (`017c97a`). This section documents what
 changed and why the A1–A5 results remain valid.
 
 ### Commits between tags

@@ -79,15 +79,24 @@ def register(mcp: FastMCP) -> None:
             "1=New, 2=Competing Renewal, 3=Supplement, 4=Extension, "
             "5=Non-Competing Continuation, 6=Change of Grantee, 7=Application, "
             "8=Merit Extension, 9=Other. "
-            "Use this for lifecycle questions like 'non-competing continuations' or 'new awards only'. "
-            "Filtered SERVER-SIDE (exact counts, no 10K ceiling). Example: application_types=[5] for non-competing continuations."
+            "Use this for dollar totals on a SPECIFIC type, or when you need the "
+            "project list for one type. "
+            "WARNING — RECORD-LEVEL counts: this filter returns RAW RECORD counts. "
+            "For center grants (P30/P41/P50/U54), one award fans out into many "
+            "subproject records, so the count OVERCOUNTS awards by 5-100x. "
+            "For 'how many awards/renewals' questions, use group_by='application_type' "
+            "instead — it returns DEDUPLICATED award counts. "
+            "Example: application_types=[5] + activity_codes=['R01'] for R01 non-competing dollar totals."
         ))] = None,
         group_by: Annotated[str | None, Field(description=(
             "Instead of listing individual projects, GROUP results by this dimension "
             "and return a RANKED table of (key, project_count, total_award). "
             "Use this for 'which institution/state/IC got the most' questions. "
             "Valid values: 'organization', 'activity_code', 'org_state', 'administering_ic', 'application_type', 'principal_investigator'. "
-            "When group_by='application_type', counts are EXACT (server-side faceting). "
+            "group_by='application_type' is the PREFERRED path for 'how many awards/renewals' "
+            "questions — it returns DEDUPLICATED AWARD counts (exclude_subprojects=True) "
+            "broken down by type, with exact server-side faceting (no 10K ceiling). "
+            "Use it for multi-year trends by calling once per year. "
             "For other dimensions, grouping uses up to 10,000 records — honest truncation "
             "flags are included when the cohort exceeds this ceiling. "
             "The result includes total_matching_projects so you can compute percentages. "
@@ -110,8 +119,17 @@ def register(mcp: FastMCP) -> None:
         topic= searches ALL text fields (title, abstract, terms). For named NIH programs
         (HuBMAP, SPARC, All of Us, etc.), keyword search is an APPROXIMATION — it finds
         projects that mention the program, not a program roster. RePORTER does not expose
-        a Common Fund or program-membership filter. When answering 'how many awards in
-        program X', state the keyword-based nature in the headline, not a footnote.
+        a Common Fund or program-membership filter. If asked for an exact program roster
+        or 'how many awards in program X', ABSTAIN after one probe and explain that
+        keyword counts are an approximation — do not retry with variant phrasings.
+
+        UNSUPPORTED capabilities (abstain immediately, do not attempt workarounds):
+        • Duration ranking ('longest-running grant') — no award-start-date sort exists.
+        • Program membership roster — no Common Fund / program filter exists.
+        • Trainee outcomes / career tracking — no post-award career data.
+        • Cross-agency (NSF+NIH) queries — this server covers NIH/HHS only.
+        If any of these is the core of the question, return a single explanation
+        of why the data is unavailable rather than making multiple search attempts.
 
         Response structure for count/total questions:
         Lead with ONE number + its basis in the first sentence. Offer parent-vs-total or

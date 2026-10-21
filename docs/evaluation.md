@@ -3,8 +3,8 @@
 **Project:** NIH RePORTER MCP Server 
 **Team:** Rich Conroy (conroyri@nih.gov), NIH/OD/ODSS 
 **Hackathon:** GSA MCP Server and AI Agent Government Hackathon 
-**Version:** v0.14.3 
-**Tag:** `v0.14.3` (commit SHA recorded only in [RUN_MANIFEST §1](demonstration_fixture/RUN_MANIFEST.md)) 
+**Version:** v0.14.4 
+**Tag:** `v0.14.4` (commit SHA recorded only in [RUN_MANIFEST §1](demonstration_fixture/RUN_MANIFEST.md)) 
 **Date:** October 20, 2026
 
 ---
@@ -17,7 +17,7 @@ All tests are in the `tests/` directory and runnable with standard `pytest`. The
 
 #### Tier 1: Model-Free CI (GitHub Actions, every push/PR)
 
-**Status: ✅ Verified at v0.14.1 — 154 pass + 2 xfail offline (CI)**
+**Status: ✅ Verified at v0.14.4 — 155 pass + 2 xfail offline (CI)**
 
 | Test file | Tests | What it covers |
 |---|---|---|
@@ -250,10 +250,10 @@ TestPartC (mocked upstream failures) catches regressions in error-handling code 
 | 14 tools | `src/nih_reporter_mcp/tools/` | ✅ (includes `clinical_trials_lookup`, registered since v0.13.0) |
 | 9 prompts | `src/nih_reporter_mcp/prompts/` | ✅ |
 | 3 resources | `src/nih_reporter_mcp/resources/` | ✅ (server_info, response_guidelines, spending_categories) |
-| Unit tests (model-free) | `tests/test_counting.py`, `test_security.py`, `test_prompt_contracts.py`, `test_clinical_trials.py` | ✅ 154p + 2xf (CI: 4 unit files + robustness Part C) |
+| Unit tests (model-free) | `tests/test_counting.py`, `test_security.py`, `test_prompt_contracts.py`, `test_clinical_trials.py`, `test_version_contract.py` | ✅ 155p + 2xf (CI: 5 unit files + robustness Part C) |
 | Robustness tests (mocked) | `tests/test_robustness.py::TestPartC` | ✅ 11p |
 | Correctness tests (live) | `tests/test_correctness.py` | ✅ 8 tests |
-| Robustness tests (live) | `tests/test_robustness.py` Parts A/B/D/E | ✅ 38 (32 stable + 6 pass-with-retry); Part C's 11 mocked tests are counted in the 154 CI figure |
+| Robustness tests (live) | `tests/test_robustness.py` Parts A/B/D/E | ✅ 38 (32 stable + 6 pass-with-retry); Part C's 11 mocked tests are counted in the 155 CI figure |
 | CI workflow | `.github/workflows/ci.yml` | ✅ |
 | Ground truth fixture | `tests/fixtures/crispr_sickle_cell_fy2024.json` | ✅ |
 | Smoke tests | `eval/smoke_tests.py` | ✅ 17/17 |
@@ -285,7 +285,7 @@ Changes applied to this document during the B1 reconciliation pass (2026-10-20),
 | 1 | Header line 6 | v0.10.2-dev | v0.14.0 | Tag |
 | 2 | Header line 7 | (absent) | Tag-name reference; SHA only in RUN_MANIFEST §1 | Tag |
 | 3 | Header line 8 | October 16, 2026 | October 20, 2026 | Tag date |
-| 4 | §1.1 Tier 1 status | 75 passed + 2 xfailed | 154 pass + 2 xfail offline (CI) | CI scope: 4 unit files + Part C |
+| 4 | §1.1 Tier 1 status | 75 passed + 2 xfailed | 155 pass + 2 xfail offline (CI) | CI scope: 5 unit files + Part C |
 | 5 | §1.1 test_counting | 20p + 2xf | 67p + 2xf | Subprocess pytest |
 | 6 | §1.1 test_security | 21p | 24p | Subprocess pytest |
 | 7 | §1.1 test_prompt_contracts | 24p | 29p | Subprocess pytest |
@@ -307,7 +307,7 @@ Changes applied to this document during the B1 reconciliation pass (2026-10-20),
 | 23 | §4.3 | "2.0 → 1.0 calls/question" | Qualitative BC-1/BC-2 traces | EVAL_VERDICTS |
 | 24 | Appendix tools | 13 tools | 14 tools (CT registered since v0.13.0) | Server inventory |
 | 25 | Appendix resources | 2 resources | 3 resources | Server inventory |
-| 26 | Appendix unit tests | 65p + 2xf | 154p + 2xf (CI: 4 unit files + robustness Part C) | Subprocess pytest |
+| 26 | Appendix unit tests | 65p + 2xf | 155p + 2xf (CI: 5 unit files + robustness Part C) | Subprocess pytest |
 | 27 | Appendix correctness | 6 tests | 8 tests | Subprocess pytest |
-| 28 | Appendix robustness | 38 tests | 38 (32 stable + 6 pass-with-retry) server-dependent; Part C 11 counted in CI 154 | Subprocess pytest (an interim "49 (43+6)" value counted Part C twice and was corrected) |
+| 28 | Appendix robustness | 38 tests | 38 (32 stable + 6 pass-with-retry) server-dependent; Part C 11 counted in CI 155 | Subprocess pytest (an interim "49 (43+6)" value counted Part C twice and was corrected) |
 | 29 | Appendix smoke | 18/18 | 17/17 | t5 fixed, t9 notebook-only |

@@ -9,6 +9,7 @@
 #   - tests/test_security.py    — host-allowlist and input-guard unit tests
 #   - tests/test_prompt_contracts.py — prompt-to-tool contract validation
 #   - tests/test_clinical_trials.py — CT.gov fixture/mock tests (parse, validate, robustness)
+#   - tests/test_version_contract.py — /version counts == live list_* registries (in-process)
 #   - tests/test_robustness.py::TestPartC_MockedUpstreamFailures
 #                               — mocked httpx tests for HTTP 500, 429, timeout, etc.
 #
@@ -79,5 +80,6 @@ jobs:
             tests/test_security.py \
             tests/test_prompt_contracts.py \
             tests/test_clinical_trials.py \
+            tests/test_version_contract.py \
             tests/test_robustness.py::TestPartC_MockedUpstreamFailures \
             -v --tb=short

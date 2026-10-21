@@ -1,7 +1,7 @@
-# Clean-Room Run Manifest — v0.14.3
+# Clean-Room Run Manifest — v0.14.4
 
 > Single source of truth for reproducing every result in the evidence package.
-> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-20 for submission tag v0.14.3.
+> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-21 for submission tag v0.14.4.
 > **SHA-citation rule:** every other document cites tag names only. Literal commit SHAs appear only in this manifest.
 > All runs executed on Databricks serverless compute.
 
@@ -11,13 +11,13 @@
 
 | Field | Value |
 | --- | --- |
-| Submission tag | `v0.14.3`: resolve via `git rev-parse v0.14.3^{commit}`. SHA as of writing: a commit can't contain its own SHA, so this row records the tagged commit's **parent**, `ed75e071437f63417ffed0ed637ba38c0a8ff19c` (the v0.14.2 commit; check with `git rev-parse v0.14.3^{commit}^`). |
-| Tag date | `git for-each-ref refs/tags/v0.14.3 --format='%(taggerdate:iso8601)'` |
-| Annotated | Yes (`git tag -a v0.14.3`) |
-| Pushed | `git push origin v0.14.3` |
-| Post-tag verification | Recorded in the GitHub release notes for v0.14.3 (a commit can't record verification of itself). Each check is labeled deployed-app-verified, running-process-verified, or code-level. |
+| Submission tag | `v0.14.4`: resolve via `git rev-parse v0.14.4^{commit}`. SHA as of writing: a commit can't contain its own SHA, so this row records the tagged commit's **parent**, `b1145e17c8d0de6afd71337bdf2c15f72e76a5c6` (the v0.14.3 commit; check with `git rev-parse v0.14.4^{commit}^`). |
+| Tag date | `git for-each-ref refs/tags/v0.14.4 --format='%(taggerdate:iso8601)'` |
+| Annotated | Yes (`git tag -a v0.14.4`) |
+| Pushed | `git push origin v0.14.4` |
+| Post-tag verification | Recorded in the GitHub release notes for v0.14.4 (https://github.com/conroyriodss/nih-reporter-mcp/releases/tag/v0.14.4) and in a git note on the tagged commit (`git fetch origin refs/notes/commits:refs/notes/commits && git notes show v0.14.4`). A commit can't record verification of itself. Each check is labeled deployed-app-verified, running-process-verified, or code-level. |
 | Repository | `https://github.com/conroyriodss/nih-reporter-mcp` (public) |
-| Prior tags | `v0.14.2` (superseded: `/version` hardcoded `resources: 2`; duplicate `docs/run_manifest.md`), `v0.14.1` (superseded: robustness counts double-counted Part C), `v0.14.0` (superseded: docs predate reconciliation), `v0.13.0` (`6ad354deac8710f4f4a92b2d53701baf1f796804`): A1–A5 runs below were executed at this tag. See §10. |
+| Prior tags | `v0.14.3` (superseded: no `/version` regression test; CI 154), `v0.14.2` (superseded: `/version` hardcoded `resources: 2`; duplicate `docs/run_manifest.md`), `v0.14.1` (superseded: robustness counts double-counted Part C), `v0.14.0` (superseded: docs predate reconciliation), `v0.13.0` (`6ad354deac8710f4f4a92b2d53701baf1f796804`): A1–A5 runs below were executed at this tag. See §10. |
 
 ## 2. Dependency Lock
 
@@ -259,10 +259,10 @@ fully explained (event-loop harness issue + offline-only integration tests).
 
 ---
 
-## 10. Tag History: v0.13.0 → v0.14.0 → v0.14.1 → v0.14.2 → v0.14.3 (2026-10-20)
+## 10. Tag History: v0.13.0 → v0.14.0 → v0.14.1 → v0.14.2 → v0.14.3 → v0.14.4 (2026-10-21)
 
 Runs A1–A5 were executed at v0.13.0 (`6ad354d`). Four commits were added
-before v0.14.0, then documentation/CI/test-harness-only commits for v0.14.1, v0.14.2 and v0.14.3 (v0.14.3 also changes `routes.py` `/version` to compute its counts). This section documents what
+before v0.14.0, then documentation/CI/test-harness-only commits for v0.14.1, v0.14.2, v0.14.3 and v0.14.4 (v0.14.3 also changes `routes.py` `/version` to compute its counts; v0.14.4 adds the `/version` contract test). This section documents what
 changed and why the A1–A5 results remain valid.
 
 ### Commits between tags
@@ -277,6 +277,7 @@ changed and why the A1–A5 results remain valid.
 | `017c97a` | release: v0.14.1 stamp update |
 | `c992bd9` | docs: propagate v0.14.1 SHA (tag v0.14.1) |
 | `ed75e07` | release: v0.14.2 (tag v0.14.2) |
+| `b1145e1` | release: v0.14.3 (tag v0.14.3) |
 
 ### What changed
 
@@ -289,9 +290,9 @@ changed and why the A1–A5 results remain valid.
 | Version stamps | 0.13.0 | 0.14.0 | No functional change. |
 | `requirements.txt` | SHA-256 `6f09f52a...` | SHA-256 `6f09f52a...` (identical) | No dependency change. |
 
-### Updated headline counts at v0.14.0
+### Current headline counts (v0.14.4)
 
-202 tests collected: 154 pass + 2 xfail offline (CI: 4 unit files + robustness Part C);
+203 tests collected: 155 pass + 2 xfail offline (CI: 5 unit files + robustness Part C);
 8 live-integration pass against NIH API; 38 server-robustness pass (32 stable, 6 pass
 with retry). Smoke: 17/17.
 

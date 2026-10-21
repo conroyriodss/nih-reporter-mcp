@@ -18,7 +18,7 @@
   framing and boundary language
 - 17-assertion standalone smoke suite against live data + t9 LLM agent-efficiency (notebook-only), with hard invariants and drift-tolerant thresholds correctly distinguished
 - 8 correctness-against-ground-truth tests (`tests/test_correctness.py`) proving funding arithmetic matches independently hand-computed reference values to the dollar
-- 202 pytest tests across 6 files: 154 pass + 2 xfail offline (CI), 8 live-integration pass, 38 server-robustness pass
+- 203 pytest tests across 7 files: 155 pass + 2 xfail offline (CI), 8 live-integration pass, 38 server-robustness pass
 - Measured, regression-guarded LLM agent tool-selection accuracy (100% across 8 held-out questions) and tool-call efficiency (mean 1.0 calls/question after a documented tool-description fix)
 - Reasoning-vs-chat-completion model endpoint compatibility documented and handled
 

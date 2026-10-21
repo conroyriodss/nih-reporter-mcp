@@ -121,9 +121,9 @@ CRISPR gene editing FY2023:
 
 | Tier | Result |
 |---|---|
-| Model-free CI (pytest) | 154 passed + 2 xfail (5 CI targets: 4 unit files + robustness Part C, no network) |
+| Model-free CI (pytest) | 155 passed + 2 xfail (6 CI targets: 5 unit files + robustness Part C, no network) |
 | Live-server smoke tests | 17/17 passed |
-| Live robustness (server-req) | 38 (32 stable + 6 pass-with-retry); transient upstream timeout. Part C's 11 mocked tests are in the 154 above |
+| Live robustness (server-req) | 38 (32 stable + 6 pass-with-retry); transient upstream timeout. Part C's 11 mocked tests are in the 155 above |
 | Live correctness (ground truth) | 8/8 passed against independently-derived values |
 | Multi-model tool selection | 22/24 correct (92%) across GPT-5-5, Claude Sonnet 4-6, Llama 3.3 70B (re-verified 2026-10-20) |
 | Tool-selection determinism | 3/3 stable (5 repeats each, re-verified) |
@@ -147,11 +147,12 @@ CRISPR gene editing FY2023:
 ```
 nih-reporter-mcp/
 ├── src/nih_reporter_mcp/     14 tools, 9 prompts, 3 resources
-├── tests/                   6 test files, 202 test functions
+├── tests/                   7 test files, 203 tests
 │   ├── test_counting.py       69 tests (67p + 2xf)
 │   ├── test_security.py       24 tests
 │   ├── test_prompt_contracts.py 29 tests
 │   ├── test_clinical_trials.py 23 tests
+│   ├── test_version_contract.py 1 test (/version == live registries)
 │   ├── test_correctness.py    8 tests (live server)
 │   └── test_robustness.py     49 tests (11 mocked + 38 live)
 ├── eval/smoke_tests.py       17 assertions (standalone; t9 LLM-only in notebook)

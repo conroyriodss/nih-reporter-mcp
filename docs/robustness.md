@@ -3,7 +3,7 @@
 This report documents the evidence for four hackathon judging criteria,
 produced by `tests/test_robustness.py`.
 
-**Current counts (v0.14.3):** 49 robustness tests = 11 mocked (Part C, counted within the 154 CI figure) + 38 server-dependent (Parts A/B/D/E: 32 stable + 6 pass-with-retry). All 14 registered tools have `TOOL_INPUTS` coverage, enforced by `test_all_tools_have_test_inputs`.
+**Current counts (v0.14.4):** 49 robustness tests = 11 mocked (Part C, counted within the 155 CI figure) + 38 server-dependent (Parts A/B/D/E: 32 stable + 6 pass-with-retry). All 14 registered tools have `TOOL_INPUTS` coverage, enforced by `test_all_tools_have_test_inputs`.
 
 > The per-row detail tables in Parts A, B, D and E come from the earlier 13-tool run, before `clinical_trials_lookup` was registered. They show *what* each part checks; current pass counts are in the Test Counts table at the end. `clinical_trials_lookup` is covered by Parts A and B through `TOOL_INPUTS`, but it doesn't have its own row in the historical latency table.
 
@@ -11,7 +11,7 @@ produced by `tests/test_robustness.py`.
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Thoughtful eval design | 14 tools × 3 input variants + parameterized error matrix + mocked upstream failures + stability runs + latency profile | 49 tests: 11 mocked (in CI 154) + 38 server-dependent (32 stable + 6 pass-with-retry) |
+| Thoughtful eval design | 14 tools × 3 input variants + parameterized error matrix + mocked upstream failures + stability runs + latency profile | 49 tests: 11 mocked (in CI 155) + 38 server-dependent (32 stable + 6 pass-with-retry) |
 | Well-formed responses | Every tool tested with normal, zero-result, and boundary inputs; all return validated Pydantic models (never raw dict/None) | 14/14 tools covered (`TOOL_INPUTS`) |
 | Graceful error handling | 28 parameterized error conditions tested (missing params, wrong types, nonexistent IDs, oversized inputs) + 11 mocked upstream failures (500, timeout, 429, oversized, malformed JSON, network error, 400, 403, and 3 malformed-200 payload cases) | 39/39 conditions handled cleanly |
 | Stable performance | 3 tools × 5 runs with cache on + 2 tools × 5 runs with cache off; dollar figures identical across all runs | 0 variance detected |
@@ -104,4 +104,4 @@ upstream). No tool exceeds the 10-second flag threshold.
 | tests/test_robustness.py Part C | 11 | 11 passed (mocked, in CI) |
 | tests/test_robustness.py Part D | 5 | server-dependent |
 | tests/test_robustness.py Part E | 1 (covers 14 tools) | server-dependent |
-| **Total** | **49** | **11 mocked (in CI 154) + 38 server-dependent: 32 stable + 6 pass-with-retry** |
+| **Total** | **49** | **11 mocked (in CI 155) + 38 server-dependent: 32 stable + 6 pass-with-retry** |

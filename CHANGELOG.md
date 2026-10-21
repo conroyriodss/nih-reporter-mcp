@@ -5,7 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.3] - 2026-10-20
+## [0.14.4] - 2026-10-21
+
+### Added
+- `tests/test_version_contract.py` (runs in CI): serves the app in-process and asserts `/version` counts equal the live `list_*` lengths, with no literal counts. CI is now 155 pass + 2 xfail (203 collected).
+
+### Changed
+- CI count is 155 pass + 2 xfail everywhere (README, evaluation, slides, roadmap, robustness, EVAL_VERDICTS, RUN_MANIFEST); `ci.yml` and the README command include the new test.
+- RUN_MANIFEST points to the v0.14.4 GitHub release notes for post-tag verification.
+
+## [0.14.3] - 2026-10-20 (superseded by 0.14.4: no `/version` regression test; CI 154)
 
 ### Fixed
 - `/version` computes `tools`, `prompts` and `resources` from the registered server on every request (`list_tools`/`list_prompts`/`list_resources`), so it can't disagree with the MCP list methods. v0.14.2 hardcoded `resources: 2`; the live count is 3.

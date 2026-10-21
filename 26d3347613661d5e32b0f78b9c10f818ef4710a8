@@ -1,0 +1,16 @@
+# v0.14.4 release notes: post-tag verification
+
+Commit: 26d3347613661d5e32b0f78b9c10f818ef4710a8 (parent b1145e17c8d0de6afd71337bdf2c15f72e76a5c6 = v0.14.3)
+Deployment: mcp-nih-reporter 01f1cceec4e11c818d393045cae0e844 (SUCCEEDED 2026-10-21T01:29:11Z).
+Deployed snapshot == tag tree: 88/88 files byte-identical; notebooks/notebook-merged.ipynb converted to Databricks source format on import (non-runtime). No workspace metadata in snapshot.
+
+| # | Check | Recorded output | Method |
+|---|---|---|---|
+| 1 | CI count | `155 passed, 2 xfailed` from the ci.yml command run verbatim | Fresh clone of tag v0.14.4 (offline CI command) |
+| 2 | 14 tools / 9 prompts / 3 resources | `{"server":"nih-reporter-mcp","version":"0.14.4","tools":14,"prompts":9,"resources":3,"spending_categories":39,...}` | Deployed-app-verified: browser GET /mcp-server/version on the deployed URL; app log shows GET /mcp-server/version 200 at 01:41:23Z and 01:42:46Z from process [1323] |
+| 3 | Largest award FY2020-FY2025 | $448,283,318, OT2HL161847, FY2021, NHLBI, New York University School of Medicine | Deployed-app-verified: agent answer in the deployed UI (human browser session); app log POST /ask 200 at 01:43:57Z, with 3 MCP requests to the in-app server |
+| 4 | FY2020 R01 competitive renewals | 1,089 / 29,560 = 3.68% (3.7%), deduplicated, subprojects excluded | Deployed-app-verified: agent answer in the deployed UI; app log POST /ask 200 at 01:44:51Z, with 3 MCP requests |
+| 5 | Demonstration fixture | $19,790,134.00, 38 projects, 1 subproject excluded, funding_basis=whole_award | Running-process-verified: summarize_funding_by_topic tool call against a server started from the v0.14.4 fresh clone, querying the live NIH API |
+
+Also verified at the tag (fresh clone): /version counts equal the live tools/list, prompts/list and resources/list (14/9/3); .py grep clean (44 files); no commit SHAs outside RUN_MANIFEST.
+Checks 3-4: the per-question tool-call count is inferred from the request log pattern, not read from a trace.

@@ -1,313 +1,622 @@
-# NIH RePORTER MCP Server — Evaluation Document
+# NIH RePORTER MCP Server — Evaluation
 
-**Project:** NIH RePORTER MCP Server 
-**Team:** Rich Conroy (conroyri@nih.gov), NIH/OD/ODSS 
-**Hackathon:** GSA MCP Server and AI Agent Government Hackathon 
-**Version:** v0.14.4 
-**Tag:** `v0.14.4` (commit SHA recorded only in [RUN_MANIFEST §1](demonstration_fixture/RUN_MANIFEST.md)) 
-**Date:** October 20, 2026
+**Project:** NIH RePORTER MCP Server  
+**Team:** Rich Conroy, NIH/OD/ODSS  
+**Hackathon:** GSA MCP Server and AI Agent Government Hackathon  
+**Submission freeze:** `v0.14.5`  
+**Evaluation revision:** October 21, 2026  
+**Repository:** https://github.com/conroyriodss/nih-reporter-mcp  
+**Run history:** [RUN_MANIFEST.md](demonstration_fixture/RUN_MANIFEST.md) and [EVAL_VERDICTS.md](demonstration_fixture/EVAL_VERDICTS.md)
 
----
+> **What this submission demonstrates:** a funding total can be traced to a defined query, explicit record-counting rules, and an inspectable set of source records. The supplied CRISPR sickle cell fixture reconciles to **$19,790,134**. This verifies that snapshot's arithmetic; it does not establish complete NIH investment in a topic, causal research impact, or correctness of every tool answer.
 
-## 1. Testing Methodology
+> **Demo access:** The public repository and frozen fixtures are the primary reproducible artifacts. The hosted Databricks “Ask” experience additionally requires workspace access and a functioning, authorized model endpoint; its current deployment status was not verified for this revision. Historical notebook outputs demonstrate their recorded runs, not execution of subsequently edited cells.
 
-### 1.1 Test Architecture — Three Independent Tiers
+## 1. Evidence standard and review scope
 
-All tests are in the `tests/` directory and runnable with standard `pytest`. The tiers are designed so that each can run independently without the others.
+This revision reconciles the supplied documentation and fixture files with directly inspected source files at `v0.14.5`. It retains historical results with their actual run identities instead of relabeling earlier executions as runs at the submission tag.
 
-#### Tier 1: Model-Free CI (GitHub Actions, every push/PR)
+### 1.1 Four evidence tiers
 
-**Status: ✅ Verified at v0.14.4 — 155 pass + 2 xfail offline (CI)**
+| Tier | Meaning in this document |
+|---|---|
+| **Verified** | Independently recomputed from the supplied artifacts, or confirmed by direct inspection of the cited source. Each claim states whether the method was artifact reconciliation, schema validation, or source inspection. Source inspection does not establish a passing execution. |
+| **Repository-reported** | A result documented in the repository, with a stated method or run reference, whose underlying execution was not independently replayed for this revision. |
+| **Team-reported** | A statement without accessible supporting execution evidence sufficient for the stronger tiers. |
+| **Planned** | A proposed feature, measurement, or test; no completed result is claimed. |
 
-| Test file | Tests | What it covers |
+Execution status is separate: **PASS**, **FAIL**, **NOT RUN**, or **BLOCKED**. “Re-verified” in a historical run log describes that run; it is not a fifth evidence tier. Collecting a test, importing a module, or receiving a response without an exception does not verify the substantive result.
+
+### 1.2 What was checked for this revision
+
+- **Verified — artifact reconciliation:** SHA-256 checks of both raw snapshots; independent decimal sums; row-by-row ledger decisions and amounts; the primary fixture's stored total, counts, query criteria, and complete contributing-ID list.
+- **Verified — schema validation:** the supplied `tool_output.json`'s `summary` and `provenance` validate against the `v0.14.5` `FundingSummary` and `Provenance` classes, loaded in isolation with Pydantic 2.14.0. This is not a server or transport execution.
+- **Verified — source inspection:** aggregation, evidence export, Pydantic models, input/cache handling, server startup and diagnostic routes, the CI workflow, and the cited test implementations.
+- **NOT RUN for this revision:** the project's CI suite, live MCP/API suites, Databricks model evaluations, deployed app, and GitHub Actions execution. Their historical pass figures remain repository-reported.
+
+The verified fixture checks apply to the **supplied artifact bytes**. They do not certify that an independently downloaded release asset contains identical bytes. Tag identity, release contents, and successful runtime inventory remain checks for the evaluator.
+
+### 1.3 Claim register
+
+| Claim | Result retained | Evidence and scope |
 |---|---|---|
-| `tests/test_counting.py` | 67 passed + 2 xfailed | Synthetic-fixture unit tests for `aggregate_funding()`: subproject exclusion, `appl_id` deduplication, missing-amount tracking, `is_exact` flag, page-boundary dedup, multi-year rollup, whole_award vs all_records basis separation, pagination clamping, server-side application-type faceting, PI group-by, IC-attribution edge cases (2 xfail — known upstream limitation) |
-| `tests/test_security.py` | 24 passed | Host-allowlist enforcement (only `api.reporter.nih.gov`, `eutils.ncbi.nlm.nih.gov`, `wsearch.nlm.nih.gov`, `clinicaltrials.gov` allowed), input-size guards on topic length and fiscal-year array size, parameter type validation |
-| `tests/test_prompt_contracts.py` | 29 passed | Every prompt (`funding_overview`, `institution_report`, `compare_rcdc_vs_freetext`, `research_landscape_summary`, `portfolio_brief`, `other_support_review`, `investment_to_outputs`, `explain_funding_landscape`, `follow_the_evidence`) references only tools that actually exist, and every tool referenced uses parameter names that match the tool's actual schema |
-| `tests/test_clinical_trials.py` | 23 passed | ClinicalTrials.gov v2 integration: grant-linked trial lookup, condition search, evidence-class classification, NIH-vs-FDA disambiguation, empty-result handling, CT parsing |
-| `tests/test_robustness.py::TestPartC` | 11 passed | Mocked upstream failure handling: HTTP 500 → RuntimeError, 429 → retry-then-succeed, timeout → RuntimeError, oversized response → rejection, network error → RuntimeError, HTTP 400/403 → ValueError, malformed JSON → error, malformed-200-with-partial-keys → error |
+| Submission inventory | **14 tools, 9 prompts, 3 resources** | Repository-reported freeze inventory. Source inspection confirms that `/version` reads the live registries; the runtime inventory recipe below verifies the actual counts. |
+| Model-free CI | **155 passed + 2 xfailed** | Repository-reported at `v0.14.5`. The exact CI selectors and two Python versions are verified in the workflow. Not independently rerun here. |
+| Standalone smoke | **17/17 passed** | Repository-reported at `v0.14.0`. The 17 cases are t1–t8 and t10–t18; t9 is excluded. |
+| Live correctness | **8 tests; reported 8/8 passed** | Eight test functions verified in source; historical passing execution is repository-reported. They do not provide eight independent dollar-level reconciliations. |
+| Frozen primary total | **$19,790,134; 38 raw / 37 contributing / 1 excluded subproject** | Verified by offline reconciliation of the supplied snapshot, ledger, and stored output. |
+| True parent/child double-counting fixture | **$10,260,946 all_records / $5,130,473 whole_award** | Verified offline for `U19AG068753`, FY2024: one parent and seven children, with the parent present. |
+| First-tool selection | **22/24 = 91.7%, rounded to 92%** | Repository-reported, eight questions across three models; run at `v0.13.0` on October 20. Not a full-answer accuracy score. |
+| Argument validity | **24/24** | Repository-reported for that model run. Raw arguments and validation traces are needed for independent confirmation. |
+| Repeated tool selection | **3/3 questions stable across five repeats each** | Repository-reported for GPT-5-5. A small observed consistency result, not a general determinism guarantee. |
+| Historical live basis differences | **CRISPR 10.1%; Alzheimer's 16.5%** | Inputs are repository-reported; percentages are reproducible arithmetic on those inputs. These are not new live measurements. |
 
-**Evidence tier: Verified.** Run command:
-```bash
-PYTHONPATH=src pytest tests/test_counting.py tests/test_security.py \
-  tests/test_prompt_contracts.py tests/test_clinical_trials.py \
-  tests/test_robustness.py::TestPartC_MockedUpstreamFailures -v
+## 2. Funding correctness: demonstrated result and boundaries
+
+### 2.1 Exact cohort definition
+
+The primary fixture uses the following RePORTER criteria:
+
+```json
+{
+  "advanced_text_search": {
+    "operator": "and",
+    "search_field": "all",
+    "search_text": "CRISPR sickle cell"
+  },
+  "fiscal_years": [2024]
+}
 ```
 
-CI configuration: `.github/workflows/ci.yml` — runs on Python 3.11 and 3.12 on every push to `main` and every PR.
+Source: [query.json](demonstration_fixture/query.json). The raw snapshot records its request payload and upstream metadata.
 
-#### Tier 2: Live-Server Integration (requires running MCP server)
+**Text-search comparisons must preserve `operator="and"` and `search_field="all"`.** A different phrase, operator, field, agency scope, fiscal-year filter, or funding basis defines a different result. A numerical difference is not evidence of a server error until those criteria agree.
 
-**Status: ✅ Verified at v0.14.0 — 17/17 smoke tests passed**
+### 2.2 Whole-award algorithm
 
-The smoke suite (`eval/smoke_tests.py`) runs 17 automated assertions against the **live NIH RePORTER API** (not mocked). Each test calls a tool via the MCP protocol and validates the structured response:
+Verified by inspection of [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.5/src/nih_reporter_mcp/utils.py), `aggregate_funding`:
 
-| Test | What it verifies |
+1. Deduplicate non-null `appl_id` values in retrieval order. The first occurrence wins; later occurrences with conflicting amount, fiscal year, or subproject ID are flagged.
+2. For `whole_award`, exclude every remaining record whose `subproject_id` is **non-null**. This is not an activity-code-prefix rule.
+3. Track parent presence by **core project number and fiscal year**. A parent from another fiscal year does not resolve an excluded child's orphan status.
+4. Exclude null `award_amount` values from the dollar sum and report their count. A null amount is not a zero; an actual zero remains a valid value.
+5. Sum the remaining amounts. Preserve distinct application IDs even when they share a core project number.
+
+`all_records` still deduplicates application IDs and excludes null amounts, but retains subprojects. It is a comparison basis, not the preferred investment total.
+
+The unit is **contributing application records**, not unique long-running grant families. Separate years, continuations, and supplements must not be collapsed solely because their core project number matches. Conversely, a project-period duration must not be multiplied by an annual award amount to invent lifetime funding.
+
+**Unresolved edge cases remain visible:** first-wins conflicts need review; missing IDs cannot be deduplicated by ID; and missing core identifiers can prevent orphan detection. These are reasons to inspect provenance rather than promise universal correctness.
+
+### 2.3 Independently reconciled primary fixture
+
+| Check | Verified result |
 |---|---|
-| t1 | Full-pagination aggregation: CRISPR gene editing FY2023 == 1,739 matching projects, $836,981,580 whole_award, complete=True. Note: `is_exact=False` — 166 orphan subprojects (CRISPR-mentioning sub-components of non-CRISPR umbrella grants) and 7 records with missing amounts are flagged transparently. |
-| t2 | 10,000-record retrieval cap honestly flagged (complete=False, aggregated=10,000 of 23,486 matching) |
-| t3 | Exact org-name match isolates a single institution (Boston University Medical Campus: 348 projects) |
-| t4 | Official RCDC spending category vs. free-text search: documented divergence ($199.6M RCDC vs. $891.7M free-text for "long covid") |
-| t5 | Empty topic input raises clean validation error |
-| t6 | SQL-injection-style input: clean 403 handling, no leaked traceback |
-| t7 | Cross-tool consistency: whole_award ($836.98M) < all_records ($921.54M), subprojects_excluded=226 |
-| t8 | `funding_trend_by_year` accepts `spending_category` directly (regression test) |
-| t9 | Tool-call efficiency: avg 1.0 calls/question (regression threshold: ≤1.5) |
-| t10 | `check_investigator_overlap` end-to-end with valid structure |
-| t11 | `exclude_project_num` strictly reduces result count (11 → 9) |
-| t12 | `funded_projects_by_study_section` groups correctly, section counts ≤ total |
-| t13 | `search_recent_awards` respects limit, all results have reporter_url |
-| t14 | Provenance populated, counting-unit basis stated, aggregated ≥ 1,400 |
-| t15 | `export_evidence_bundle` returns inspectable source record IDs with reproduction note |
-| t16 | `explain_health_topic` returns MedlinePlus summary for common condition |
-| t17 | `explain_health_topic` handles no-match cleanly (not an error) |
-| t18 | Cache preserves correctness: whole_award ≠ all_records, warm latency ~0.02s |
+| Raw retrieval timestamp | October 15, 2026, 20:31:43 UTC |
+| Stored tool-output timestamp | October 18, 2026, 19:07:59 UTC |
+| Raw rows / contributing rows | 38 / 37 |
+| Excluded subprojects | 1 |
+| Duplicate application IDs / missing contributing amounts | 0 / 0 |
+| Whole-award sum | **$19,790,134.00** |
+| Distinct core project numbers among contributors | 35 |
+| Contributing IDs in stored provenance | All 37; no 500-ID truncation |
+| Raw SHA-256 | `ff178702ec35720c88b7f85900db60d6fc9380e000fbf9aaacda20617a7f789d` |
 
-Additionally, `tests/test_correctness.py` contains 8 tests that verify funding arithmetic against independently-derived ground truth (requires a running MCP server): ground-truth exact match, double-counting proof, provenance reproducibility, missing-amount honesty, cross-tool basis consistency, overlap completeness flag, and two regression guards (CRISPR FY2023, Alzheimer's FY2023).
+The excluded record is `appl_id=10992993`, subproject `9946` of core project `P50HD096723` (FY2024), amount **$472,999**. It is an **orphan**: the keyword matched this child but not its parent. The parent P50 is a male-infertility genetics center whose own abstract does not match “CRISPR sickle cell”; only this subproject (“Project III”, sickle-cell iPSC work) matched. The cohort therefore contains **one orphan subproject, not the center**: RePORTER lists five FY2024 subprojects for the center totaling $1,711,713, and only this one ($472,999) is in the cohort. *(Team-reported: confirmed against the RePORTER record for 2P50HD096723-06. The frozen snapshot stores five fields per record and retains no titles or abstracts.)*
 
-**Evidence tier: Verified.** `eval/smoke_tests.py --sequential` output shows "TOTAL: 17/17 passed" (run 2026-10-20 at v0.14.0). `test_correctness.py` 8/8 passed individually against live MCP server (2026-10-20).
+This exclusion is **not double-counting removal**. Excluding an orphan removes real topical investment, so whole_award can **understate** a keyword cohort's investment. This example verifies a correctly disclosed exclusion; **it does not demonstrate that the excluded amount was duplicated elsewhere in this cohort**. The double-counting proof is the separate U19AG068753 fixture in section 2.4.
 
-#### Tier 3: Multi-Model Agent Evaluation (Databricks notebook only)
+The stored response correctly has `complete=true` and an orphan warning in `note`. These statements are compatible: all matching records were retrieved, but the cohort does not contain every award-family amount relevant to the topic.
 
-**Status: ✅ Re-verified at v0.14.0 — results below**
+The raw projection supports the funding reconciliation. It does **not** contain organization or administering-IC fields, so it cannot independently substantiate the stored `distinct_organizations=29` or `distinct_administering_ics=10`. Inspection of `evidence_bundle.py` also shows those two counts are calculated over retrieved records, including records excluded from the dollar sum.
 
-Notebook cells 32–36 run a structured evaluation of tool-selection accuracy across three model families to demonstrate that the server's tool descriptions are agent-agnostic. Re-run 2026-10-20T00:15–00:25Z on Databricks serverless, server at v0.13.0 clean checkout, 14 tools:
+The manifest reports a live comparison on October 19 at `v0.13.0`. That is historical, repository-reported evidence; the October 15 snapshot is not relabeled as a live retrieval at `v0.14.5`.
 
-| Eval | Result | Evidence tier |
-|---|---|---|
-| Tool-selection accuracy (8 questions × 3 models) | 22/24 correct (92%) | Re-verified (EVAL_VERDICTS Claim 1) |
-| Per-model: GPT-5-5 | 7/8 (88%) | Re-verified |
-| Per-model: Claude Sonnet 4-6 | 7/8 (88%) | Re-verified (was 8/8 in prior run — Q5 flipped) |
-| Per-model: Llama 3.3 70B Instruct | 8/8 (100%) | Re-verified (was 7/8 in prior run — Q5 flipped) |
-| Unanimous correct (all 3 agree) | 6/8 | Re-verified |
-| Tool-selection determinism (3 questions × 5 repeats, GPT-5-5) | 3/3 stable | Re-verified (EVAL_VERDICTS Claim 3) |
-| Argument validity (8 questions × 3 models) | 24/24 (100%) | Re-verified (EVAL_VERDICTS Claim 2) |
+### 2.4 Separate double-counting proof
 
-**Disagreement detail:** Q5 ("What grants does Francis Collins currently hold?") — both GPT-5-5 and Claude Sonnet 4-6 selected `check_investigator_overlap` instead of the expected `investigator_portfolio`. Llama selected correctly. Headline score (22/24) matches the prior run; the failure pattern shifted (Claude Q5 flipped from correct to incorrect, Llama Q5 flipped from incorrect to correct). This confirms Q5 is a genuine description-clarity ambiguity, not a model-specific quirk.
+The [U19AG068753 FY2024 fixture](demonstration_fixture_double_counting/README.md) contains one parent and seven subprojects:
 
-**Note:** The 8-question evaluation set predates `group_by`, `application_types`, `spending_category`, and `clinical_trials_lookup`. No question tests routing to or away from these newer capabilities. The 22/24 score covers the original tool surface only.
+| Quantity | Verified amount |
+|---|---:|
+| Parent amount | $5,130,473 |
+| Sum of child amounts | $5,130,473 |
+| All-record sum | $10,260,946 |
+| Whole-award sum | $5,130,473 |
 
-**Evidence tier: Re-verified.** Re-run 2026-10-20 at v0.14.0 (see `docs/demonstration_fixture/EVAL_VERDICTS.md`). Prior run (October 16, 2026) produced identical headline score with different per-model Q5 pattern.
+There are no orphan children in this fixture. It directly demonstrates the parent-plus-children double-counting mechanism. It does not establish that every excluded subproject in every keyword cohort is already represented by a parent in that cohort.
 
-### 1.2 Ground Truth Methodology
+### 2.5 What “inspectable” means at this release
 
-The CRISPR gene editing FY2024 ground truth fixture (`tests/fixtures/crispr_sickle_cell_fy2024.json`) was independently constructed by:
-1. Querying RePORTER API directly with known parameters
-2. Computing the expected total manually from the raw response records
-3. Verifying the server's output matches: **$19,790,134.00** (exact fixture match confirmed October 16, 2026)
+[Evidence export](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.5/src/nih_reporter_mcp/tools/evidence_bundle.py) returns an `EvidenceBundle` with `label`, `summary`, `provenance`, and `reproduction_note`. The model definitions are in [models.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.5/src/nih_reporter_mcp/models.py).
 
-See `docs/ground_truth_methodology.md` for the full procedure.
+**source_record_ids lists up to 500 of N contributing IDs (capped for payload size); records_aggregated gives the true count.**
 
----
+Consequences:
 
-## 2. Performance Metrics
+- The small frozen fixture has a complete contributing-ID list. A larger bundle is **not** a complete record-level export.
+- Query criteria plus a live re-fetch are not an immutable historical snapshot. RePORTER data can change.
+- The export records criteria but not the entire request payload, page responses, or retrieval ordering. The implementation sorts by award amount descending; ordering can matter when conflicting duplicates use first-wins resolution.
+- `retrieved_at` is assigned when the bundle is constructed. The shared HTTP client may return cached data, so this timestamp is not reliable evidence of a fresh upstream fetch.
+- Missing application IDs can contribute an amount without appearing in `source_record_ids`. Do not infer complete ID coverage merely because the 500-ID cap was not reached.
+- `AggResult.is_exact` is internal. The public `FundingSummary` exposes `complete`, counts, provenance, and `note`; it has no `is_exact` field.
+- The production “Total is exact” note is bounded by the selected query and implemented diagnostics. It is not a claim of comprehensive topic funding or causal attribution.
 
-### 2.1 Headline Figures (Live-Verified 2026-10-19T23:42–23:51Z, A5 batch at v0.13.0; re-confirmed stable at v0.14.0)
+For full historical reconstruction, preserve raw pages, exact request payloads and ordering, the full decision ledger, source identity, and hashes. That is achieved for the supplied small fixtures, not automatically for every exported bundle.
 
-| Metric | Value | Evidence |
-|---|---|---|
-| CRISPR FY2023 whole_award total | $836,981,580 | Verified: A5 LF-2a (2026-10-19T23:42Z) + t1 |
-| CRISPR FY2023 all_records total | $921,543,173 | Verified: A5 LF-2b (2026-10-19T23:48Z) + t7 |
-| Naive-sum overstatement | 10.1% | Verified: ($921.5M − $837.0M) / $837.0M, A5 re-run |
-| Alzheimer's FY2023 whole_award | $4,020,899,771 | Verified: A5 LF-3a (2026-10-19T23:42Z) |
-| Alzheimer's FY2023 all_records | $4,685,253,389 | Verified: A5 LF-3b (2026-10-19T23:48Z) |
-| Alzheimer's overstatement | 16.5% | Verified: A5 re-run |
-| CRISPR sickle cell FY2024 (fixture) | $19,790,134.00 | Verified: A4 exact match (2026-10-19T23:21Z) |
-| Total matching projects (CRISPR FY2023) | 1,739 | Verified: t1 |
-| Projects aggregated (whole_award) | 1,506 | 1,739 − 226 subprojects − 7 missing amounts |
-| Subprojects excluded | 226 | Verified: t7 |
-| Records with missing amounts | 7 | Verified: A5 LF-2a |
-| Deduplication (appl_id) | 0 for this query | Verified: A5 LF-2a |
-| 10,000-record API ceiling | Honestly flagged | Verified: t2 (complete=False) |
-| R01 FY2020 competitive renewals | 1,089 of 29,560 (3.7%) | Verified: A5 LF-4 (deduped awards via group_by). Supersedes old 397 (client-side) |
-| R01 FY2023 type-5 continuations | 21,150 of 30,443 (69.5%) | Verified: A5 LF-5. Supersedes old 6,843 (10K cap) |
-| P41 FY2015 deduped awards | 77 total, 13 competitive renewals (17%) | Verified: A5 LF-9a. Supersedes old 85 (record count) |
-| P41 FY2025 deduped awards | 31 total, 1 competitive renewal (3%) | Verified: A5 LF-9b. Supersedes old 7 (record count) |
-| R01 FY2020 faceting integrity | 9 buckets, sum=29,560=total, 0 remainder | Verified: A5 LF-10. Code 8 (Merit Extension)=11 |
+### 2.6 Retrieval completeness is not funding completeness
 
-### 2.2 Tool-Call Efficiency (Qualitative)
+Use this boundary with any consequential funding answer:
 
-A single docstring edit to `search_funded_projects` measurably reduced redundant tool calls. The root cause: the original description was ambiguous enough that LLMs issued near-duplicate queries believing minor rewording might change results, when RePORTER's search already normalizes variants server-side.
+> “This total sums the non-null amounts on the retrieved application records under the stated filters and counting basis. Retrieval completeness means the matching records were fetched; it does not establish complete NIH investment in the topic. Keyword coverage, excluded orphan subprojects, missing amounts, conflicting records, agency scope, and source updates can limit interpretation.”
 
-**Demonstrated by real agent traces (not harness-measured):**
+RCDC-filtered results and free-text results define different cohorts. An aggregation over RePORTER's RCDC-tagged projects is not automatically identical to NIH's separately published official RCDC spending total. Multi-category totals also cannot simply be added without checking overlap.
 
-| Behavioral case | Before (calls) | After (calls) | Model |
-|---|---|---|---|
-| BC-1: R01 FY2020 competitive renewal % | 32 | 1 | GPT-5-5 |
-| BC-2: R21 FY2018 top institution | 18 | 1 | GPT-5-5 |
+## 3. Test evidence and what the tests actually establish
 
-**Note:** The earlier quantitative metric ("avg 2.0 → 1.0, stdev 1.7 → 0.0") from the t9 harness has been dropped. The harness had three defects: (1) the "before" measurement ran before `CALL_LOG`/`run_agent` were defined, (2) a zero-call pass falsely rewards non-use, (3) 4,000-char truncation may alter agent behavior vs. the real server. See `EVAL_VERDICTS.md` §3 for full rationale. The qualitative point is valid and demonstrated by the behavioral case traces above.
+### 3.1 Model-free CI
 
-### 2.3 Response Latency
+**Repository-reported result at `v0.14.5`: 155 passed + 2 xfailed.**
 
-| Path | Latency |
+The [CI workflow](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.5/.github/workflows/ci.yml) selects the following suites on **Python 3.11 and 3.12**:
+
+| Selector | Reported result | Scope |
+|---|---:|---|
+| `tests/test_counting.py` | 67 passed + 2 xfailed | Aggregation, counting, query/pagination and faceting-related checks; strength varies by test. |
+| `tests/test_security.py` | 24 passed | Input and outbound-client validation checks. |
+| `tests/test_prompt_contracts.py` | 29 passed | Prompt references and parameter contracts. |
+| `tests/test_clinical_trials.py` | 23 passed | ClinicalTrials.gov parsing, evidence-class and boundary behavior. |
+| `tests/test_version_contract.py` | 1 passed | `/version` counts equal the actual nonempty MCP registries. |
+| `tests/test_robustness.py::TestPartC_MockedUpstreamFailures` | 11 passed | Mocked upstream errors and response handling. |
+| **Total** | **155 passed + 2 xfailed** | Part C is included once. |
+
+The version-contract test is necessary to reconcile the total: omitting it yields 154 passes. It checks registry equality, not a hardcoded release inventory; use the release-inventory check in section 6 for 14/9/3.
+
+The two expected failures in [test_counting.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.5/tests/test_counting.py) identify **IC-level attribution not yet implemented** and **publication-to-funding-year joining not supported**. They are not both established upstream-service defects.
+
+**Test count is not coverage quality.** In that same file, `TestExcludeSubprojectsFaceting.test_r_series_not_affected` and `test_p_series_significantly_affected` contain `pass` without assertions. Other checks assert locally written constants or reimplement a calculation instead of invoking production behavior, including parts of the year-clamp and P41 examples. Their passing status is not independent verification of the claimed API behavior. Strengthening these checks is planned; this document does not subtract them from the actual reported pytest total.
+
+A blanket `pytest tests/` invocation is **not** the offline CI command: it also selects live-server-dependent tests. Historical full-suite failures must not be hidden by substituting the selected-CI result.
+
+### 3.2 Standalone live smoke
+
+**Repository-reported: 17/17 at `v0.14.0`.** Source: [smoke_tests.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.5/eval/smoke_tests.py) and the run history.
+
+The standalone suite contains **t1–t8 and t10–t18**. The former t9 efficiency metric is excluded, not a missing eighteenth pass.
+
+| Cases | What the assertions establish—and do not establish |
 |---|---|
-| Cold (first query, no cache) | 4–6 seconds |
-| Warm (15-minute TTL cache hit) | ~0.02 seconds |
-| Improvement factor | >100× |
+| t1 | Asserts the CRISPR FY2023 matching count and retrieval completeness. It prints the dollar amount; it does not assert that amount equals $836,981,580. |
+| t2–t4 | Exercise the retrieval ceiling, an exact-name organization query/count, and a category-versus-text comparison. They do not independently reconcile every result or prove a specific printed category total. |
+| t5–t6 | Check invalid-input and upstream rejection handling. t6's expected 403 depends on upstream behavior; it is not proof of general injection resistance. |
+| t7–t8 | Check basis/count relationships and returned year totals. The trend check does not establish that the requested year set is complete. |
+| t10–t13 | Check overlap response structure, an exclusion effect, section-count bounds, and recent-result limits/URLs. These are not complete portfolio or workload audits; t13 does not assert date ordering. |
+| t14–t15 | Check provenance and evidence-bundle structure. Nonempty IDs and a reproduction note do not establish full replay. |
+| t16–t17 | Check MedlinePlus match/no-match handling. |
+| t18 | Checks repeated whole-award equality and a difference between bases. Printed timing is not a controlled latency benchmark or instrumented proof of a cache hit. |
 
-### 2.4 Pagination Completeness
+### 3.3 Eight live-correctness tests
 
-The server implements full pagination (`PAGE_SIZE=500`, up to `MAX_PAGES=20`) to retrieve up to 10,000 records per query. For CRISPR FY2023 (1,739 records across 4 pages), pagination delivers **complete=True** — every matching record is included. For very large result sets (e.g., "cancer" with 23,486 matches), the 10,000-record API ceiling is honestly reported via **complete=False** with `total_matching` and `projects_aggregated` fields.
+Source: [test_correctness.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.5/tests/test_correctness.py). Use **pytest on the file**: its standalone `main()` runner invokes only six tests.
 
-### 2.5 Investigator Overlap Pagination
+| Test purpose | Actual method and limit |
+|---|---|
+| Ground-truth exact match | Compares the live small-cohort response with frozen count, total, and exclusion expectations. Future source drift can break the comparison without changing the frozen arithmetic. |
+| Double-counting arithmetic | Compares parent-only arithmetic with the aggregation result on a bounded raw response; checks that including children raises the sum. It is not a general fully paginated independent oracle. |
+| Provenance replay | Re-fetches IDs for the small evidence bundle and independently sums them. Does not test reconstructing a capped >500-ID export. |
+| Missing-amount honesty | If the live cohort has no missing amounts, the function warns and returns; pytest can report PASS without exercising the target condition. Record this as condition-not-observed, not demonstrated missing-data coverage. |
+| Funding-basis consistency | Calls one funding tool with two bases and checks their relationship. This is not an independent reconciliation across multiple tools. |
+| Overlap completeness flag | Checks field types and count relationships. Does not establish that every relevant investigator award exists in the result. |
+| CRISPR FY2023 regression | Allows approximately ±3% dollar drift and a broad basis-difference interval. Does not prove the current figure to the dollar or exactly 10.1%. |
+| Alzheimer's FY2023 regression | Allows approximately ±3% dollar drift and a broad basis-difference interval. Does not prove the current figure to the dollar or exactly 16.5%. |
 
-The `check_investigator_overlap` tool was upgraded from a single 100-record call to full `paginate_all()`. Result model includes `total_matching` and `complete` fields. Proven with Francis Collins (102 records > old 100-cap): now complete=True, all 102 examined.
+Historical execution of all eight is repository-reported. The two frozen offline reconciliations in section 2 provide a different, narrower kind of evidence.
 
----
+### 3.4 Multi-model agent evaluation
 
-## 3. Security Considerations
+**Repository-reported run:** October 20, 2026, 00:15–00:25 UTC; server **v0.13.0**. [EVAL_VERDICTS.md](demonstration_fixture/EVAL_VERDICTS.md), STEP 1–3, identifies:
 
-### 3.1 Input Validation (21 tests in test_security.py)
+| Endpoint/model label | First-tool selection |
+|---|---:|
+| GPT-5-5 | 7/8 |
+| Claude Sonnet 4-6 | 7/8 |
+| Llama 3.3 70B Instruct | 8/8 |
+| **Total** | **22/24 (91.7%; rounded 92%)** |
 
-- **Host allowlist**: Only three domains are permitted for outbound HTTP: `api.reporter.nih.gov`, `eutils.ncbi.nlm.nih.gov`, `wsearch.nlm.nih.gov`. Any other host raises `ValueError`.
-- **Topic length guard**: Topics exceeding 2,000 characters are rejected.
-- **Fiscal year array size**: Arrays exceeding 20 elements are rejected.
-- **Type validation**: String where integer expected (and vice versa) raises `TypeError`.
+In this rerun, GPT and Claude selected `check_investigator_overlap` rather than `investigator_portfolio` for Q5. Earlier runs had a different per-model failure pattern; they must not be merged.
 
-### 3.2 Injection Handling
+The displayed question matrix implies **7/8 unanimously correct**, while the supplied evaluation prose said **6/8**. This revision does not promote either to a separately verified headline: the matrix arithmetic is clear, but the run should be reconciled against raw traces before publishing another unanimity score.
 
-SQL-injection-style inputs (e.g., `cancer" OR "1"="1`) are passed through to the upstream API, which returns HTTP 403. The server catches this and raises a clean `ValueError` with a user-readable message — no raw traceback, no API internals, no HTML error pages.
+The reported **24/24 argument-validity** result is distinct from correct tool selection and correct final answers. State the validator used, semantic constraints checked, and whether calls were actually executed when publishing its traces. The reported **3/3 stable** result means three questions repeated five times on GPT-5-5; it does not guarantee determinism on other prompts, settings, or endpoint revisions.
 
-Verified: smoke test t6.
+The eight-question set predates coverage of `group_by`, application-type filtering, spending-category routing, and `clinical_trials_lookup`. It does not validate the complete v0.14.5 tool surface, end-to-end scientific interpretation, or reliable abstention.
 
-### 3.3 Web Application Security (Databricks App)
+### 3.5 Behavioral cases and performance
 
-- **Authentication**: SDK OAuth (`w.config.authenticate()`) with PAT fallback — no hardcoded tokens.
-- **Global exception handler**: `@app.exception_handler(Exception)` always returns JSON, never HTML error pages (prevents the "Unexpected token 'I'" frontend crash from unhandled 500s).
-- **Smart truncation**: `_truncate_tool_result()` uses 3-tier truncation that preserves trust-critical fields (`complete`, `note`, `funding_basis`, `counting_unit`, `records_with_missing_amount`) while trimming bulky arrays. Verified: all trust signals survive truncation.
+Historical examples support useful workflows but are not a controlled benchmark:
 
-### 3.4 No Credentials in Code
+- **BC-1/BC-2:** one-call renewal and institution answers were reported on GPT-5-5 at v0.13.0. Earlier 32-call and 18-call behavior was reported, but the available documentation does not establish a matched experimental protocol that isolates a single docstring change.
+- **BC-3/BC-4/BC-5:** duration abstention, P41 record-grain handling, and HuBMAP keyword-scope handling were rerun using Claude Sonnet 4-5 at v0.14.0. These are separate runs, not the GPT cases or the three-model selection experiment.
+- The old mean-tool-call efficiency metric was withdrawn because of harness-order, zero-call scoring, and truncation problems. It is not included in the pass totals.
+- No controlled p50/p95 latency, concurrency, rate-limit, or cold-versus-warm benchmark is verified here. Historical timing observations are not retained as a “>100×” performance claim.
 
-All credentials (Databricks PAT, GitHub PAT) are stored in workspace secrets or environment variables, never in source files. The `.gitignore` excludes common credential file patterns.
+**Planned:** publish matched agent traces and a benchmark protocol with fixed questions, scoring rules, endpoint identifiers, decoding settings, cache state, request counts, and failures.
 
-### 3.5 Deployed App Access Model
+## 4. Historical live figures
 
-The Databricks App (`mcp-nih-reporter`) is accessible to **authenticated workspace users via browser** only. It is behind an OAuth/OIDC gate managed by the Databricks platform — there is no public API endpoint reachable by an external automated MCP client without workspace credentials. This is a platform constraint, not a design limitation.
+The following inputs are **repository-reported**, chiefly from RUN_MANIFEST A5 on October 19 at **v0.13.0**. They are not live results from this documentation revision. Preserve query arguments and timestamps when citing them.
 
-The app exposes two demonstration surfaces:
-
-1. **Evidence Bundle** (always works): Enter any NIH research topic and fiscal year to retrieve a fully-provenanced funding total with reproduction steps, source record IDs, and deduplication metadata. This exercises the core MCP tool pipeline end-to-end without requiring LLM access.
-
-2. **Ask agent loop** (requires serving endpoint): Sends a natural-language question to a Databricks-hosted LLM which autonomously selects and chains the MCP tools. Requires that the app's service principal has `CAN_QUERY` access to the `databricks-gpt-5-5` serving endpoint (declared in `app.yaml` resources). If the agent returns an error, the Evidence Bundle above remains the primary verified demonstration.
-
-**Primary reproducible artifacts** (available without workspace access):
-- The public GitHub repository (`github.com/conroyriodss/nih-reporter-mcp`) containing all source, tests, and documentation
-- The companion Databricks notebook (`notebook-merged`) with frozen execution outputs from October 16, 2026
-- The ground truth fixtures (`tests/fixtures/crispr_sickle_cell_fy2024.json`, `docs/demonstration_fixture/`, `docs/demonstration_fixture_double_counting/`)
-
-Any evaluator can reproduce the MCP server locally with `uv run python main.py` — no Databricks workspace, API key, or authentication is required for the underlying NIH RePORTER / NCBI APIs.
-
-### 3.6 Vulnerability Disclosure
-
-See `SECURITY.md` for the project's vulnerability disclosure policy.
-
----
-
-## 4. Lessons Learned
-
-### 4.1 The Double-Counting Trap
-
-The single most impactful finding: naively summing all award amounts from RePORTER **overstates funding by 10.1%** for CRISPR FY2023 ($921.5M all_records vs. $837.0M whole_award). The cause: multi-component awards (U-mechanisms, P-mechanisms) create parent + child records, each carrying an `award_amount` field. Summing all records double-counts.
-
-**Solution:** The `whole_award` funding basis excludes subproject records (activity codes starting with specific prefixes), deduplicates by `appl_id`, and tracks records with missing amounts. The `is_exact` property on `AggResult` returns True only when `records_with_missing_amount == 0 AND NOT has_unresolved_conflicts AND NOT orphan_children`.
-
-This is documented in `docs/findings.md` (Finding #11) and tested in `test_counting.py` (67 tests + 2 xfail). The 10.1% and 16.5% overstatement figures were re-verified in the A5 live-figure batch (2026-10-19T23:42–23:51Z).
-
-### 4.2 Official Category vs. Free-Text Search Divergence
-
-NIH's RCDC spending categories and free-text keyword searches return **dramatically different totals** for the same disease area. For "long covid" in FY2023: RCDC category reports $199.6M while free-text search finds $891.7M. Neither is "wrong" — they measure different things (curated categorization vs. text occurrence).
-
-**Solution:** `compare_rcdc_vs_freetext` prompt explicitly runs both methods and presents both numbers with a documented explanation.
-
-### 4.3 Tool Description Quality Drives Agent Accuracy
-
-A single docstring edit to `search_funded_projects` dramatically reduced redundant tool calls. Before the fix, the description was ambiguous enough that the LLM issued near-duplicate queries believing minor rewording might change results. After: BC-1 (competitive renewal %) dropped from 32 calls to 1; BC-2 (top institution) dropped from 18 calls to 1. These are real agent traces against `databricks-claude-sonnet-4-5` at v0.14.0, not harness-measured.
-
-The multi-model eval confirms this: tool descriptions clear enough for one model family are clear enough for all three tested (92% accuracy across GPT, Claude, and Llama families).
-
-### 4.4 Honest Reporting Over Silent Failure
-
-Design principle: every tool output includes metadata that lets the consumer assess trustworthiness. The `complete` flag, `total_matching` vs. `projects_aggregated` counts, `funding_basis`, and `records_with_missing_amount` are always present — the agent (or human reviewer) can decide how to interpret a partial result rather than receiving a silently truncated answer.
-
-The evidence-bundle tool (`export_evidence_bundle`) takes this further: it returns the query criteria, source record IDs (up to 500, with a count of the true total), and a reproduction note so any claim can be independently verified.
-
-### 4.5 Cache Correctness Requires Basis Separation
-
-The 15-minute TTL cache on `post_json` must never collide results from different `funding_basis` values (whole_award vs. all_records). Cache keys include the full payload hash, and smoke test t18 proves that the same query with different bases returns different (correct) amounts, even when one is served from cache.
-
-### 4.6 Mocked vs. Live Tests Serve Different Purposes
-
-TestPartC (mocked upstream failures) catches regressions in error-handling code without network access — ideal for CI. But only live-server tests (t1–t18) catch real-world issues like pagination edge cases, actual API response format changes, and cache correctness under realistic payloads. Both tiers are necessary.
-
----
-
-## Appendix: File Inventory
-
-| Artifact | Path | Verified |
+| Query / measure | Reported result | Interpretation |
 |---|---|---|
-| Source code | `src/nih_reporter_mcp/` | ✅ |
-| 14 tools | `src/nih_reporter_mcp/tools/` | ✅ (includes `clinical_trials_lookup`, registered since v0.13.0) |
-| 9 prompts | `src/nih_reporter_mcp/prompts/` | ✅ |
-| 3 resources | `src/nih_reporter_mcp/resources/` | ✅ (server_info, response_guidelines, spending_categories) |
-| Unit tests (model-free) | `tests/test_counting.py`, `test_security.py`, `test_prompt_contracts.py`, `test_clinical_trials.py`, `test_version_contract.py` | ✅ 155p + 2xf (CI: 5 unit files + robustness Part C) |
-| Robustness tests (mocked) | `tests/test_robustness.py::TestPartC` | ✅ 11p |
-| Correctness tests (live) | `tests/test_correctness.py` | ✅ 8 tests |
-| Robustness tests (live) | `tests/test_robustness.py` Parts A/B/D/E | ✅ 38 (32 stable + 6 pass-with-retry); Part C's 11 mocked tests are counted in the 155 CI figure |
-| CI workflow | `.github/workflows/ci.yml` | ✅ |
-| Ground truth fixture | `tests/fixtures/crispr_sickle_cell_fy2024.json` | ✅ |
-| Smoke tests | `eval/smoke_tests.py` | ✅ 17/17 |
-| Notebook (demo + evals) | `notebook-merged` | ✅ |
-| Architecture doc | `docs/architecture.md` | ✅ |
-| Findings doc | `docs/findings.md` | ✅ |
-| Robustness doc | `docs/robustness.md` | ✅ |
-| Roadmap | `docs/roadmap.md` | ✅ |
-| Demo script | `docs/demo_script.md` | ✅ |
-| Ground truth methodology | `docs/ground_truth_methodology.md` | ✅ |
-| Demonstration fixture | `docs/demonstration_fixture/` | ✅ |
-| Double-counting fixture | `docs/demonstration_fixture_double_counting/` | ✅ |
-| Problem statement | `PROBLEM_STATEMENT.md` | ✅ |
-| Security policy | `SECURITY.md` | ✅ |
-| Changelog | `CHANGELOG.md` | ✅ |
-| Server config | `server.json` | ✅ |
-| App config | `app.yaml` | ✅ |
-| Presentation | `docs/presentation/slides.md` | ✅ |
-| Evidence package | `docs/demonstration_fixture/` (8 files) | ✅ (RUN_MANIFEST, EVAL_VERDICTS, fixture bundle) |
+| `topic="CRISPR gene editing"`, FY2023 | all_records **$921,543,173**; whole_award **$836,981,580** | Basis difference **10.1%**, calculated as `(all_records − whole_award) / whole_award`. |
+| `topic="Alzheimer's disease"`, FY2023 | all_records **$4,685,253,389**; whole_award **$4,020,899,771** | Basis difference **16.5%**, using the same denominator. This is the text query, not an official RCDC total. |
+| R01 FY2020, `group_by="application_type"` | **1,089 / 29,560 = 3.68%** competitive renewals | Counts from the documented non-subproject faceting path, not from a capped sample of returned projects. |
+| R01 FY2023, `application_types=[5]` | **21,150 matching records** | The manifest's facet cross-check is **21,146**, with four subproject records explaining the difference. Do not divide the raw-record numerator by an award-grain denominator and call it an exact award percentage. |
+| P41 FY2015 / FY2025, application-type faceting | **13 / 77** and **1 / 31** competitive renewals | Preserve the same counting grain across years. Raw type-filtered record counts are different. |
+| R21 FY2018, organization grouping | **Johns Hopkins, 96** | Reported highest bucket in that query; not a universally verified institutional ranking. |
+| Award-amount sort, FY2020–FY2025 | **$448,283,318**, `OT2HL161847`, FY2021 | Largest returned award amount in that specified query. Not an all-time maximum, lifetime project cost, or outcome value. |
+| Arthritis FY2023, RCDC ID 55 / free text | **$291,641,663 / $708,609,739** | Different cohort definitions. Neither figure validates the other. |
 
----
+For CRISPR FY2023 the manifest reports 1,739 matches, 226 excluded subprojects, seven missing amounts, and 1,506 contributors. The smoke documentation also reports 166 orphan subprojects. Therefore **the entire 10.1% difference cannot be described as proven within-cohort duplicate dollars removed**. “All-record versus whole-award basis difference” is the defensible label. The explicit parent-present fixture in section 2.4 supplies the direct double-counting proof.
 
-## Appendix: Reconciliation Change Log (v0.14.0)
+## 5. Reliability, limitations, and mission alignment
 
-Changes applied to this document during the B1 reconciliation pass (2026-10-20), reconciling against the frozen canonical values block at v0.14.0.
+### 5.1 Implementation controls
 
-| # | Location | Old value | New value | Canonical source |
-|---|---|---|---|---|
-| 1 | Header line 6 | v0.10.2-dev | v0.14.0 | Tag |
-| 2 | Header line 7 | (absent) | Tag-name reference; SHA only in RUN_MANIFEST §1 | Tag |
-| 3 | Header line 8 | October 16, 2026 | October 20, 2026 | Tag date |
-| 4 | §1.1 Tier 1 status | 75 passed + 2 xfailed | 155 pass + 2 xfail offline (CI) | CI scope: 5 unit files + Part C |
-| 5 | §1.1 test_counting | 20p + 2xf | 67p + 2xf | Subprocess pytest |
-| 6 | §1.1 test_security | 21p | 24p | Subprocess pytest |
-| 7 | §1.1 test_prompt_contracts | 24p | 29p | Subprocess pytest |
-| 8 | §1.1 (new row) | (absent) | test_clinical_trials: 23p | New file at v0.13.0 |
-| 9 | §1.1 Tier 2 status | 18/18 smoke | 17/17 smoke | t5 fixed, t9 notebook-only |
-| 10 | §1.1 Tier 2 evidence | Notebook Cell 12 18/18 | smoke_tests.py 17/17 + test_correctness 8/8 | A3b re-run |
-| 11 | §1.1 test_correctness | 6 tests | 8 tests | Subprocess pytest |
-| 12 | §1.1 Tier 3 status | Verified | Re-verified at v0.14.0 | EVAL_VERDICTS |
-| 13 | §1.1 Claude Sonnet | 8/8 (100%) | 7/8 (88%) | EVAL_VERDICTS Claim 1 (Q5 flipped) |
-| 14 | §1.1 Llama | 7/8 (88%) | 8/8 (100%) | EVAL_VERDICTS Claim 1 (Q5 flipped) |
-| 15 | §1.1 Unanimous | 7/8 | 6/8 | EVAL_VERDICTS Claim 1 |
-| 16 | §1.1 Disagreement detail | GPT+Llama wrong | GPT+Claude wrong, Llama correct | EVAL_VERDICTS |
-| 17 | §1.1 (new) | (absent) | Note: 8-Q set predates new tool surface | EVAL_VERDICTS |
-| 18 | §2.1 heading | Live-Verified October 16 | A5 batch 2026-10-19 + v0.14.0 | A5 run window |
-| 19 | §2.1 evidence refs | notebook Cell 24 | A5 LF-IDs with timestamps | A5 batch |
-| 20 | §2.1 (new rows) | (absent) | Alzheimer's, R01 renewals, type-5, P41 deduped, faceting | A5 LF-3/4/5/9/10 |
-| 21 | §2.2 | Quantitative: avg 2.0→1.0 | Qualitative: BC-1 32→1, BC-2 18→1 + harness-dropped note | EVAL_VERDICTS §3 |
-| 22 | §4.1 | Finding #1, 20 tests | Finding #11, 67 tests + 2 xfail, A5 re-verified | Canonical |
-| 23 | §4.3 | "2.0 → 1.0 calls/question" | Qualitative BC-1/BC-2 traces | EVAL_VERDICTS |
-| 24 | Appendix tools | 13 tools | 14 tools (CT registered since v0.13.0) | Server inventory |
-| 25 | Appendix resources | 2 resources | 3 resources | Server inventory |
-| 26 | Appendix unit tests | 65p + 2xf | 155p + 2xf (CI: 5 unit files + robustness Part C) | Subprocess pytest |
-| 27 | Appendix correctness | 6 tests | 8 tests | Subprocess pytest |
-| 28 | Appendix robustness | 38 tests | 38 (32 stable + 6 pass-with-retry) server-dependent; Part C 11 counted in CI 155 | Subprocess pytest (an interim "49 (43+6)" value counted Part C twice and was corrected) |
-| 29 | Appendix smoke | 18/18 | 17/17 | t5 fixed, t9 notebook-only |
+Verified in [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.5/src/nih_reporter_mcp/utils.py):
+
+- Outbound host allowlist: `api.reporter.nih.gov`, `eutils.ncbi.nlm.nih.gov`, `wsearch.nlm.nih.gov`, and `clinicaltrials.gov`.
+- Topic/string length limit: **500 characters** in the relevant validator; fiscal-year array limit: **20**.
+- Upstream response-size guard: **10 MiB**.
+- HTTP-response cache: **900-second TTL**, keyed by URL and canonical request payload.
+- Aggregation occurs after raw-response retrieval. The two funding bases can correctly reuse the **same cached raw response**; funding basis is not a required component of that raw-response cache key.
+
+The existence of these controls is verified by inspection. Mocked error-path execution is repository-reported with CI; it is not a penetration test. This revision does not certify the absence of secrets across repository history or every web-app security boundary.
+
+### 5.2 Known boundaries
+
+| Area | Boundary to preserve in answers |
+|---|---|
+| Portfolio funding | State the query, fiscal years, agency scope, funding basis, and incomplete/missing/conflicting-record warnings. Do not substitute search matches for total research investment. |
+| Investigator overlap / Other Support | Public funded-award matches are candidates for human review. They are not a complete Other Support disclosure, effort accounting, or a duplication/compliance determination. |
+| Publications | A source-reported grant–paper association does not establish causal impact or identify the funding year that supported the work. Missing links do not establish absence of a relationship. |
+| Clinical trials | A structured grant reference is an association. Do not allocate the full grant amount to each trial, equate a registered plan with results, or infer outcomes caused by that grant. |
+| Study sections | `funded_projects_by_study_section` describes funded-project distributions. It does not measure total review workload, including unfunded applications. |
+| Recent awards | Record-addition recency must not be presented as the award decision date unless the relevant date field supports it. |
+| Geography | Recipient-institution location is not necessarily study location, participant location, or local benefit. |
+| Unsupported questions | No workforce/career-outcome integration or duration-sort capability is demonstrated. The documented USAspending stub is not a functioning integration and is outside the 14-tool capability claim. |
+| Topic/program membership | A keyword occurrence does not establish membership in a named program, even when every returned match was retrieved. |
+
+These limits support both missions: **oversight**, through reviewable portfolio and counting decisions, and **service delivery**, through accessible explanations that preserve uncertainty. Plain language must not remove evidence or imply stronger certainty.
+
+### 5.3 Deployed app and notebook
+
+The documentation describes a workspace-authenticated Databricks app. “Ask” adds model-serving authorization and deployment configuration to the MCP/API dependencies.
+
+**Current status: not verified in this revision.** Do not publish “Ask works,” “always works,” or a specific fixed root cause without a timestamped deployment check. An authentication/configuration failure is still a user-visible failure of that demonstration surface.
+
+Place the following sentence beside the Ask control and in the demo introduction:
+
+> “The hosted Ask demo depends on Databricks workspace and model-endpoint permissions; if it is unavailable, use the public frozen fixtures and local MCP reproduction steps below to evaluate funding reconciliation—the agent experience must be evaluated separately.”
+
+If the failure is currently confirmed, replace the conditional with a dated, explicit “Ask is temporarily unavailable” notice.
+
+The notebook is credible as a primary **walkthrough and historical-output artifact** when it states its run date, source tag, model dependencies, and frozen/live boundaries. Edited cells with old outputs are not evidence of a fresh top-to-bottom run. Endpoint-dependent cells must be marked and independently skippable. A successful evidence endpoint or fixture reconciliation does not establish that Ask works.
+
+## 6. Reproduction procedure
+
+The following recipes target a new local **Bash + Python 3.12** environment. They are derived from the inspected source. The offline fixture-check script was executed against the supplied artifacts for this revision; the server, dependency-install, CI, and live-run recipes were not executed here.
+
+### 6.1 Pin source and capture the resolved environment
+
+`requirements.txt` contains **minimum version ranges**, not a dependency lock. [pyproject.toml](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.5/pyproject.toml) also reports distribution version `0.1.0`, while the source module version is `0.14.5`. Use the resolved Git commit and source module version for identity; do not treat package metadata alone as proof of the release.
+
+This procedure pins source and records a fresh dependency resolution. It does **not** reproduce the historical dependency environment bit-for-bit.
+
+```bash
+set -eu
+RUN_ROOT="$(mktemp -d)"
+git clone --branch v0.14.5 --single-branch \
+  https://github.com/conroyriodss/nih-reporter-mcp.git "$RUN_ROOT/repo"
+cd "$RUN_ROOT/repo"
+git checkout --detach v0.14.5
+
+export EVIDENCE="$RUN_ROOT/evidence"
+mkdir -p "$EVIDENCE"
+git rev-parse HEAD > "$EVIDENCE/source-commit.txt"
+git rev-parse 'v0.14.5^{commit}' > "$EVIDENCE/tag-commit.txt"
+diff "$EVIDENCE/source-commit.txt" "$EVIDENCE/tag-commit.txt"
+git status --porcelain > "$EVIDENCE/working-tree-before.txt"
+test ! -s "$EVIDENCE/working-tree-before.txt"
+
+python3.12 -m venv "$RUN_ROOT/venv"
+source "$RUN_ROOT/venv/bin/activate"
+python -m pip install --upgrade pip > "$EVIDENCE/pip-upgrade.txt" 2>&1
+python -m pip install -r requirements.txt -e . pytest \
+  > "$EVIDENCE/install.txt" 2>&1
+
+export PYTHONPATH="$PWD/src"
+export PYTHONDONTWRITEBYTECODE=1
+python --version > "$EVIDENCE/python-version.txt" 2>&1
+python -m pip --version > "$EVIDENCE/pip-version.txt"
+python -m pip freeze --all > "$EVIDENCE/resolved-environment.txt"
+date -u '+%Y-%m-%dT%H:%M:%SZ' > "$EVIDENCE/run-started-utc.txt"
+python - <<'PY' > "$EVIDENCE/input-hashes.json"
+import hashlib, json
+from pathlib import Path
+files = ["requirements.txt", "pyproject.toml", ".github/workflows/ci.yml"]
+print(json.dumps({f: hashlib.sha256(Path(f).read_bytes()).hexdigest()
+                  for f in files}, indent=2))
+PY
+```
+
+Check the resolved full commit against the release and manifest. This document uses tag names; record the actual full SHA in the new run evidence. A future failure after resolving newer dependencies must not be concealed by citing an earlier pass count.
+
+### 6.2 Execute the exact model-free CI selection
+
+```bash
+set +e
+python -m pytest \
+  tests/test_counting.py \
+  tests/test_security.py \
+  tests/test_prompt_contracts.py \
+  tests/test_clinical_trials.py \
+  tests/test_version_contract.py \
+  tests/test_robustness.py::TestPartC_MockedUpstreamFailures \
+  -v --tb=short -p no:cacheprovider \
+  --junitxml="$EVIDENCE/ci.junit.xml" \
+  > "$EVIDENCE/ci.stdout.txt" 2>&1
+ci_status=$?
+set -e
+printf '%s\n' "$ci_status" > "$EVIDENCE/ci.exit-code.txt"
+cat "$EVIDENCE/ci.stdout.txt"
+```
+
+**Historical expected output:** 155 passed, 2 xfailed; exit status 0. Report the actual run, including failures, errors, skips, and unexpected passes. JUnit often represents expected failures as skipped test cases with a reason; retain the pytest output rather than counting every XML “skipped” as an ordinary skip. A collect-only count is not a pass count.
+
+Run separately under Python 3.11 to reproduce that matrix leg. Do not infer both legs passed from one local execution.
+
+### 6.3 Reconcile the frozen fixtures without network or server
+
+Run from the repository root. This independent script uses the Python standard library, not `aggregate_funding`. It checks the supplied fixture shape explicitly; a changed fixture requires review, not automatic acceptance.
+
+```bash
+python - <<'PY' > "$EVIDENCE/frozen-reconciliation.json"
+import csv
+import hashlib
+import json
+from decimal import Decimal
+from pathlib import Path
+
+root = Path("docs")
+expected = {
+    "demonstration_fixture": (38, 37, 1, Decimal("19790134")),
+    "demonstration_fixture_double_counting": (8, 1, 7, Decimal("5130473")),
+}
+report = []
+for name, (n_raw, n_in, n_excluded, expected_total) in expected.items():
+    folder = root / name
+    raw_path = folder / "raw_records.json"
+    digest = hashlib.sha256(raw_path.read_bytes()).hexdigest()
+    assert digest == (folder / "raw_records.sha256").read_text().split()[0]
+    document = json.loads(raw_path.read_text())
+    records = document["results"]
+    seen, contributing, excluded = {}, [], []
+    all_records_total = Decimal("0")
+    for record in records:
+        appl_id = record["appl_id"]
+        assert appl_id is not None, "Fixture needs an explicit missing-ID decision"
+        if appl_id in seen:
+            assert record == seen[appl_id], "Conflicting duplicate needs review"
+            continue
+        seen[appl_id] = record
+        amount = record["award_amount"]
+        assert amount is not None, "Fixture has changed: review missing amount"
+        all_records_total += Decimal(str(amount))
+        if record["subproject_id"] is not None:
+            excluded.append(record)
+        else:
+            contributing.append(record)
+    total = sum((Decimal(str(r["award_amount"])) for r in contributing), Decimal("0"))
+    assert (len(records), len(contributing), len(excluded)) == (n_raw, n_in, n_excluded)
+    assert len(seen) == len(records), "These snapshots are expected to have no duplicates"
+    assert total == expected_total
+
+    with (folder / "decision_ledger.csv").open(newline="") as stream:
+        ledger = list(csv.DictReader(stream))
+    assert len(ledger) == len(records)
+    assert len({int(row["appl_id"]) for row in ledger}) == len(ledger)
+    assert {int(row["appl_id"]) for row in ledger} == set(seen)
+    included_ids = {r["appl_id"] for r in contributing}
+    for row in ledger:
+        appl_id = int(row["appl_id"])
+        original = seen[appl_id]
+        included = appl_id in included_ids
+        assert row["decision"] == ("included" if included else "excluded")
+        assert Decimal(row["award_amount"]) == Decimal(str(original["award_amount"]))
+        assert row["core_project_num"] == (original["core_project_num"] or "")
+        assert row["subproject_id"] == ("" if original["subproject_id"] is None else str(original["subproject_id"]))
+        assert int(row["fiscal_year"]) == original["fiscal_year"]
+        assert Decimal(row["amount_counted"]) == (Decimal(str(original["award_amount"])) if included else Decimal("0"))
+    assert sum((Decimal(row["amount_counted"]) for row in ledger), Decimal("0")) == total
+
+    parents = {(r["core_project_num"], r["fiscal_year"]) for r in contributing}
+    orphan_ids = [r["appl_id"] for r in excluded
+                  if (r["core_project_num"], r["fiscal_year"]) not in parents]
+    if name == "demonstration_fixture":
+        assert orphan_ids == [10992993]
+        bundle = json.loads((folder / "tool_output.json").read_text())
+        summary = bundle["summary"]
+        assert Decimal(str(summary["total_award_amount_usd"])) == total
+        assert summary["total_matching_projects"] == n_raw
+        assert summary["projects_aggregated"] == n_in
+        assert summary["complete"] is True
+        assert summary["records_with_missing_amount"] == 0
+        assert summary["deduped_count"] == 0
+        assert summary["subproject_excluded_count"] == n_excluded
+        assert summary["funding_basis"] == "whole_award"
+        assert bundle["provenance"] == summary["provenance"]
+        prov = bundle["provenance"]
+        assert len(prov["source_record_ids"]) == n_in
+        assert set(prov["source_record_ids"]) == included_ids
+        assert prov["records_aggregated"] == n_in
+        assert prov["query_criteria"] == document["request_payload"]["criteria"]
+    else:
+        assert not orphan_ids
+        assert all_records_total == Decimal("10260946")
+    report.append({
+        "fixture": name, "status": "PASS", "raw_records": len(records),
+        "contributors": len(contributing), "subprojects_excluded": len(excluded),
+        "orphan_ids": orphan_ids, "whole_award_usd": str(total),
+        "all_records_usd": str(all_records_total), "raw_sha256": digest,
+    })
+print(json.dumps(report, indent=2))
+PY
+cat "$EVIDENCE/frozen-reconciliation.json"
+```
+
+Expected results: two PASS records, primary whole-award sum **19790134**, parent-present whole-award sum **5130473**, and parent-present all-record sum **10260946**.
+
+Validate the stored response against the installed release models separately:
+
+```bash
+python - <<'PY' > "$EVIDENCE/stored-schema-validation.txt"
+import json
+from pathlib import Path
+from nih_reporter_mcp.tools.evidence_bundle import EvidenceBundle
+from nih_reporter_mcp.models import FundingSummary
+bundle = json.loads(Path("docs/demonstration_fixture/tool_output.json").read_text())
+EvidenceBundle.model_validate(bundle)
+FundingSummary.model_validate(bundle["summary"])
+print("PASS: stored EvidenceBundle envelope and FundingSummary schema")
+PY
+```
+
+Do not pass the entire envelope to `FundingSummary.model_validate`; its input is `bundle["summary"]`. Schema acceptance establishes shape/types, not factual correctness of every scalar.
+
+### 6.4 Start the server and verify the actual inventory
+
+Run in the same shell:
+
+```bash
+env -u DATABRICKS_APP_PORT PORT=8765 PYTHONPATH="$PWD/src" \
+  python -m nih_reporter_mcp.app > "$EVIDENCE/server.stdout.txt" 2>&1 &
+MCP_SERVER_PID=$!
+trap 'kill "$MCP_SERVER_PID" 2>/dev/null || true' EXIT
+export MCP_URL="http://127.0.0.1:8765/mcp"
+
+python - <<'PY' > "$EVIDENCE/runtime-inventory.json"
+import asyncio, json, time, urllib.request
+from fastmcp import Client
+
+for attempt in range(30):
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:8765/version", timeout=2) as r:
+            version = json.load(r)
+        break
+    except Exception:
+        if attempt == 29:
+            raise
+        time.sleep(1)
+
+async def main():
+    async with Client("http://127.0.0.1:8765/mcp") as client:
+        tools = await client.list_tools()
+        prompts = await client.list_prompts()
+        resources = await client.list_resources()
+    actual = {"tools": len(tools), "prompts": len(prompts), "resources": len(resources)}
+    assert actual == {"tools": 14, "prompts": 9, "resources": 3}, actual
+    assert version["version"] == "0.14.5", version
+    assert all(version[k] == value for k, value in actual.items()), version
+    print(json.dumps({"version": version, "actual_counts": actual,
+                      "tool_names": sorted(t.name for t in tools)}, indent=2))
+asyncio.run(main())
+PY
+cat "$EVIDENCE/runtime-inventory.json"
+```
+
+`/health` is a process-level response, not a live upstream test. Matching `/version` and MCP registry counts validates inventory consistency, not tool semantics.
+
+### 6.5 Run live suites and retain failures
+
+These commands require internet access and the running server, but not a Databricks model endpoint:
+
+```bash
+set +e
+python eval/smoke_tests.py --sequential \
+  > "$EVIDENCE/smoke.stdout.txt" 2>&1
+smoke_status=$?
+python -m pytest tests/test_correctness.py -v --tb=short -p no:cacheprovider \
+  --junitxml="$EVIDENCE/live-correctness.junit.xml" \
+  > "$EVIDENCE/live-correctness.stdout.txt" 2>&1
+correctness_status=$?
+set -e
+printf '%s\n' "$smoke_status" > "$EVIDENCE/smoke.exit-code.txt"
+printf '%s\n' "$correctness_status" > "$EVIDENCE/live-correctness.exit-code.txt"
+cat "$EVIDENCE/smoke.stdout.txt"
+cat "$EVIDENCE/live-correctness.stdout.txt"
+```
+
+Historical targets are **17/17 smoke** and **8 live-correctness passes**, with the methodological limits in section 3. Inspect both the summary and exit code. Record whether the missing-amount target condition was actually observed.
+
+Live API data, upstream error behavior, and cache state can change. A mismatch needs diagnosis: query drift, source-data drift, environment failure, test defect, or implementation defect. Preserve the original frozen files and create a new dated snapshot when needed.
+
+The preceding smoke run warms the server cache. Label the subsequent correctness run accordingly; restart the process before a measurement requiring a cold cache. A new process starts with an empty in-process cache.
+
+### 6.6 Agent runs: separately gated
+
+The Databricks notebook's model-evaluation cells require authorized serving endpoints. They are **endpoint-dependent**, not part of the model-free CI or standalone smoke suite.
+
+For a new reported score, publish:
+
+1. Source SHA, actual tool schemas, notebook revision, endpoint/model identifiers, run timestamps, temperature and other decoding parameters, token/round limits, and truncation behavior.
+2. Every question, expected acceptable tool/argument choices, and scoring rule set before execution.
+3. All raw tool selections and arguments, validation outcomes, tool responses, and final answers, with credentials removed.
+4. Separate scores for routing, argument validity, completed execution, correct interpretation, and required abstention.
+5. Coverage for newer grouping, category, clinical-trial, record-grain, missing-data, and unsupported-capability cases.
+
+Changing the question set creates a new evaluation. Do not reuse the historical 22/24 denominator for a different tool surface or expanded battery.
+
+### 6.7 Publish the run evidence
+
+Copy the evidence directory out of temporary storage and attach it to the release, or commit an appropriate evidence package. A path under `/tmp` or private session memory is not accessible evidence for a public evaluator.
+
+Publish a manifest containing the resolved source SHA, source cleanliness, requirement-file hash **and resolved environment**, exact commands and exit codes, dates, cache state, suite selection, actual results, and a hash inventory of the shipped artifacts. Include model metadata only for runs actually performed. Keep independent suite totals separate; do not count robustness Part C again.
+
+## 7. Outstanding evidence and documentation repairs
+
+Updating this file does not repair the companion files listed below.
+
+| Priority | Remaining issue | Required correction |
+|---|---|---|
+| Resolved in v0.14.5 | Manifest artifact hash mismatch | RUN_MANIFEST A4 now records the shipped `demonstration_fixture/independent_total.md` (3,926 bytes, SHA-256 `edca15031e947a8dc8a0e7d111e506de7a3901392d5c2d9eaa25a741e44657dc`). The earlier row (3,971 bytes) predated the v0.14.2 edit that removed a commit SHA from that file. |
+| High | Dependency-lock claim | The inspected requirements file contains ranges. Correct the manifest's “pip-freeze / lock” description or publish a real pinned environment artifact. |
+| High | Provenance freshness and replay | Export a true upstream retrieval timestamp/cache indicator, request ordering, and full record evidence where complete historical replay is claimed. Until then, retain section 2.5's limitations. |
+| High | Agent-facing certainty exceeds this document's boundary | The server instructions in [app.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.5/src/nih_reporter_mcp/app.py) advertise an “exact total-investment figure” and “curated, congressionally-mandated totals.” Qualify those instructions with query scope, completeness, and the distinction between RePORTER category-filtered sums and published RCDC totals. Updating this evaluation does not change what the agent receives. |
+| High | Run identity and accessible logs | Historical A1–A5 and STEP 1–3 runs belong to v0.13.0, not v0.14.5. Replace ambiguous “at HEAD” statements with run identities; publish JUnit/log/trace artifacts currently referenced only by ephemeral or private paths. |
+| High | Model-result contradiction | Reconcile the unanimity figure with the per-question matrix and raw traces. Do not mix the earlier GPT/Llama Q5 misses with the later GPT/Claude misses. |
+| Medium | Method-order drift | `ground_truth_methodology.md` and parts of the manifest describe subproject exclusion before deduplication. The production loop and stored reproduction note deduplicate first. Align procedural documentation. |
+| Medium | Weak or vacuous assertions | Replace no-op/constant-only “regression” checks with calls to production behavior; make absent live preconditions explicit; test capped provenance, missing IDs, cached timestamps, and full payload replay. |
+| Medium | Unsupported headline precision | Separate printed from asserted smoke values; retain tolerances on live regressions; avoid claims of dollar-level verification beyond actually reconciled fixtures. |
+| Medium | Packaging identity | Align the distribution version with the release, or explicitly document the discrepancy. |
+| Medium | Cross-document drift | Reconcile stale counts and claims in architecture/roadmap/demo materials, including the older architecture test counts and unsupported 100% routing/efficiency language. |
+| Medium | Demo state | Publish a timestamped Ask status beside the control, mark endpoint-dependent notebook cells, and distinguish frozen outputs from newly executed cells. |
+
+## 8. Judge-facing demonstration and evidence map
+
+A short demonstration should show the evidence before the headline test counts:
+
+1. **Define the cohort:** “CRISPR sickle cell,” FY2024, `and/all` text criteria, whole-award basis.
+2. **Open the frozen evidence:** 38 raw rows, 37 contributing application records, one excluded orphan subproject, full contributing IDs and ledger.
+3. **Reconcile:** independently sum **$19,790,134** and check the raw hash.
+4. **Explain the limit:** complete retrieval does not mean complete topic funding. The keyword matched one subproject of P50HD096723 but not the parent center, so that child is excluded as an orphan; whole_award can understate topical investment here.
+5. **Show a genuine double-counting case:** U19AG068753's parent plus children doubles the parent-present amount.
+6. **Show validation scope:** selected model-free CI, live tests, and endpoint-dependent agent results are separate evidence streams.
+
+| Judging area | Evidence to inspect | Claim boundary |
+|---|---|---|
+| Technical quality | Aggregation, models, evidence export, CI workflow and tests; both frozen fixtures | Demonstrated counting behavior and inspectability, not universal correctness or a verified performance benchmark. |
+| Innovation | Goal-oriented evidence export and portfolio/explanation workflows using common source evidence | A useful workflow design; uniqueness against other MCP servers has not been benchmarked here. |
+| Mission alignment | Reviewable investment analysis, plain-language explanation, explicit attribution and missing-data limits | Supports oversight and service delivery; does not replace policy, scientific, or compliance judgment. |
+| Presentation | Cohort → evidence → independent sum → limits; visible deployment and endpoint dependencies | A reproducible artifact walkthrough is demonstrated separately from an available hosted agent experience. |
+
+The strongest supported pitch is: **“An NIH funding answer you can inspect, reconcile, and interpret within explicit limits.”**

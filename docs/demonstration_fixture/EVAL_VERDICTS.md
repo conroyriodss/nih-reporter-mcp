@@ -1,6 +1,6 @@
 # Eval Claim Verdicts
 
-> **Submission tag:** v0.14.4 (commit SHA recorded only in RUN_MANIFEST §1)
+> **Submission tag:** v0.14.5 (commit SHA recorded only in RUN_MANIFEST §1)
 >
 > STEP 1–3 re-runs: 2026-10-20T00:15–00:25Z, server at v0.13.0, 14 tools.
 > Models: databricks-gpt-5-5, databricks-claude-sonnet-4-6, databricks-meta-llama-3-3-70b-instruct.
@@ -60,10 +60,10 @@
 **At v0.14.0:** **17/17** standalone (t5 assertion fixed before v0.14.0; RUN_MANIFEST §11 H5). t9 remains notebook-only.
 **Verdict: FIXED at v0.14.0.** Was STALE at v0.13.0 (t5 stale assertion bug); now 17/17.
 
-### Claim 6 — CI: 75 passed + 2 xfailed
+### Claim 6 — CI count (originally claimed: 75 passed + 2 xfailed)
 
 **At v0.13.0 (clean-room A3):** 202 collected, 138 passed + 2 xfailed, 55 event-loop + 7 live-server failures.
-**At v0.14.4:** 203 collected, 155 pass + 2 xfail offline (CI: 5 unit files + robustness Part C); 8 live-integration pass; 38 server-robustness pass (32 stable + 6 pass-with-retry). Smoke: 17/17.
+**At v0.14.5:** 203 collected, 155 pass + 2 xfail offline (CI: 5 unit files + robustness Part C); 8 live-integration pass; 38 server-robustness pass (32 stable + 6 pass-with-retry). Smoke: 17/17.
 **Verdict: FIXED at v0.14.0.** Was STALE at v0.13.0; headline now stable.
 
 ### Claim 7 — Agent battery: 7/7 in-scope, 3/3 abstain
@@ -227,7 +227,7 @@ acknowledged rather than worked around.
 | Determinism | 3/3 stable | 3/3 stable | **RE-VERIFIED** |
 | Efficiency metric | avg 1.0 | (harness invalid) | **DROPPED** (qualitative point kept) |
 | Smoke tests | 18/18 | 17/17 (at v0.14.0) | **FIXED** (t5 assertion fixed before v0.14.0; RUN_MANIFEST §11 H5) |
-| CI test count | 75+2xf | 155+2xf (at v0.14.4; CI includes CT, the /version contract test and Part C) | **FIXED** (asyncio harness + CI scope) |
+| CI test count | 75+2xf | 155+2xf (at v0.14.5; CI includes CT, the /version contract test and Part C) | **FIXED** (asyncio harness + CI scope) |
 | Agent battery 7/7+3/3 | pre-v0.13.0 (H3) | not re-run | **DEMOTED** (predates v0.13.0 surface) |
 
 | Behavioral Case | Tag | Calls | Result | Correct? |

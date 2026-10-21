@@ -1,7 +1,7 @@
-# Clean-Room Run Manifest — v0.14.4
+# Clean-Room Run Manifest — v0.14.5
 
 > Single source of truth for reproducing every result in the evidence package.
-> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-21 for submission tag v0.14.4.
+> Generated 2026-10-19 (A1–A5 at v0.13.0). Updated 2026-10-21 for submission tag v0.14.5.
 > **SHA-citation rule:** every other document cites tag names only. Literal commit SHAs appear only in this manifest.
 > All runs executed on Databricks serverless compute.
 
@@ -11,13 +11,13 @@
 
 | Field | Value |
 | --- | --- |
-| Submission tag | `v0.14.4`: resolve via `git rev-parse v0.14.4^{commit}`. SHA as of writing: a commit can't contain its own SHA, so this row records the tagged commit's **parent**, `b1145e17c8d0de6afd71337bdf2c15f72e76a5c6` (the v0.14.3 commit; check with `git rev-parse v0.14.4^{commit}^`). |
-| Tag date | `git for-each-ref refs/tags/v0.14.4 --format='%(taggerdate:iso8601)'` |
-| Annotated | Yes (`git tag -a v0.14.4`) |
-| Pushed | `git push origin v0.14.4` |
-| Post-tag verification | Recorded in the GitHub release notes for v0.14.4 (https://github.com/conroyriodss/nih-reporter-mcp/releases/tag/v0.14.4) and in a git note on the tagged commit (`git fetch origin refs/notes/commits:refs/notes/commits && git notes show v0.14.4`). A commit can't record verification of itself. Each check is labeled deployed-app-verified, running-process-verified, or code-level. |
+| Submission tag | `v0.14.5`: resolve via `git rev-parse v0.14.5^{commit}`. SHA as of writing: a commit can't contain its own SHA, so this row records the tagged commit's **parent**, `26d3347613661d5e32b0f78b9c10f818ef4710a8` (the v0.14.4 commit; check with `git rev-parse v0.14.5^{commit}^`). |
+| Tag date | `git for-each-ref refs/tags/v0.14.5 --format='%(taggerdate:iso8601)'` |
+| Annotated | Yes (`git tag -a v0.14.5`) |
+| Pushed | `git push origin v0.14.5` |
+| Post-tag verification | Recorded in the GitHub release notes for v0.14.5 (https://github.com/conroyriodss/nih-reporter-mcp/releases/tag/v0.14.5) and in a git note on the tagged commit (`git fetch origin refs/notes/commits:refs/notes/commits && git notes show v0.14.5`). A commit can't record verification of itself. Each check is labeled deployed-app-verified, running-process-verified, or code-level. |
 | Repository | `https://github.com/conroyriodss/nih-reporter-mcp` (public) |
-| Prior tags | `v0.14.3` (superseded: no `/version` regression test; CI 154), `v0.14.2` (superseded: `/version` hardcoded `resources: 2`; duplicate `docs/run_manifest.md`), `v0.14.1` (superseded: robustness counts double-counted Part C), `v0.14.0` (superseded: docs predate reconciliation), `v0.13.0` (`6ad354deac8710f4f4a92b2d53701baf1f796804`): A1–A5 runs below were executed at this tag. See §10. |
+| Prior tags | `v0.14.4` (superseded: RUN_MANIFEST hash row for `independent_total.md` was stale; the evaluation CI table summed to 154 without the `/version` contract row), `v0.14.3` (superseded: no `/version` regression test; CI 154), `v0.14.2` (superseded: `/version` hardcoded `resources: 2`; duplicate `docs/run_manifest.md`), `v0.14.1` (superseded: robustness counts double-counted Part C), `v0.14.0` (superseded: docs predate reconciliation), `v0.13.0` (`6ad354deac8710f4f4a92b2d53701baf1f796804`): A1–A5 runs below were executed at this tag. See §10. |
 
 ## 2. Dependency Lock
 
@@ -109,7 +109,7 @@ PYTHONDONTWRITEBYTECODE=1 \
 
 * **Event-loop (55 = 17 FAIL + 38 ERROR):** `asyncio.get_event_loop()` deprecated in Python 3.12; tests call `run_until_complete()` without an existing loop. Passes in notebook cells (which have `nest_asyncio`). Fix: replace with `asyncio.run()`.
   * `test_counting.py` — 7 (TestPaginationClamping ×6, TestServerSideApplicationTypeFaceting ×1)
-  * `test_robustness.py` — 48 (PartA ×4, PartB ×27, PartC ×10, PartD ×5, PartE ×1)
+  * `test_robustness.py` — 48 (PartA ×4, PartB ×28, PartC ×10, PartD ×5, PartE ×1)
 * **Live-server integration (7 FAIL):** `test_correctness.py` connects via `fastmcp.Client` to a running server. No server in offline pytest → `Client failed to connect`.
 * **XFailed (2, intentional):** `test_ic_attribution` (IC-level attribution not yet implemented), `test_publication_year_join` (pub-to-funding-year join not supported).
 
@@ -184,10 +184,12 @@ httpx.post("https://api.reporter.nih.gov/v2/projects/search", json={
 | `raw_records.json` (7,172 B) | `ff178702ec35720c88b7f85900db60d6fc9380e000fbf9aaacda20617a7f789d` |
 | `raw_records.sha256` (83 B) | `64be37e0a07dccd1ee0e11a5bad6352f862b6be6bfc5f79acc8e8b9ad1443504` |
 | `decision_ledger.csv` (4,080 B) | `387fa44942d0233ad55963a30646e96b3b40059a2d1645f04cde12adb75a2e0b` |
-| `independent_total.md` (3,971 B) | `87db643fd5b471a0c2414e2bbb78e5f741e0fde226e97f9ae6cf18933a9986e3` |
+| `independent_total.md` (3,926 B) | `edca15031e947a8dc8a0e7d111e506de7a3901392d5c2d9eaa25a741e44657dc` |
 | `query.json` (626 B) | `ee91fc616461496a58f5e79b2e3b5d3460f96641468e1febddc93a1cff632f9e` |
 | `tool_output.json` (4,137 B) | `d413ad60509601736bb81c0a7e305e219475e5ac358752a578b4ca6d2649c91b` |
 | `README.md` (2,823 B) | `1c4a7cb506a621d5f56a9b1aca6cc1bc144f5a8a0aeb465906ce888439be37a9` |
+
+> **v0.14.5 correction:** the `independent_total.md` row previously recorded 3,971 B / `87db643f…`, the file's bytes before v0.14.2 removed a commit SHA from it. The row now records the shipped bytes. The other six rows are unchanged and match the tag.
 
 ### A5 — Live Figures Re-Run
 
@@ -259,10 +261,10 @@ fully explained (event-loop harness issue + offline-only integration tests).
 
 ---
 
-## 10. Tag History: v0.13.0 → v0.14.0 → v0.14.1 → v0.14.2 → v0.14.3 → v0.14.4 (2026-10-21)
+## 10. Tag History: v0.13.0 → v0.14.0 → v0.14.1 → v0.14.2 → v0.14.3 → v0.14.4 → v0.14.5 (2026-10-21)
 
 Runs A1–A5 were executed at v0.13.0 (`6ad354d`). Four commits were added
-before v0.14.0, then documentation/CI/test-harness-only commits for v0.14.1, v0.14.2, v0.14.3 and v0.14.4 (v0.14.3 also changes `routes.py` `/version` to compute its counts; v0.14.4 adds the `/version` contract test). This section documents what
+before v0.14.0, then documentation/CI/test-harness-only commits for v0.14.1, v0.14.2, v0.14.3, v0.14.4 and v0.14.5 (v0.14.3 also changes `routes.py` `/version` to compute its counts; v0.14.4 adds the `/version` contract test; v0.14.5 corrects documentation, the manifest hash row and the notebook, and bumps the version string). This section documents what
 changed and why the A1–A5 results remain valid.
 
 ### Commits between tags
@@ -278,6 +280,7 @@ changed and why the A1–A5 results remain valid.
 | `c992bd9` | docs: propagate v0.14.1 SHA (tag v0.14.1) |
 | `ed75e07` | release: v0.14.2 (tag v0.14.2) |
 | `b1145e1` | release: v0.14.3 (tag v0.14.3) |
+| `26d3347` | release: v0.14.4 (tag v0.14.4) |
 
 ### What changed
 
@@ -290,7 +293,7 @@ changed and why the A1–A5 results remain valid.
 | Version stamps | 0.13.0 | 0.14.0 | No functional change. |
 | `requirements.txt` | SHA-256 `6f09f52a...` | SHA-256 `6f09f52a...` (identical) | No dependency change. |
 
-### Current headline counts (v0.14.4)
+### Current headline counts (v0.14.5)
 
 203 tests collected: 155 pass + 2 xfail offline (CI: 5 unit files + robustness Part C);
 8 live-integration pass against NIH API; 38 server-robustness pass (32 stable, 6 pass

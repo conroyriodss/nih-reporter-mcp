@@ -101,21 +101,22 @@ Upgraded `check_investigator_overlap` from a single 100-record API call to full 
 CRISPR gene editing FY2023:
   1,739 matching projects, 1,506 aggregated (226 subprojects excluded)
   $836,981,580 (whole_award, complete=True)
-  7 records with missing amounts, 0 deduped
-  is_exact: False (7 missing amounts)
+  records_with_missing_amount: 7, deduped_count: 0
+  note: flags the 7 missing amounts and the orphan subprojects
+        (no "Total is exact" statement)
 ```
 
 **Q: "What are the five biggest Alzheimer's biomarker grants in Massachusetts in FY2024?"**
 
-| Rank | Project | Institution | Award |
+| Rank | Award record | Institution | Award |
 |---|---|---|---|
 | 1 | U19AG068753 | Boston University | $5,130,473 |
 | 2 | U19AG073172 | Boston University | $4,696,857 |
-| 3 | U19AG073172 (core) | Boston University | $2,767,350 |
+| 3 | U19AG073172, core component record | Boston University | $2,767,350 |
 | 4 | RF1AG083764 | Brigham and Women's | $2,451,933 |
 | 5 | R01AG082046 | Boston University | $2,320,702 |
 
-*85 matching projects; single round-trip tool call*
+*The five largest matching **award records** (85 matching projects; single round-trip tool call). These are records, not five distinct awards: rank 3 is a component record of the rank-2 U19AG073172 award, so the five rows cover four distinct awards.*
 
 ### Test Results Summary
 
@@ -132,7 +133,7 @@ CRISPR gene editing FY2023:
 
 ### Known Limitations (honestly documented)
 
-- Topic-search orphan subprojects: CRISPR-mentioning subprojects of non-CRISPR umbrella grants are excluded and flagged (`is_exact=False`, 166 orphans for CRISPR FY2023)
+- Topic-search orphan subprojects: CRISPR-mentioning subprojects of non-CRISPR umbrella grants are excluded and flagged in the returned `note` (166 orphans for CRISPR FY2023). Exactness is reported through `complete`, `records_with_missing_amount` and `note`; `is_exact` is an internal aggregator property, not a returned field
 - 10,000-record API ceiling → flagged via `complete=False`
 - Substring org-name matching upstream → tool defaults to exact match
 - 38 of ~300 RCDC spending categories covered; others need numeric ID

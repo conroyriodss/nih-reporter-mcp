@@ -5,7 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.4] - 2026-10-21
+## [0.14.5] - 2026-10-21
+
+### Fixed
+- RUN_MANIFEST A4 row for `docs/demonstration_fixture/independent_total.md` records the shipped bytes (3,926 B). The old row (3,971 B) predated the v0.14.2 SHA-citation edit to that file.
+- `docs/evaluation.md` is the revised evaluation. Its CI table includes `tests/test_version_contract.py` and sums to 155 passed + 2 xfailed; the security count is 24 (was 21); the stale v0.14.0 change-log appendix is removed. The CRISPR sickle cell exclusion is described as an orphan (the keyword matched one P50HD096723 subproject, not the center), never as double-counting.
+- `docs/presentation/slides.md`: the Alzheimer's demo table is labeled as award records (rank 3 is a component record of the rank-2 award). `is_exact` is no longer shown as a returned field; the tools return `complete`, `records_with_missing_amount` and `note`.
+- RUN_MANIFEST: the v0.13.0 event-loop breakdown is Part B ×28 (sum 48, was 47).
+- EVAL_VERDICTS Claim 6 heading labels 75 as the originally claimed value.
+
+### Changed
+- `notebooks/notebook-merged.ipynb` is the revised evaluation notebook. It unwraps FastMCP union-return results only for tools marked `x-fastmcp-wrap-result`, verifies the tag by the parent recorded in RUN_MANIFEST §1 (no hardcoded SHA), and labels its live checks as notebook-defined, distinct from the 17-case standalone smoke suite. Outputs cleared.
+- Version 0.14.5. Server code is unchanged apart from the version string. CI remains 155 passed + 2 xfailed.
+
+## [0.14.4] - 2026-10-21 (superseded by 0.14.5: stale manifest hash row; evaluation CI table summed to 154)
 
 ### Added
 - `tests/test_version_contract.py` (runs in CI): serves the app in-process and asserts `/version` counts equal the live `list_*` lengths, with no literal counts. CI is now 155 pass + 2 xfail (203 collected).

@@ -3,8 +3,8 @@
 **Project:** NIH RePORTER MCP Server  
 **Team:** Rich Conroy, NIH/OD/ODSS  
 **Hackathon:** GSA MCP Server and AI Agent Government Hackathon  
-**Submission freeze:** `v0.14.7`  
-**Evaluation revision:** October 21, 2026  
+**Submission freeze:** `v0.14.8`  
+**Evaluation revision:** October 22, 2026  
 **Repository:** https://github.com/conroyriodss/nih-reporter-mcp  
 **Run history:** [RUN_MANIFEST.md](demonstration_fixture/RUN_MANIFEST.md) and [EVAL_VERDICTS.md](demonstration_fixture/EVAL_VERDICTS.md)
 
@@ -12,9 +12,11 @@
 
 > **Demo access:** The public repository and frozen fixtures are the primary reproducible artifacts. The hosted Databricks “Ask” experience additionally requires workspace access and a functioning, authorized model endpoint; its current deployment status was not verified for this revision. Historical notebook outputs demonstrate their recorded runs, not execution of subsequently edited cells.
 
+> **Required sections:** Testing methodology is section 3 (with the reproduction procedure in section 6). Performance metrics are section 3.5. Security considerations are section 9. Lessons learned and recommendations are section 10.
+
 ## 1. Evidence standard and review scope
 
-This revision reconciles the supplied documentation and fixture files with directly inspected source files at `v0.14.7`. It retains historical results with their actual run identities instead of relabeling earlier executions as runs at the submission tag.
+This revision reconciles the supplied documentation and fixture files with directly inspected source files at `v0.14.8`. It retains historical results with their actual run identities instead of relabeling earlier executions as runs at the submission tag.
 
 ### 1.1 Four evidence tiers
 
@@ -30,7 +32,7 @@ Execution status is separate: **PASS**, **FAIL**, **NOT RUN**, or **BLOCKED**. �
 ### 1.2 What was checked for this revision
 
 - **Verified — artifact reconciliation:** SHA-256 checks of both raw snapshots; independent decimal sums; row-by-row ledger decisions and amounts; the primary fixture's stored total, counts, query criteria, and complete contributing-ID list.
-- **Verified — schema validation:** the supplied `tool_output.json`'s `summary` and `provenance` validate against the `v0.14.7` `FundingSummary` and `Provenance` classes, loaded in isolation with Pydantic 2.14.0. This is not a server or transport execution.
+- **Verified — schema validation:** the supplied `tool_output.json`'s `summary` and `provenance` validate against the `v0.14.8` `FundingSummary` and `Provenance` classes, loaded in isolation with Pydantic 2.14.0. This is not a server or transport execution.
 - **Verified — source inspection:** aggregation, evidence export, Pydantic models, input/cache handling, server startup and diagnostic routes, the CI workflow, and the cited test implementations.
 - **NOT RUN for this revision:** the project's CI suite, live MCP/API suites, Databricks model evaluations, deployed app, and GitHub Actions execution. Their historical pass figures remain repository-reported.
 
@@ -41,7 +43,7 @@ The verified fixture checks apply to the **supplied artifact bytes**. They do no
 | Claim | Result retained | Evidence and scope |
 |---|---|---|
 | Submission inventory | **14 tools, 9 prompts, 3 resources** | Repository-reported freeze inventory. Source inspection confirms that `/version` reads the live registries; the runtime inventory recipe below verifies the actual counts. |
-| Model-free CI | **155 passed + 2 xfailed** | Repository-reported at `v0.14.7`. The exact CI selectors and two Python versions are verified in the workflow. Not independently rerun here. |
+| Model-free CI | **155 passed + 2 xfailed** | Repository-reported at `v0.14.8`. The exact CI selectors and two Python versions are verified in the workflow. Not independently rerun here. |
 | Standalone smoke | **17/17 passed** | Repository-reported at `v0.14.0`. The 17 cases are t1–t8 and t10–t18; t9 is excluded. |
 | Live correctness | **8 tests; reported 8/8 passed** | Eight test functions verified in source; historical passing execution is repository-reported. They do not provide eight independent dollar-level reconciliations. |
 | Frozen primary total | **$19,790,134; 38 raw / 37 contributing / 1 excluded subproject** | Verified by offline reconciliation of the supplied snapshot, ledger, and stored output. |
@@ -74,7 +76,7 @@ Source: [query.json](demonstration_fixture/query.json). The raw snapshot records
 
 ### 2.2 Whole-award algorithm
 
-Verified by inspection of [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/src/nih_reporter_mcp/utils.py), `aggregate_funding`:
+Verified by inspection of [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/src/nih_reporter_mcp/utils.py), `aggregate_funding`:
 
 1. Deduplicate non-null `appl_id` values in retrieval order. The first occurrence wins; later occurrences with conflicting amount, fiscal year, or subproject ID are flagged.
 2. For `whole_award`, exclude every remaining record whose `subproject_id` is **non-null**. This is not an activity-code-prefix rule.
@@ -110,7 +112,7 @@ The stored response correctly has `complete=true` and an orphan warning in `note
 
 The raw projection supports the funding reconciliation. It does **not** contain organization or administering-IC fields, so it cannot independently substantiate the stored `distinct_organizations=29` or `distinct_administering_ics=10`. Inspection of `evidence_bundle.py` also shows those two counts are calculated over retrieved records, including records excluded from the dollar sum.
 
-The manifest reports a live comparison on October 19 at `v0.13.0`. That is historical, repository-reported evidence; the October 15 snapshot is not relabeled as a live retrieval at `v0.14.7`.
+The manifest reports a live comparison on October 19 at `v0.13.0`. That is historical, repository-reported evidence; the October 15 snapshot is not relabeled as a live retrieval at `v0.14.8`.
 
 ### 2.4 Separate double-counting proof
 
@@ -127,7 +129,7 @@ There are no orphan children in this fixture. It directly demonstrates the paren
 
 ### 2.5 What “inspectable” means at this release
 
-[Evidence export](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/src/nih_reporter_mcp/tools/evidence_bundle.py) returns an `EvidenceBundle` with `label`, `summary`, `provenance`, and `reproduction_note`. The model definitions are in [models.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/src/nih_reporter_mcp/models.py).
+[Evidence export](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/src/nih_reporter_mcp/tools/evidence_bundle.py) returns an `EvidenceBundle` with `label`, `summary`, `provenance`, and `reproduction_note`. The model definitions are in [models.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/src/nih_reporter_mcp/models.py).
 
 **source_record_ids lists up to 500 of N contributing IDs (capped for payload size); records_aggregated gives the true count.**
 
@@ -151,13 +153,23 @@ Use this boundary with any consequential funding answer:
 
 RCDC-filtered results and free-text results define different cohorts. An aggregation over RePORTER's RCDC-tagged projects is not automatically identical to NIH's separately published official RCDC spending total. Multi-category totals also cannot simply be added without checking overlap.
 
-## 3. Test evidence and what the tests actually establish
+## 3. Testing methodology: test evidence and what the tests actually establish
+
+Testing is layered. Each claim is checked by the least expensive method that can establish it, and each layer reports its own result rather than feeding a combined score:
+
+- **Offline arithmetic reconciliation** (sections 2.3, 2.4 and 6.3): frozen raw records, a SHA-256 check, an independent Decimal sum and a row-by-row decision ledger. No network access or running server is needed.
+- **Model-free CI** (section 3.1): the selected pytest suites on Python 3.11 and 3.12, including mocked upstream failures. No live API or model endpoint is called.
+- **Live checks** (sections 3.2 and 3.3): the standalone smoke suite and eight correctness tests against the public upstream APIs. Their results depend on upstream data at run time.
+- **Agent evaluation** (sections 3.4 and 3.5): model endpoints choose tools and arguments. These runs are gated separately and never counted in CI totals.
+- **Release identity** (section 6.1 and the notebook's identity cell): the evaluated commit must be the one the tag resolves to, and its parent must match RUN_MANIFEST section 1.
+
+Each result carries an evidence tier from section 1.1 and a separate execution status. A test that is collected, imported, or run without an exception is not counted as verifying its substantive claim.
 
 ### 3.1 Model-free CI
 
-**Repository-reported result at `v0.14.7`: 155 passed + 2 xfailed.**
+**Repository-reported result at `v0.14.8`: 155 passed + 2 xfailed.**
 
-The [CI workflow](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/.github/workflows/ci.yml) selects the following suites on **Python 3.11 and 3.12**:
+The [CI workflow](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/.github/workflows/ci.yml) selects the following suites on **Python 3.11 and 3.12**:
 
 | Selector | Reported result | Scope |
 |---|---:|---|
@@ -171,7 +183,7 @@ The [CI workflow](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/
 
 The version-contract test is necessary to reconcile the total: omitting it yields 154 passes. It checks registry equality, not a hardcoded release inventory; use the release-inventory check in section 6 for 14/9/3.
 
-The two expected failures in [test_counting.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/tests/test_counting.py) identify **IC-level attribution not yet implemented** and **publication-to-funding-year joining not supported**. They are not both established upstream-service defects.
+The two expected failures in [test_counting.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/tests/test_counting.py) identify **IC-level attribution not yet implemented** and **publication-to-funding-year joining not supported**. They are not both established upstream-service defects.
 
 **Test count is not coverage quality.** In that same file, `TestExcludeSubprojectsFaceting.test_r_series_not_affected` and `test_p_series_significantly_affected` contain `pass` without assertions. Other checks assert locally written constants or reimplement a calculation instead of invoking production behavior, including parts of the year-clamp and P41 examples. Their passing status is not independent verification of the claimed API behavior. Strengthening these checks is planned; this document does not subtract them from the actual reported pytest total.
 
@@ -179,7 +191,7 @@ A blanket `pytest tests/` invocation is **not** the offline CI command: it also 
 
 ### 3.2 Standalone live smoke
 
-**Repository-reported: 17/17 at `v0.14.0`.** Source: [smoke_tests.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/eval/smoke_tests.py) and the run history.
+**Repository-reported: 17/17 at `v0.14.0`.** Source: [smoke_tests.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/eval/smoke_tests.py) and the run history.
 
 The standalone suite contains **t1–t8 and t10–t18**. The former t9 efficiency metric is excluded, not a missing eighteenth pass.
 
@@ -196,7 +208,7 @@ The standalone suite contains **t1–t8 and t10–t18**. The former t9 efficienc
 
 ### 3.3 Eight live-correctness tests
 
-Source: [test_correctness.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/tests/test_correctness.py). Use **pytest on the file**: its standalone `main()` runner invokes only six tests.
+Source: [test_correctness.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/tests/test_correctness.py). Use **pytest on the file**: its standalone `main()` runner invokes only six tests.
 
 | Test purpose | Actual method and limit |
 |---|---|
@@ -228,9 +240,9 @@ The displayed question matrix implies **7/8 unanimously correct**, while the sup
 
 The reported **24/24 argument-validity** result is distinct from correct tool selection and correct final answers. State the validator used, semantic constraints checked, and whether calls were actually executed when publishing its traces. The reported **3/3 stable** result means three questions repeated five times on GPT-5-5; it does not guarantee determinism on other prompts, settings, or endpoint revisions.
 
-The eight-question set predates coverage of `group_by`, application-type filtering, spending-category routing, and `clinical_trials_lookup`. It does not validate the complete v0.14.7 tool surface, end-to-end scientific interpretation, or reliable abstention.
+The eight-question set predates coverage of `group_by`, application-type filtering, spending-category routing, and `clinical_trials_lookup`. It does not validate the complete v0.14.8 tool surface, end-to-end scientific interpretation, or reliable abstention.
 
-### 3.5 Behavioral cases and performance
+### 3.5 Performance metrics and behavioral cases
 
 Historical examples support useful workflows but are not a controlled benchmark:
 
@@ -238,6 +250,18 @@ Historical examples support useful workflows but are not a controlled benchmark:
 - **BC-3/BC-4/BC-5:** duration abstention, P41 record-grain handling, and HuBMAP keyword-scope handling were rerun using Claude Sonnet 4-5 at v0.14.0. These are separate runs, not the GPT cases or the three-model selection experiment.
 - The old mean-tool-call efficiency metric was withdrawn because of harness-order, zero-call scoring, and truncation problems. It is not included in the pass totals.
 - No controlled p50/p95 latency, concurrency, rate-limit, or cold-versus-warm benchmark is verified here. Historical timing observations are not retained as a “>100×” performance claim.
+
+**Measured figures available at this release.** Each row carries its evidence tier. None of them is a controlled benchmark.
+
+| Metric | Value | Tier and method |
+|---|---|---|
+| Model-free CI | 155 passed + 2 xfailed of 203 collected, on Python 3.11 and 3.12 | Repository-reported: the selected suites in section 3.1. |
+| First-tool selection | 22/24 = 91.7% across three models | Repository-reported at `v0.13.0` (claim register, section 1.3). It scores the first tool chosen, not the final answer. |
+| Tool calls per answer in the deployed Ask demo | Largest-award question: 1 call. FY2020 R01 competing-renewal count: 1 call produced the count, and the agent then made an unrequested second call for a dollar figure, so that answer took 2 calls. | Team-reported: Ask-page tool traces on the deployed app, October 22, 2026. One observation per question. |
+| Per-call latency shown in those traces | 0.03 s for each `search_funded_projects` call; 2.6 s for the `summarize_funding_by_topic` call | Team-reported, same traces. Cache state was not recorded, so these values do not distinguish cache hits from upstream requests. |
+| Response cache | 900-second TTL, in-process, keyed by URL and canonical request payload | Verified: source inspection of `utils.py` (section 5.1). |
+| Upstream response-size guard | 10 MiB for RePORTER; 5 MiB for ClinicalTrials.gov and MedlinePlus | Verified: source inspection. Oversized responses are rejected before JSON parsing. |
+| Courtesy rate limits | Minimum interval between requests: 1.0 s RePORTER, 0.34 s E-utilities, 0.5 s MedlinePlus and ClinicalTrials.gov | Verified: source inspection. These intervals cap throughput by design; throughput itself was not measured. |
 
 **Planned:** publish matched agent traces and a benchmark protocol with fixed questions, scoring rules, endpoint identifiers, decoding settings, cache state, request counts, and failures.
 
@@ -262,7 +286,7 @@ For CRISPR FY2023 the manifest reports 1,739 matches, 226 excluded subprojects, 
 
 ### 5.1 Implementation controls
 
-Verified in [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/src/nih_reporter_mcp/utils.py):
+Verified in [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/src/nih_reporter_mcp/utils.py):
 
 - Outbound host allowlist: `api.reporter.nih.gov`, `eutils.ncbi.nlm.nih.gov`, `wsearch.nlm.nih.gov`, and `clinicaltrials.gov`.
 - Topic/string length limit: **500 characters** in the relevant validator; fiscal-year array limit: **20**.
@@ -308,22 +332,22 @@ The following recipes target a new local **Bash + Python 3.12** environment. The
 
 ### 6.1 Pin source and capture the resolved environment
 
-`requirements.txt` contains **minimum version ranges**, not a dependency lock. [pyproject.toml](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/pyproject.toml) also reports distribution version `0.1.0`, while the source module version is `0.14.7`. Use the resolved Git commit and source module version for identity; do not treat package metadata alone as proof of the release.
+`requirements.txt` contains **minimum version ranges**, not a dependency lock. [pyproject.toml](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/pyproject.toml) also reports distribution version `0.1.0`, while the source module version is `0.14.8`. Use the resolved Git commit and source module version for identity; do not treat package metadata alone as proof of the release.
 
 This procedure pins source and records a fresh dependency resolution. It does **not** reproduce the historical dependency environment bit-for-bit.
 
 ```bash
 set -eu
 RUN_ROOT="$(mktemp -d)"
-git clone --branch v0.14.7 --single-branch \
+git clone --branch v0.14.8 --single-branch \
   https://github.com/conroyriodss/nih-reporter-mcp.git "$RUN_ROOT/repo"
 cd "$RUN_ROOT/repo"
-git checkout --detach v0.14.7
+git checkout --detach v0.14.8
 
 export EVIDENCE="$RUN_ROOT/evidence"
 mkdir -p "$EVIDENCE"
 git rev-parse HEAD > "$EVIDENCE/source-commit.txt"
-git rev-parse 'v0.14.7^{commit}' > "$EVIDENCE/tag-commit.txt"
+git rev-parse 'v0.14.8^{commit}' > "$EVIDENCE/tag-commit.txt"
 diff "$EVIDENCE/source-commit.txt" "$EVIDENCE/tag-commit.txt"
 git status --porcelain > "$EVIDENCE/working-tree-before.txt"
 test ! -s "$EVIDENCE/working-tree-before.txt"
@@ -525,7 +549,7 @@ async def main():
         resources = await client.list_resources()
     actual = {"tools": len(tools), "prompts": len(prompts), "resources": len(resources)}
     assert actual == {"tools": 14, "prompts": 9, "resources": 3}, actual
-    assert version["version"] == "0.14.7", version
+    assert version["version"] == "0.14.8", version
     assert all(version[k] == value for k, value in actual.items()), version
     print(json.dumps({"version": version, "actual_counts": actual,
                       "tool_names": sorted(t.name for t in tools)}, indent=2))
@@ -591,8 +615,8 @@ Updating this file does not repair the companion files listed below.
 | Resolved in v0.14.5 | Manifest artifact hash mismatch | At v0.14.5, RUN_MANIFEST A4 recorded the then-shipped `demonstration_fixture/independent_total.md` (3,926 bytes, SHA-256 `edca15031e947a8dc8a0e7d111e506de7a3901392d5c2d9eaa25a741e44657dc`). The earlier row (3,971 bytes) predated the v0.14.2 edit that removed a commit SHA from that file. At v0.14.7 the file's verdict line was relabelled from "AT HEAD" to "at v0.13.0" (3,942 bytes); RUN_MANIFEST A4 records the current hash. |
 | High | Dependency-lock claim | The inspected requirements file contains ranges. Correct the manifest's “pip-freeze / lock” description or publish a real pinned environment artifact. |
 | High | Provenance freshness and replay | Export a true upstream retrieval timestamp/cache indicator, request ordering, and full record evidence where complete historical replay is claimed. Until then, retain section 2.5's limitations. |
-| High | Agent-facing certainty exceeds this document's boundary | The server instructions in [app.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/src/nih_reporter_mcp/app.py) advertise an “exact total-investment figure” and “curated, congressionally-mandated totals.” Qualify those instructions with query scope, completeness, and the distinction between RePORTER category-filtered sums and published RCDC totals. Updating this evaluation does not change what the agent receives. |
-| High | Run identity and accessible logs | Historical A1–A5 and STEP 1–3 runs belong to v0.13.0, not v0.14.7. Replace ambiguous “at HEAD” statements with run identities; publish JUnit/log/trace artifacts currently referenced only by ephemeral or private paths. |
+| High | Agent-facing certainty exceeds this document's boundary | The server instructions in [app.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/src/nih_reporter_mcp/app.py) advertise an “exact total-investment figure” and “curated, congressionally-mandated totals.” Qualify those instructions with query scope, completeness, and the distinction between RePORTER category-filtered sums and published RCDC totals. Updating this evaluation does not change what the agent receives. |
+| High | Run identity and accessible logs | Historical A1–A5 and STEP 1–3 runs belong to v0.13.0, not v0.14.8. Replace ambiguous “at HEAD” statements with run identities; publish JUnit/log/trace artifacts currently referenced only by ephemeral or private paths. |
 | High | Model-result contradiction | Reconcile the unanimity figure with the per-question matrix and raw traces. Do not mix the earlier GPT/Llama Q5 misses with the later GPT/Claude misses. |
 | Medium | Method-order drift | `ground_truth_methodology.md` and parts of the manifest describe subproject exclusion before deduplication. The production loop and stored reproduction note deduplicate first. Align procedural documentation. |
 | Medium | Weak or vacuous assertions | Replace no-op/constant-only “regression” checks with calls to production behavior; make absent live preconditions explicit; test capped provenance, missing IDs, cached timestamps, and full payload replay. |
@@ -620,3 +644,63 @@ A short demonstration should show the evidence before the headline test counts:
 | Presentation | Cohort → evidence → independent sum → limits; visible deployment and endpoint dependencies | A reproducible artifact walkthrough is demonstrated separately from an available hosted agent experience. |
 
 The strongest supported pitch is: **“An NIH funding answer you can inspect, reconcile, and interpret within explicit limits.”**
+
+## 9. Security considerations
+
+This section gathers the security controls from section 5.1 and [SECURITY.md](../SECURITY.md) in one place. Each item is either a verified control or a stated boundary; no new property is claimed here.
+
+**Data and access model.**
+
+- The server reads only public data. All four upstream services (NIH RePORTER, NCBI E-utilities, MedlinePlus Web Search and ClinicalTrials.gov) are public, unauthenticated, read-only APIs. The MCP server needs no upstream API key and stores no credentials.
+- Source inspection found no storage of user questions or tool results in the MCP server. Investigator names in RePORTER are public federal award disclosures; no other personal data is processed. Platform logs of the hosted app are outside this review.
+- The hosted Databricks app is available only to signed-in workspace users. Its Ask feature calls a model endpoint using the app's service principal, which adds workspace and model-endpoint permissions to the trust boundary (section 5.3).
+
+**Outbound requests** (Verified: source inspection of `utils.py`, `utils_ctgov.py`, `tools/publication_details.py` and `tools/explain_health_topic.py`).
+
+- Every client checks the target host against its own allowlist before any network call: `api.reporter.nih.gov`, `eutils.ncbi.nlm.nih.gov`, `wsearch.nlm.nih.gov` or `clinicaltrials.gov`. Base URLs are constants; user input never selects a host.
+- Every client sets `follow_redirects=False` and `trust_env=False`, so neither a redirect nor an environment-variable proxy can send a request elsewhere.
+- Each client has a timeout (30 s RePORTER, 20 s ClinicalTrials.gov, 15 s E-utilities and MedlinePlus), a response-size cap enforced before parsing, and a courtesy rate limiter (section 3.5).
+
+**Input validation** (Verified: source inspection). Free-text parameters are capped at 500 characters, and list parameters such as `fiscal_years`, `activity_codes` and agency lists at 20 items. State codes must be two letters, spending categories resolve through a curated lookup, and `funding_basis` accepts only `whole_award` or `all_records`. Tool arguments are typed and checked against each tool's input schema before the tool runs. Rejections return an explicit error message.
+
+**Tests** (Repository-reported, section 3.1). `tests/test_security.py` contains 24 tests covering the four host allowlists (allowed host, rejected host and missing host), the allowlist constants, and the string- and list-length guards. Smoke cases t5–t6 exercise invalid input and upstream rejection; t6 depends on upstream behavior (section 3.2).
+
+**Boundaries.**
+
+- These controls are verified by inspection and unit tests. They are not a penetration test, a dependency vulnerability audit, or a review of the Databricks platform.
+- This revision does not certify the absence of secrets across repository history.
+- The requirements file uses version ranges, so dependency versions are resolved at install time (section 7, dependency-lock claim).
+- Unhandled web-app errors return JSON containing the exception message, truncated to 500 characters, rather than a stack trace.
+- The web app's `/debug` diagnostic route returns configuration status to signed-in users, including the length and first eight characters of the app's current access token. Those characters are the start of the token's public header, not its secret portion, but the route still exposes more than a diagnostic needs (section 10.2).
+
+## 10. Lessons learned and recommendations
+
+### 10.1 Lessons learned
+
+**Funding arithmetic.**
+
+- The counting rule belongs in the answer. In the U19AG068753 family (section 2.4), summing every record gives exactly twice the whole-award total, and without a stated basis both numbers look plausible.
+- Excluding components is a different operation from removing double counting. An orphan subproject, where the keyword matched a child but not its parent, is real investment that whole_award drops; section 2.3 shows one such record. Answers should name orphan exclusions instead of presenting the total as complete.
+- Complete retrieval is not complete topic funding (section 2.6). A keyword cohort can be fully retrieved and still miss related records or include unrelated ones.
+
+**Claims against evidence.**
+
+- A published figure needs its run identity beside it. Earlier documents presented historical runs as current; the evidence tiers in section 1.1 and the dated run records in RUN_MANIFEST replaced that practice.
+- Test counts are not test strength. Some passing tests assert constants or contain no assertion (section 3.1), so a count shows what ran, not what was verified.
+- Agent behavior needs traces, not summaries. In one deployed run the agent answered the requested count with one call and then made an unrequested second call (section 3.5); only the trace showed it.
+
+**Release integrity.**
+
+- A parser that reads prose breaks when the prose is edited. At `v0.14.6`, the notebook's identity check matched a sentence in RUN_MANIFEST and failed when a straight apostrophe became a typographic one. The replacement reads only the table row and SHA cell it needs, and stops with an error on any ambiguity.
+- A release check must run the shipped code on its shipped path. The pre-tag sweep now runs the notebook's own parser against the committed manifest on the default path, and repeats the sweep from a fresh clone of the pushed tag.
+- Internal consistency is not conformance to requirements. The `v0.14.5` rewrite kept every document consistent with the others while dropping three of this document's required section headings, and the required slide labels were never present. The sweep now also checks a fixed external checklist taken from the deliverables specification.
+
+### 10.2 Recommendations
+
+Section 7 is the prioritized list of repairs. These recommendations group it by goal instead of repeating it.
+
+1. **Align agent-facing text with this document's boundary.** Qualify the certainty in the server instructions (section 7, High) before wider use.
+2. **Publish reproducible evidence.** Release a locked environment, JUnit and trace artifacts, and the benchmark protocol planned in section 3.5, so that repository-reported results can become verified ones.
+3. **Strengthen the tests that are counted.** Replace no-op and constant-only checks with calls to production behavior (section 7, Medium).
+4. **Tighten the hosted app.** Remove token details from `/debug` or restrict the route, and publish a dated Ask status beside the control (section 5.3).
+5. **Keep companion documents current.** Align SECURITY.md with this section: it counts three upstream APIs where four are contacted, and describes dependencies as pinned where the requirements file uses ranges. Reconcile the architecture and roadmap counts as well (section 7, Medium).

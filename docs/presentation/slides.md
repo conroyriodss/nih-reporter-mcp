@@ -1,5 +1,5 @@
 <!-- Proposed seven-slide copy, including the cover. Speaker notes and source
-references are not slide text. Submission identity is v0.14.7. Historical runs
+references are not slide text. Submission identity is v0.14.8. Historical runs
 retain their actual versions and dates. This rewrite does not report new CI,
 live API, or model execution results. -->
 
@@ -15,7 +15,7 @@ Rich Conroy, NIH/OD/ODSS
 
 GSA MCP Server and AI Agent Government Hackathon
 
-Submission freeze: **v0.14.7**
+Submission freeze: **v0.14.8**
 
 <!-- Speaker notes
 Opening: “An NIH funding answer should include enough evidence for someone else
@@ -30,6 +30,8 @@ correct. The claim is inspectability and demonstrated behavior within scope.
 <!-- Slide 2: Problem statement -->
 
 ## A plausible funding answer can still mislead
+
+*Problem statement*
 
 - **Counting risk:** parent and component records can count the same funding twice.
 - **Scope risk:** keyword matches can include projects outside an intended program or official spending category.
@@ -56,6 +58,8 @@ docs/demonstration_fixture_double_counting/README.md.
 <!-- Slide 3: Solution overview -->
 
 ## Tools organized around analytical tasks
+
+*Solution overview*
 
 | User goal | Workflow |
 |---|---|
@@ -88,6 +92,8 @@ docs/architecture.md; docs/roadmap.md.
 <!-- Slide 4: Demonstration of functionality -->
 
 ## One funding answer, reconciled record by record
+
+*Demonstration of functionality*
 
 **$19,790,134**
 
@@ -127,7 +133,7 @@ supplies the parent-plus-children proof.
 Raw acquisition: 2026-10-15T20:31:43.117032+00:00. Stored tool response:
 2026-10-18T19:07:59.647418+00:00. The repository reports a subsequent comparison
 at v0.13.0 on October 19. Preserve those dates instead of relabeling them as a
-new v0.14.7 execution.
+new v0.14.8 execution.
 
 All 37 contributing IDs are present in this small fixture. More generally,
 source_record_ids lists up to 500 of N contributing IDs (capped for payload
@@ -144,6 +150,8 @@ raw_records.sha256, decision_ledger.csv, independent_total.md, tool_output.json.
 
 ## Counting rules change the answer
 
+*Technical approach & key decisions*
+
 **U19AG068753, FY2024: one parent plus seven components**
 
 | Calculation | Frozen result |
@@ -156,6 +164,8 @@ Application-ID deduplication and component exclusion address different errors. M
 Share of the FY2020 R01 funded cohort recorded as competitive renewals: **1,089 / 29,560 = 3.68%**, using the documented facet counting basis.
 
 Facet counts do not supply the underlying funding records needed to reconcile dollar totals.
+
+**Architecture:** FastMCP server · one tool per module (14) · typed, Pydantic-validated inputs · four allowlisted upstream hosts · deployed as a Databricks App
 
 <!-- Speaker notes
 The frozen family contains one parent with award_amount=$5,130,473 and seven
@@ -282,9 +292,9 @@ If unavailable at presentation time, display a prominent status message and
 use the public frozen artifacts. Do not promise that an upstream-dependent
 Evidence Bundle request “always works.”
 
-Repository: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.7
-Manifest: https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/docs/demonstration_fixture/RUN_MANIFEST.md
-Fixtures: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.7/docs/demonstration_fixture
+Repository: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.8
+Manifest: https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/docs/demonstration_fixture/RUN_MANIFEST.md
+Fixtures: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.8/docs/demonstration_fixture
 
 Sources: docs/evaluation.md, sections 1 and 3.5;
 docs/demonstration_fixture/RUN_MANIFEST.md;

@@ -5,7 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.7] - 2026-10-22
+## [0.14.8] - 2026-10-22
+
+### Added
+- `docs/evaluation.md` now has the four sections the deliverables specification requires. Section 3 is titled "Testing methodology" and opens with a summary of the test layers. Section 3.5 is "Performance metrics and behavioral cases" and adds a measured-figures table with an evidence tier on every row; the statement that no p50/p95 benchmark exists is kept. New section 9, "Security considerations", gathers the section 5.1 controls and SECURITY.md content with their boundaries. New section 10, "Lessons learned and recommendations", groups the section 7 repairs by goal. No existing section was renumbered.
+- `docs/presentation/slides.md`: visible labels for the four required sections (slide 2 Problem statement, slide 3 Solution overview, slide 4 Demonstration of functionality, slide 5 Technical approach & key decisions) and an architecture line on slide 5.
+
+### Changed
+- Notebook, evaluation, manifest, slides and version stamps target v0.14.8. Server code is unchanged apart from the version string. CI remains 155 passed + 2 xfailed.
+
+## [0.14.7] - 2026-10-22 (superseded by 0.14.8: evaluation and slides lacked the sections required by the deliverables specification)
 
 ### Fixed
 - Notebook identity check: `parse_manifest_parent()` reads the RUN_MANIFEST §1 parent SHA from the single Submission tag row and its `**parent**` SHA cell, so punctuation in the surrounding prose no longer matters. At 0.14.6 the row's typographic apostrophes made the default identity path raise "parent row not found".

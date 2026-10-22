@@ -6,10 +6,12 @@ Federal research agencies — NIH, CDC, FDA, AHRQ, and ACF — collectively
 award tens of billions of dollars annually. The public data exists in NIH
 RePORTER, but turning raw project records into a defensible funding figure
 is surprisingly hard. Multi-project grants (U19, P01) list both a parent
-award and constituent subprojects, each carrying a dollar amount; naively
-summing all records double-counts the parent. For CRISPR gene editing
-research in FY 2023, this overstatement is 10.1% — $84.6 million of
-phantom spending. Null award amounts, page-boundary duplicates, and a
+award and constituent subprojects, each carrying a dollar amount; when both
+are retrieved, naively summing all records double-counts the parent. For
+CRISPR gene editing research in FY 2023, summing all records instead of whole
+awards gives a total 10.1% — $84.6 million) higher. That is an all_records vs
+whole_award basis difference, not all duplication: many excluded subprojects
+have no parent in the cohort. Null award amounts, page-boundary duplicates, and a
 10,000-record retrieval cap add further distortion. Worse, NIH's official
 RCDC spending categories and free-text search return dramatically different
 totals for the same topic (4.5× for "long COVID"), with no explanation

@@ -127,11 +127,11 @@ investigators. Agent should note this.
 | Subprojects excluded | 226 |
 | Missing amounts | 7 |
 | Orphan children | 166 |
-| is_exact | **False** |
+| Exact total claimed | **No**: the returned `note` flags orphans and missing amounts (`is_exact` is an internal aggregator property, not a returned field) |
 | Source record IDs | 500 (capped) |
 
-**Caveats:** is_exact=False due to 166 orphan subprojects and 7 missing
-amounts. Full provenance chain included: query criteria, source record IDs,
+**Caveats:** the returned `note` does not state the total is exact; it flags
+166 orphan subprojects and 7 missing amounts. Full provenance chain included: query criteria, source record IDs,
 reproduction note with algorithm steps, counting-unit disclaimer.
 
 ---
@@ -190,4 +190,4 @@ sources."
 | **Accurate** | 7/7 in-scope answers verified against live API; Q2 R01 count (3,178) uses structural filter; Q5 evidence_class correct |
 | **Well-formed** | All responses are Pydantic-validated structured output; provenance chains, counting units, boundary notes included |
 | **Graceful** | 3/3 out-of-scope questions get clean abstention with explanation, not flailing or fabrication |
-| **Honest** | Q7 reports is_exact=False; Q6 reports 0 active awards; Q1 surfaces both RCDC and free-text figures |
+| **Honest** | Q7’s returned `note` withholds the exact-total statement (166 orphans, 7 missing); Q6 reports 0 active awards; Q1 surfaces both RCDC and free-text figures |

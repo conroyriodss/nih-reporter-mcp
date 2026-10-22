@@ -99,7 +99,7 @@ Show the test results:
 - **17/17 smoke tests** against live data — pagination, retrieval cap
   flagging, input validation, injection handling, whole_award vs.
   all_records dedup, cache correctness
-- **5/5 correctness tests** — including `test_provenance_reproducibility`,
+- **8/8 correctness tests** — including `test_provenance_reproducibility`,
   which re-fetches the source_record_ids, independently applies the
   whole_award rules, and confirms the total reproduces exactly
 
@@ -117,11 +117,11 @@ aspirational.
 |---|---|---|
 | $836,981,580 (CRISPR FY2023 whole_award) | docs/findings.md Finding 11, smoke t1/t7 | Live API + tests |
 | 1,739 matching records (1,506 contributing) | smoke t1, t7 | Live API |
-| 10.1% overstatement | docs/findings.md Finding 11 | Computed from verified figures |
+| 10.1% all_records vs whole_award basis difference (not all duplication: 166 orphan subprojects) | docs/findings.md Finding 11 | Computed from verified figures |
 | $19,790,134 (fixture cohort) | docs/demonstration_fixture/tool_output.json | Frozen + 3-way match |
 | 38 records, 37 included, 1 excluded | docs/demonstration_fixture/decision_ledger.csv | Frozen |
 | $199,600,750 (RCDC Long COVID) | smoke t4 | Live API |
 | $891,742,057 (free-text long covid) | smoke t4 | Live API |
-| 38 passed + 2 xfailed | pytest tests/ -v | Latest run |
+| 155 passed + 2 xfailed | CI selection in .github/workflows/ci.yml | Release CI |
 | 17/17 smoke tests | eval/smoke_tests.py | Latest run |
-| 5/5 correctness tests | tests/test_correctness.py | Latest run |
+| 8/8 correctness tests | tests/test_correctness.py | Live run (repository-reported) |

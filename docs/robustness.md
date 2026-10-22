@@ -3,7 +3,7 @@
 This report documents the evidence for four hackathon judging criteria,
 produced by `tests/test_robustness.py`.
 
-**Current counts (v0.14.5):** 49 robustness tests = 11 mocked (Part C, counted within the 155 CI figure) + 38 server-dependent (Parts A/B/D/E: 32 stable + 6 pass-with-retry). All 14 registered tools have `TOOL_INPUTS` coverage, enforced by `test_all_tools_have_test_inputs`.
+**Current counts (v0.14.6):** 49 robustness tests = 11 mocked (Part C, counted within the 155 CI figure) + 38 server-dependent (Parts A/B/D/E: 32 stable + 6 pass-with-retry). All 14 registered tools have `TOOL_INPUTS` coverage, enforced by `test_all_tools_have_test_inputs`.
 
 > The per-row detail tables in Parts A, B, D and E come from the earlier 13-tool run, before `clinical_trials_lookup` was registered. They show *what* each part checks; current pass counts are in the Test Counts table at the end. `clinical_trials_lookup` is covered by Parts A and B through `TOOL_INPUTS`, but it doesn't have its own row in the historical latency table.
 

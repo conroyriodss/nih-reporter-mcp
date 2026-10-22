@@ -55,7 +55,7 @@ For the LLM-driven tool-selection and efficiency tests, see `notebook-merged` se
 
 ## Correctness against independent ground truth
 
-**Funding arithmetic tests** (`tests/test_correctness.py`, 8 tests) — proves the v0.8.0 counting fix produces correct funding totals by comparing tool output against independently-fetched, hand-computed reference values. Every assertion uses the `whole_award` basis (the corrected default), not the inflated `all_records` figures. Requires a running MCP server.
+**Funding arithmetic tests** (`tests/test_correctness.py`, 8 tests) — proves the v0.8.0 counting fix produces correct funding totals by comparing tool output against independently-fetched, hand-computed reference values. Every assertion uses the `whole_award` basis (the corrected default), not the `all_records` basis. Requires a running MCP server.
 
 ```bash
 # Via pytest:
@@ -76,9 +76,9 @@ Key tests include:
 
 **Synthetic oracle tests** (`tests/test_counting.py`, 67 pass + 2 xfail) — unit tests against synthetic data with known oracle values, verifying `aggregate_funding()` directly without the MCP server. No network required.
 
-**Before/after quantification** (see `docs/findings.md` #13):
+**Before/after quantification** (see `docs/findings.md` #14):
 
-| Topic (FY2023) | Naive sum | Corrected | Overstatement (delta/corrected) |
+| Topic (FY2023) | all_records | whole_award | Basis difference (delta/whole_award) |
 |---|---:|---:|---:|
 | CRISPR gene editing | $921.5M | $837.0M | 10.1% |
 | Alzheimer's disease | $4,685.3M | $4,020.9M | 16.5% |

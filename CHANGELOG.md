@@ -5,7 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.5] - 2026-10-21
+## [0.14.6] - 2026-10-21
+
+### Fixed
+- `docs/demo_script.md`: CI is 155 passed + 2 xfailed (was "38 passed + 2 xfailed"); correctness is 8/8 (was 5/5); the 10.1% figure is a basis difference.
+- The CRISPR FY2023 10.1% and Alzheimer’s FY2023 16.5% figures are labeled as all_records vs whole_award basis differences in `docs/findings.md`, `docs/architecture.md`, `PROBLEM_STATEMENT.md` and `eval/README.md`. 166 of CRISPR’s 226 excluded subprojects are orphans, so the difference is not all duplication.
+- `docs/agent_battery_test.md`: `is_exact` described as an internal aggregator property, not a returned field.
+- `docs/findings.md` finding 14 cites 8 correctness tests (was 5); `eval/README.md` points to finding 14 (was #13).
+
+### Changed
+- `docs/presentation/slides.md` is the seven-slide deck with the orphan description (Team-reported P50HD096723 details) and no stale speaker-note about the evaluation command.
+- Notebook, evaluation, manifest and version stamps target v0.14.6. Server code is unchanged apart from the version string. CI remains 155 passed + 2 xfailed.
+
+## [0.14.5] - 2026-10-21 (superseded by 0.14.6: stale demo_script counts; 10.1%/16.5% labeled overstatement)
 
 ### Fixed
 - RUN_MANIFEST A4 row for `docs/demonstration_fixture/independent_total.md` records the shipped bytes (3,926 B). The old row (3,971 B) predated the v0.14.2 SHA-citation edit to that file.

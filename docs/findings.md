@@ -90,11 +90,11 @@ The keys are `srg_code`, `srg_flex`, `sra_designator_code`, `sra_flex_code`, `gr
 
 **Why it matters:** Any tool that groups or filters by study section must use the actual field names from the live response, not the documentation. Our `funded_projects_by_study_section` tool groups by `(srg_code, name)` and was verified against all 1,739 matching CRISPR gene editing records in FY2023, which distributed across 652 distinct study sections with `section_project_sum == total_projects` (no records lost in the grouping).
 
-## 11. Parent/subproject double-counting inflated funding totals by 10.1%
+## 11. Parent/subproject counting: all_records exceeds whole_award by 10.1% (basis difference)
 
 **Discovered in v0.8.0.** Per the NIH RePORTER Data Elements PDF: "For multi-project grants, Total_Cost includes funding for all the constituent subprojects." This means a parent award's `award_amount` already includes its children. Naively summing both parent and subproject records double-counts multi-project grants.
 
-**Before (v0.7.0):** CRISPR gene editing FY2023 was reported as $921,543,173 across 1,739 matching records (parent + subproject) on the all_records basis. **After (v0.8.0):** Excluding 226 subproject records yields 1,513 parent records, of which 7 had missing amounts; the corrected whole_award total is $836,981,580 across the 1,506 contributing parent records — a $84,561,593 reduction. The naive all_records sum overstated the corrected figure by 10.1% (= $84,561,593 / $836,981,580).
+**Before (v0.7.0):** CRISPR gene editing FY2023 was reported as $921,543,173 across 1,739 matching records (parent + subproject) on the all_records basis. **After (v0.8.0):** Excluding 226 subproject records yields 1,513 parent records, of which 7 had missing amounts; the corrected whole_award total is $836,981,580 across the 1,506 contributing parent records — a $84,561,593 reduction. The naive all_records sum exceeds whole_award by 10.1% (= $84,561,593 / $836,981,580). This is an **all_records vs whole_award basis difference**, not a measured duplicate amount: 166 of the 226 excluded subprojects are orphans whose parent is not in the cohort, so their dollars are not duplicated within it.
 
 The fix introduces `funding_basis` parameter (`"whole_award"` default, `"all_records"` for legacy behavior), appl_id deduplication across page boundaries, and explicit tracking of records with missing `award_amount` (excluded from totals, not zeroed to $0). This applies to `summarize_funding_by_topic`, `organization_funding_profile`, `funding_trend_by_year`, and `export_evidence_bundle`.
 
@@ -118,22 +118,22 @@ Verified with synthetic unit tests (`tests/test_counting.py`) against oracle val
 
 The frozen fixture ("CRISPR sickle cell" FY2024, 38 records) contains one orphan: appl_id 10992993, subproject of P50HD096723. Its parent is not a CRISPR sickle cell project, so excluding this child is correct — but the result cannot be labeled "exact" because an associated award family's investment may be missing. The note now states this explicitly.
 
-**Orphan children block `is_exact`:** A query returning only orphan subprojects (or orphans alongside valid parents) will never claim the total is exact. This prevents the misleading scenario where a child-only probe returns "$0, complete=True, Total is exact."
+**Orphan children block the internal `is_exact` check (not a returned field):** A query returning only orphan subprojects (or orphans alongside valid parents) will never claim the total is exact. This prevents the misleading scenario where a child-only probe returns "$0, complete=True, Total is exact."
 
 A separate frozen fixture (`docs/demonstration_fixture_double_counting/`, U19AG068753 FY2024) provides the inspectable proof that subproject exclusion prevents real double-counting: 1 parent ($5,130,473) + 7 subprojects ($5,130,473) = $10,260,946 naive, correctly reduced to $5,130,473.
 
-## 14. Correctness-against-ground-truth: overstatement ranges from 9% to 14% across topics
+## 14. Correctness-against-ground-truth: all_records vs whole_award basis differences of 10.1% and 16.5%
 
 **Regression-guarded (`tests/test_correctness.py`, drift-tolerant ±3%).** The v0.8.0 counting fix was initially validated in v0.9.0 against two independently-derived ground truths; headline figures are now regression-tested with drift-tolerant assertions (±3% band, reference date 2026-10-16) so they cannot silently drift unflagged:
 
-| Topic (FY2023) | all_records (naive) | whole_award (corrected) | Delta | Overstatement (delta/corrected) | Subprojects excluded | Missing amounts |
+| Topic (FY2023) | all_records (naive) | whole_award (corrected) | Delta | Basis difference (delta/whole_award) | Subprojects excluded | Missing amounts |
 |---|---:|---:|---:|---:|---:|---:|
 | CRISPR gene editing | $921,543,173 | $836,981,580 | $84,561,593 | 10.1% | 226 | 7 |
 | Alzheimer’s disease | $4,685,253,389 | $4,020,899,771 | $664,353,618 | 16.5% | 931 | 133 |
 
-The Alzheimer’s overstatement (16.5%) is larger than CRISPR’s (10.1%) because NIH Alzheimer’s research includes more multi-component grants (U19, P01, etc.) whose subprojects inflate the naive sum by a greater proportion.
+The Alzheimer’s basis difference (16.5%) is larger than CRISPR’s (10.1%): NIH Alzheimer’s research includes more multi-component grants (U19, P01, etc.), so more subproject records are excluded (931 vs 226). Neither figure is all duplicate funding. Excluded orphan subprojects (166 of CRISPR’s 226; not documented for Alzheimer’s) carry real topical investment whose parent is absent from the cohort.
 
-Additional correctness evidence (`tests/test_correctness.py`, 5 tests):
+Additional correctness evidence (`tests/test_correctness.py`, 8 tests; five highlighted):
 
 - **Ground-truth exact match**: “CRISPR sickle cell” FY2024 (38 records, independently fetched via curl and hand-computed) matches the tool’s whole_award total **to the dollar** ($19,790,134).
 - **Double-counting proof**: U19AG068753 FY2024 — runs production `aggregate_funding` (both unprojected and AGG_FIELDS-projected) on raw fetched records, asserts whole_award equals parent-only sum and all_records exceeds it by the subproject delta. Proves the production code, not local arithmetic.

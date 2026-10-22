@@ -3,7 +3,7 @@
 **Project:** NIH RePORTER MCP Server  
 **Team:** Rich Conroy, NIH/OD/ODSS  
 **Hackathon:** GSA MCP Server and AI Agent Government Hackathon  
-**Submission freeze:** `v0.14.6`  
+**Submission freeze:** `v0.14.7`  
 **Evaluation revision:** October 21, 2026  
 **Repository:** https://github.com/conroyriodss/nih-reporter-mcp  
 **Run history:** [RUN_MANIFEST.md](demonstration_fixture/RUN_MANIFEST.md) and [EVAL_VERDICTS.md](demonstration_fixture/EVAL_VERDICTS.md)
@@ -14,7 +14,7 @@
 
 ## 1. Evidence standard and review scope
 
-This revision reconciles the supplied documentation and fixture files with directly inspected source files at `v0.14.6`. It retains historical results with their actual run identities instead of relabeling earlier executions as runs at the submission tag.
+This revision reconciles the supplied documentation and fixture files with directly inspected source files at `v0.14.7`. It retains historical results with their actual run identities instead of relabeling earlier executions as runs at the submission tag.
 
 ### 1.1 Four evidence tiers
 
@@ -30,7 +30,7 @@ Execution status is separate: **PASS**, **FAIL**, **NOT RUN**, or **BLOCKED**. �
 ### 1.2 What was checked for this revision
 
 - **Verified — artifact reconciliation:** SHA-256 checks of both raw snapshots; independent decimal sums; row-by-row ledger decisions and amounts; the primary fixture's stored total, counts, query criteria, and complete contributing-ID list.
-- **Verified — schema validation:** the supplied `tool_output.json`'s `summary` and `provenance` validate against the `v0.14.6` `FundingSummary` and `Provenance` classes, loaded in isolation with Pydantic 2.14.0. This is not a server or transport execution.
+- **Verified — schema validation:** the supplied `tool_output.json`'s `summary` and `provenance` validate against the `v0.14.7` `FundingSummary` and `Provenance` classes, loaded in isolation with Pydantic 2.14.0. This is not a server or transport execution.
 - **Verified — source inspection:** aggregation, evidence export, Pydantic models, input/cache handling, server startup and diagnostic routes, the CI workflow, and the cited test implementations.
 - **NOT RUN for this revision:** the project's CI suite, live MCP/API suites, Databricks model evaluations, deployed app, and GitHub Actions execution. Their historical pass figures remain repository-reported.
 
@@ -41,7 +41,7 @@ The verified fixture checks apply to the **supplied artifact bytes**. They do no
 | Claim | Result retained | Evidence and scope |
 |---|---|---|
 | Submission inventory | **14 tools, 9 prompts, 3 resources** | Repository-reported freeze inventory. Source inspection confirms that `/version` reads the live registries; the runtime inventory recipe below verifies the actual counts. |
-| Model-free CI | **155 passed + 2 xfailed** | Repository-reported at `v0.14.6`. The exact CI selectors and two Python versions are verified in the workflow. Not independently rerun here. |
+| Model-free CI | **155 passed + 2 xfailed** | Repository-reported at `v0.14.7`. The exact CI selectors and two Python versions are verified in the workflow. Not independently rerun here. |
 | Standalone smoke | **17/17 passed** | Repository-reported at `v0.14.0`. The 17 cases are t1–t8 and t10–t18; t9 is excluded. |
 | Live correctness | **8 tests; reported 8/8 passed** | Eight test functions verified in source; historical passing execution is repository-reported. They do not provide eight independent dollar-level reconciliations. |
 | Frozen primary total | **$19,790,134; 38 raw / 37 contributing / 1 excluded subproject** | Verified by offline reconciliation of the supplied snapshot, ledger, and stored output. |
@@ -74,7 +74,7 @@ Source: [query.json](demonstration_fixture/query.json). The raw snapshot records
 
 ### 2.2 Whole-award algorithm
 
-Verified by inspection of [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/src/nih_reporter_mcp/utils.py), `aggregate_funding`:
+Verified by inspection of [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/src/nih_reporter_mcp/utils.py), `aggregate_funding`:
 
 1. Deduplicate non-null `appl_id` values in retrieval order. The first occurrence wins; later occurrences with conflicting amount, fiscal year, or subproject ID are flagged.
 2. For `whole_award`, exclude every remaining record whose `subproject_id` is **non-null**. This is not an activity-code-prefix rule.
@@ -110,7 +110,7 @@ The stored response correctly has `complete=true` and an orphan warning in `note
 
 The raw projection supports the funding reconciliation. It does **not** contain organization or administering-IC fields, so it cannot independently substantiate the stored `distinct_organizations=29` or `distinct_administering_ics=10`. Inspection of `evidence_bundle.py` also shows those two counts are calculated over retrieved records, including records excluded from the dollar sum.
 
-The manifest reports a live comparison on October 19 at `v0.13.0`. That is historical, repository-reported evidence; the October 15 snapshot is not relabeled as a live retrieval at `v0.14.6`.
+The manifest reports a live comparison on October 19 at `v0.13.0`. That is historical, repository-reported evidence; the October 15 snapshot is not relabeled as a live retrieval at `v0.14.7`.
 
 ### 2.4 Separate double-counting proof
 
@@ -127,7 +127,7 @@ There are no orphan children in this fixture. It directly demonstrates the paren
 
 ### 2.5 What “inspectable” means at this release
 
-[Evidence export](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/src/nih_reporter_mcp/tools/evidence_bundle.py) returns an `EvidenceBundle` with `label`, `summary`, `provenance`, and `reproduction_note`. The model definitions are in [models.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/src/nih_reporter_mcp/models.py).
+[Evidence export](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/src/nih_reporter_mcp/tools/evidence_bundle.py) returns an `EvidenceBundle` with `label`, `summary`, `provenance`, and `reproduction_note`. The model definitions are in [models.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/src/nih_reporter_mcp/models.py).
 
 **source_record_ids lists up to 500 of N contributing IDs (capped for payload size); records_aggregated gives the true count.**
 
@@ -155,9 +155,9 @@ RCDC-filtered results and free-text results define different cohorts. An aggrega
 
 ### 3.1 Model-free CI
 
-**Repository-reported result at `v0.14.6`: 155 passed + 2 xfailed.**
+**Repository-reported result at `v0.14.7`: 155 passed + 2 xfailed.**
 
-The [CI workflow](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/.github/workflows/ci.yml) selects the following suites on **Python 3.11 and 3.12**:
+The [CI workflow](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/.github/workflows/ci.yml) selects the following suites on **Python 3.11 and 3.12**:
 
 | Selector | Reported result | Scope |
 |---|---:|---|
@@ -171,7 +171,7 @@ The [CI workflow](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/
 
 The version-contract test is necessary to reconcile the total: omitting it yields 154 passes. It checks registry equality, not a hardcoded release inventory; use the release-inventory check in section 6 for 14/9/3.
 
-The two expected failures in [test_counting.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/tests/test_counting.py) identify **IC-level attribution not yet implemented** and **publication-to-funding-year joining not supported**. They are not both established upstream-service defects.
+The two expected failures in [test_counting.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/tests/test_counting.py) identify **IC-level attribution not yet implemented** and **publication-to-funding-year joining not supported**. They are not both established upstream-service defects.
 
 **Test count is not coverage quality.** In that same file, `TestExcludeSubprojectsFaceting.test_r_series_not_affected` and `test_p_series_significantly_affected` contain `pass` without assertions. Other checks assert locally written constants or reimplement a calculation instead of invoking production behavior, including parts of the year-clamp and P41 examples. Their passing status is not independent verification of the claimed API behavior. Strengthening these checks is planned; this document does not subtract them from the actual reported pytest total.
 
@@ -179,7 +179,7 @@ A blanket `pytest tests/` invocation is **not** the offline CI command: it also 
 
 ### 3.2 Standalone live smoke
 
-**Repository-reported: 17/17 at `v0.14.0`.** Source: [smoke_tests.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/eval/smoke_tests.py) and the run history.
+**Repository-reported: 17/17 at `v0.14.0`.** Source: [smoke_tests.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/eval/smoke_tests.py) and the run history.
 
 The standalone suite contains **t1–t8 and t10–t18**. The former t9 efficiency metric is excluded, not a missing eighteenth pass.
 
@@ -196,7 +196,7 @@ The standalone suite contains **t1–t8 and t10–t18**. The former t9 efficienc
 
 ### 3.3 Eight live-correctness tests
 
-Source: [test_correctness.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/tests/test_correctness.py). Use **pytest on the file**: its standalone `main()` runner invokes only six tests.
+Source: [test_correctness.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/tests/test_correctness.py). Use **pytest on the file**: its standalone `main()` runner invokes only six tests.
 
 | Test purpose | Actual method and limit |
 |---|---|
@@ -228,7 +228,7 @@ The displayed question matrix implies **7/8 unanimously correct**, while the sup
 
 The reported **24/24 argument-validity** result is distinct from correct tool selection and correct final answers. State the validator used, semantic constraints checked, and whether calls were actually executed when publishing its traces. The reported **3/3 stable** result means three questions repeated five times on GPT-5-5; it does not guarantee determinism on other prompts, settings, or endpoint revisions.
 
-The eight-question set predates coverage of `group_by`, application-type filtering, spending-category routing, and `clinical_trials_lookup`. It does not validate the complete v0.14.6 tool surface, end-to-end scientific interpretation, or reliable abstention.
+The eight-question set predates coverage of `group_by`, application-type filtering, spending-category routing, and `clinical_trials_lookup`. It does not validate the complete v0.14.7 tool surface, end-to-end scientific interpretation, or reliable abstention.
 
 ### 3.5 Behavioral cases and performance
 
@@ -262,7 +262,7 @@ For CRISPR FY2023 the manifest reports 1,739 matches, 226 excluded subprojects, 
 
 ### 5.1 Implementation controls
 
-Verified in [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/src/nih_reporter_mcp/utils.py):
+Verified in [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/src/nih_reporter_mcp/utils.py):
 
 - Outbound host allowlist: `api.reporter.nih.gov`, `eutils.ncbi.nlm.nih.gov`, `wsearch.nlm.nih.gov`, and `clinicaltrials.gov`.
 - Topic/string length limit: **500 characters** in the relevant validator; fiscal-year array limit: **20**.
@@ -308,22 +308,22 @@ The following recipes target a new local **Bash + Python 3.12** environment. The
 
 ### 6.1 Pin source and capture the resolved environment
 
-`requirements.txt` contains **minimum version ranges**, not a dependency lock. [pyproject.toml](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/pyproject.toml) also reports distribution version `0.1.0`, while the source module version is `0.14.6`. Use the resolved Git commit and source module version for identity; do not treat package metadata alone as proof of the release.
+`requirements.txt` contains **minimum version ranges**, not a dependency lock. [pyproject.toml](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/pyproject.toml) also reports distribution version `0.1.0`, while the source module version is `0.14.7`. Use the resolved Git commit and source module version for identity; do not treat package metadata alone as proof of the release.
 
 This procedure pins source and records a fresh dependency resolution. It does **not** reproduce the historical dependency environment bit-for-bit.
 
 ```bash
 set -eu
 RUN_ROOT="$(mktemp -d)"
-git clone --branch v0.14.6 --single-branch \
+git clone --branch v0.14.7 --single-branch \
   https://github.com/conroyriodss/nih-reporter-mcp.git "$RUN_ROOT/repo"
 cd "$RUN_ROOT/repo"
-git checkout --detach v0.14.6
+git checkout --detach v0.14.7
 
 export EVIDENCE="$RUN_ROOT/evidence"
 mkdir -p "$EVIDENCE"
 git rev-parse HEAD > "$EVIDENCE/source-commit.txt"
-git rev-parse 'v0.14.6^{commit}' > "$EVIDENCE/tag-commit.txt"
+git rev-parse 'v0.14.7^{commit}' > "$EVIDENCE/tag-commit.txt"
 diff "$EVIDENCE/source-commit.txt" "$EVIDENCE/tag-commit.txt"
 git status --porcelain > "$EVIDENCE/working-tree-before.txt"
 test ! -s "$EVIDENCE/working-tree-before.txt"
@@ -525,7 +525,7 @@ async def main():
         resources = await client.list_resources()
     actual = {"tools": len(tools), "prompts": len(prompts), "resources": len(resources)}
     assert actual == {"tools": 14, "prompts": 9, "resources": 3}, actual
-    assert version["version"] == "0.14.6", version
+    assert version["version"] == "0.14.7", version
     assert all(version[k] == value for k, value in actual.items()), version
     print(json.dumps({"version": version, "actual_counts": actual,
                       "tool_names": sorted(t.name for t in tools)}, indent=2))
@@ -588,11 +588,11 @@ Updating this file does not repair the companion files listed below.
 
 | Priority | Remaining issue | Required correction |
 |---|---|---|
-| Resolved in v0.14.5 | Manifest artifact hash mismatch | RUN_MANIFEST A4 now records the shipped `demonstration_fixture/independent_total.md` (3,926 bytes, SHA-256 `edca15031e947a8dc8a0e7d111e506de7a3901392d5c2d9eaa25a741e44657dc`). The earlier row (3,971 bytes) predated the v0.14.2 edit that removed a commit SHA from that file. |
+| Resolved in v0.14.5 | Manifest artifact hash mismatch | At v0.14.5, RUN_MANIFEST A4 recorded the then-shipped `demonstration_fixture/independent_total.md` (3,926 bytes, SHA-256 `edca15031e947a8dc8a0e7d111e506de7a3901392d5c2d9eaa25a741e44657dc`). The earlier row (3,971 bytes) predated the v0.14.2 edit that removed a commit SHA from that file. At v0.14.7 the file's verdict line was relabelled from "AT HEAD" to "at v0.13.0" (3,942 bytes); RUN_MANIFEST A4 records the current hash. |
 | High | Dependency-lock claim | The inspected requirements file contains ranges. Correct the manifest's “pip-freeze / lock” description or publish a real pinned environment artifact. |
 | High | Provenance freshness and replay | Export a true upstream retrieval timestamp/cache indicator, request ordering, and full record evidence where complete historical replay is claimed. Until then, retain section 2.5's limitations. |
-| High | Agent-facing certainty exceeds this document's boundary | The server instructions in [app.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/src/nih_reporter_mcp/app.py) advertise an “exact total-investment figure” and “curated, congressionally-mandated totals.” Qualify those instructions with query scope, completeness, and the distinction between RePORTER category-filtered sums and published RCDC totals. Updating this evaluation does not change what the agent receives. |
-| High | Run identity and accessible logs | Historical A1–A5 and STEP 1–3 runs belong to v0.13.0, not v0.14.6. Replace ambiguous “at HEAD” statements with run identities; publish JUnit/log/trace artifacts currently referenced only by ephemeral or private paths. |
+| High | Agent-facing certainty exceeds this document's boundary | The server instructions in [app.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/src/nih_reporter_mcp/app.py) advertise an “exact total-investment figure” and “curated, congressionally-mandated totals.” Qualify those instructions with query scope, completeness, and the distinction between RePORTER category-filtered sums and published RCDC totals. Updating this evaluation does not change what the agent receives. |
+| High | Run identity and accessible logs | Historical A1–A5 and STEP 1–3 runs belong to v0.13.0, not v0.14.7. Replace ambiguous “at HEAD” statements with run identities; publish JUnit/log/trace artifacts currently referenced only by ephemeral or private paths. |
 | High | Model-result contradiction | Reconcile the unanimity figure with the per-question matrix and raw traces. Do not mix the earlier GPT/Llama Q5 misses with the later GPT/Claude misses. |
 | Medium | Method-order drift | `ground_truth_methodology.md` and parts of the manifest describe subproject exclusion before deduplication. The production loop and stored reproduction note deduplicate first. Align procedural documentation. |
 | Medium | Weak or vacuous assertions | Replace no-op/constant-only “regression” checks with calls to production behavior; make absent live preconditions explicit; test capped provenance, missing IDs, cached timestamps, and full payload replay. |

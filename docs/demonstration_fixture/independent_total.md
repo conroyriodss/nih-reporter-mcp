@@ -76,4 +76,4 @@ All three figures agree to the dollar.
 * **Dollar total:** $19,790,134.00 (exact match)
 * **raw_records.json SHA-256:** `ff178702ec35720c88b7f85900db60d6fc9380e000fbf9aaacda20617a7f789d` (verified on disk)
 * **Schema validation:** `tool_output.json` passes `FundingSummary.model_validate()` at v0.13.0 (16/16 fields, 0 missing)
-* **Verdict:** VERIFIED AT HEAD — not frozen, not drifted.
+* **Verdict:** VERIFIED at v0.13.0 (2026-10-19) — not frozen, not drifted.

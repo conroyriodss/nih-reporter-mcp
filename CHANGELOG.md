@@ -5,7 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.6] - 2026-10-21
+## [0.14.7] - 2026-10-22
+
+### Fixed
+- Notebook identity check: `parse_manifest_parent()` reads the RUN_MANIFEST §1 parent SHA from the single Submission tag row and its `**parent**` SHA cell, so punctuation in the surrounding prose no longer matters. At 0.14.6 the row's typographic apostrophes made the default identity path raise "parent row not found".
+- EVAL_VERDICTS Claim 5 heading labels 18/18 as the originally claimed value.
+- The A4 verdict in RUN_MANIFEST and `docs/demonstration_fixture/independent_total.md` now names the run it records, "VERIFIED at v0.13.0 (2026-10-19)", instead of HEAD. The A4 fixture-bundle row records the edited file (3,942 B).
+
+### Changed
+- Notebook, evaluation, manifest, slides and version stamps target v0.14.7. Server code is unchanged apart from the version string. CI remains 155 passed + 2 xfailed.
+
+## [0.14.6] - 2026-10-21 (superseded by 0.14.7: notebook identity check failed on the manifest's typographic apostrophes)
 
 ### Fixed
 - `docs/demo_script.md`: CI is 155 passed + 2 xfailed (was "38 passed + 2 xfailed"); correctness is 8/8 (was 5/5); the 10.1% figure is a basis difference.

@@ -1,5 +1,5 @@
 <!-- Proposed seven-slide copy, including the cover. Speaker notes and source
-references are not slide text. Submission identity is v0.14.6. Historical runs
+references are not slide text. Submission identity is v0.14.7. Historical runs
 retain their actual versions and dates. This rewrite does not report new CI,
 live API, or model execution results. -->
 
@@ -15,7 +15,7 @@ Rich Conroy, NIH/OD/ODSS
 
 GSA MCP Server and AI Agent Government Hackathon
 
-Submission freeze: **v0.14.6**
+Submission freeze: **v0.14.7**
 
 <!-- Speaker notes
 Opening: “An NIH funding answer should include enough evidence for someone else
@@ -127,7 +127,7 @@ supplies the parent-plus-children proof.
 Raw acquisition: 2026-10-15T20:31:43.117032+00:00. Stored tool response:
 2026-10-18T19:07:59.647418+00:00. The repository reports a subsequent comparison
 at v0.13.0 on October 19. Preserve those dates instead of relabeling them as a
-new v0.14.6 execution.
+new v0.14.7 execution.
 
 All 37 contributing IDs are present in this small fixture. More generally,
 source_record_ids lists up to 500 of N contributing IDs (capped for payload
@@ -282,9 +282,9 @@ If unavailable at presentation time, display a prominent status message and
 use the public frozen artifacts. Do not promise that an upstream-dependent
 Evidence Bundle request “always works.”
 
-Repository: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.6
-Manifest: https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.6/docs/demonstration_fixture/RUN_MANIFEST.md
-Fixtures: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.6/docs/demonstration_fixture
+Repository: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.7
+Manifest: https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.7/docs/demonstration_fixture/RUN_MANIFEST.md
+Fixtures: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.7/docs/demonstration_fixture
 
 Sources: docs/evaluation.md, sections 1 and 3.5;
 docs/demonstration_fixture/RUN_MANIFEST.md;

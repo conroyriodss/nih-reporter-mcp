@@ -1,0 +1,28 @@
+v0.14.8 post-tag verification (2026-10-22)
+Commit a47d9e32cee24487f271a742c416b343a9db449c, parent 6e51002aac463d56918e835fb0b393fbaf7b38fc (v0.14.7), annotated tag object ede475d439a4e6daa185fe0c158070cdb76e3b06, git tree e0dff7d2e22b9966a4a20a3842ddd9b086e66999.
+Supersedes v0.14.7. Purpose: conformance to the hackathon deliverables spec. v0.14.5 through v0.14.7 lacked required headings in docs/evaluation.md; the slides never carried the four required section labels at any tag.
+
+WHAT v0.14.8 CHANGES (additions and retitles only; no section renumbered)
+- docs/evaluation.md: section 3 retitled "Testing methodology". Section 3.5 retitled "Performance metrics and behavioral cases", with a table of measured figures, each labelled with its evidence tier; it keeps the statement that no p50/p95 benchmark exists. New section 9 "Security considerations". New section 10 "Lessons learned and recommendations". A required-sections map at the top.
+- Section 9 records two findings rather than asserting new properties: /debug exposes the token length and an 8-character prefix (the JWT header); SECURITY.md says "three APIs" and "pinned", but there are four upstream APIs and requirements.txt uses version ranges.
+- docs/presentation/slides.md: a visible label under each mapped title (slide 2 Problem statement, 3 Solution overview, 4 Demonstration of functionality, 5 Technical approach & key decisions), plus one architecture line on slide 5.
+- The release sweep gains a fixed external checklist from the deliverables spec (8 checks plus 8 controls), separate from the internal-consistency checks.
+- Version stamps 0.14.8. Server code is unchanged apart from __version__.
+
+FIVE CHECKS (each labeled with its method)
+1. CI 155 passed + 2 xfailed, 203 collected [running-process-verified: fresh clone of the pushed tag from GitHub, release sweep in origin mode, CLEAN 80/80].
+2. Inventory 0.14.8 / 14 tools / 9 prompts / 3 resources [deployed-app-verified]. Deployment 01f1ce4837ef1771b2a905438df246bd (created 18:41:39Z, SUCCEEDED 18:42:34Z; replaces 01f1ce3a28d81aaaa1d4f6aee046932e, v0.14.7). GET /mcp-server/version returned verbatim:
+   {"server":"nih-reporter-mcp","version":"0.14.8","tools":14,"prompts":9,"resources":3,"spending_categories":39,"upstream_api":"https://api.reporter.nih.gov/v2"}
+3. Agent: largest award FY2020-2025 [deployed-app-verified, Ask page, 1 tool call, 0.61s]. Trace: search_funded_projects {"fiscal_years":[2020,2021,2022,2023,2024,2025],"limit":10,"sort_by_award":true}. Answer verbatim: "The largest NIH/HHS award record in FY2020–FY2025 was **$448,283,318**." Project OT2HL161847, FY2021, New York University School of Medicine, NHLBI, New. Next: $417,201,451 (FY2023) and $393,953,893 (FY2020).
+4. Agent: R01 FY2020 competing renewals [deployed-app-verified, Ask page, 1 tool call, 9.39s]. Trace: search_funded_projects {"fiscal_years":[2020],"activity_codes":["R01"],"group_by":"application_type","limit":25}. Answer verbatim: "1,089 R01 awards in FY2020 were competitive renewals." and "Total FY2020 R01 awards across all application types: 29,560." 1,089 / 29,560 = 3.68% (computed here; the reply states no percentage). Both numerator and denominator come from this single traced call.
+5. Fixture: CRISPR sickle cell FY2024 whole_award $19,790,134.00 [running-process-verified: production MCP tool on a local server built from the pushed tag, run by the shipped notebook inside the fresh-clone sweep]. 38 raw records, 37 included, 1 excluded subproject (orphan 10992993). The frozen-fixture stage independently recomputed the same total. All 7 RUN_MANIFEST fixture hash rows match the tag.
+
+NOTEBOOK POST-TAG RESULT
+The shipped notebooks/notebook-merged.ipynb ran top to bottom from the fresh clone (shipped REPOSITORY_URL unmodified) inside the origin-mode sweep. Identity came from "RUN_MANIFEST section 1 at the tag" on the default path, parent 6e51002. Stages inventory, fixtures, live, ci and smoke PASS; model stages NOT_RUN (disabled in the shipped config); final gate passed.
+
+DELIVERABLES-SPEC CONFORMANCE [code-level, release sweep]
+docs/evaluation.md: Testing methodology, Performance metrics, Security considerations, Lessons learned and recommendations. Each is present exactly once and non-trivial (at least 120 words and 4 content lines, not mostly pointers).
+docs/presentation/slides.md: Problem statement, Solution overview, Technical approach & key decisions, Demonstration of functionality. Each is a visible label, not a speaker note.
+
+RELEASE PROCESS
+Tree sweep CLEAN 80/80 before commit; fresh-clone re-sweep of the pushed tag CLEAN 80/80. The tag content equals the swept tree (same git tree hash). main and the tag were pushed separately, and each was confirmed on origin. Deploy source synced byte-identical to git ls-files at the tag (89 files). The deployment snapshot matches on 88 files; the 89th is the notebook's platform source-export conversion.

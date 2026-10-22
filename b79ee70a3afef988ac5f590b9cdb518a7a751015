@@ -1,0 +1,25 @@
+v0.14.7 post-tag verification (2026-10-22)
+Commit 6e51002aac463d56918e835fb0b393fbaf7b38fc, parent d481fcb338cdf04b14904dc11c6045f96603d4ac (v0.14.6), annotated tag object b79ee70a3afef988ac5f590b9cdb518a7a751015, git tree 6d11e9460ffa2db2956cf665676f6052b9c67741.
+Supersedes v0.14.6. The defect it fixes: v0.14.6's notebook identity cell failed on its default path because RUN_MANIFEST section 1 used a typographic apostrophe ("commit’s") that the cell's regex did not accept.
+
+WHAT v0.14.7 FIXES
+- Notebook identity: parse_manifest_parent() reads the parent SHA from the single "| Submission tag |" row and its **parent** SHA, so punctuation in the surrounding prose no longer matters.
+- A4 verdicts in RUN_MANIFEST and docs/demonstration_fixture/independent_total.md name the run they record ("VERIFIED at v0.13.0 (2026-10-19)") instead of HEAD. independent_total.md is re-hashed (3,942 B, sha256 ec6b0e99...) and the manifest's A4 fixture row matches.
+- RUN_MANIFEST: the A4 fixture-bundle table sits under its own current-tag heading, separate from the v0.13.0 run records.
+- EVAL_VERDICTS Claim 5 heading labels 18/18 as the originally claimed value.
+- Version stamps 0.14.7. Server code is unchanged apart from __version__.
+
+FIVE CHECKS (each labeled with its method)
+1. CI 155 passed + 2 xfailed, 203 collected [running-process-verified: fresh clone of the pushed tag from GitHub]. Source: release-sweep run in origin mode (shipped notebook with its REPOSITORY_URL unmodified), plus the clean notebook run below. Per file: counting 67+2xf, security 24, prompt_contracts 29, clinical_trials 23, version_contract 1, robustness Part C 11.
+2. Inventory 0.14.7 / 14 tools / 9 prompts / 3 resources [deployed-app-verified]. Deployment 01f1ce3a28d81aaaa1d4f6aee046932e (created 17:01:01Z, SUCCEEDED 17:01:58Z; replaces 01f1cceec4e11c818d393045cae0e844, v0.14.4). GET /mcp-server/version returned verbatim:
+   {"server":"nih-reporter-mcp","version":"0.14.7","tools":14,"prompts":9,"resources":3,"spending_categories":39,"upstream_api":"https://api.reporter.nih.gov/v2"}
+   (/version is an MCP-server route; the server is mounted at /mcp-server in the deployed app.)
+3. Agent: largest award FY2020-2025 [deployed-app-verified, Ask page, 1 tool call]. Trace: search_funded_projects {"fiscal_years":[2020,2021,2022,2023,2024,2025],"limit":10,"sort_by_award":true}. Answer verbatim: "The largest NIH/HHS award record in FY2020–FY2025 was **$448,283,318**." Project OT2HL161847, FY2021, New York University School of Medicine, NHLBI, New. Next: $417,201,451 OT2HL156812 (Research Triangle Institute, FY2023) and $393,953,893 UM1AI068614 (Fred Hutchinson, FY2020).
+4. Agent: R01 FY2020 competing renewals [deployed-app-verified, Ask page]. The count comes from ONE call: search_funded_projects {"fiscal_years":[2020],"activity_codes":["R01"],"group_by":"application_type","limit":100}. Answer verbatim: "FY2020 R01 competing renewals: **1,089 awards**." The denominator is from an earlier run of the same question on this deployment, verbatim: "FY2020 R01 awards by application type totaled 29,560 deduplicated awards" (20,572 + 5,204 + 1,953 + 1,089 + 663 + 79 = 29,560). 1,089 / 29,560 = 3.68% (computed here; neither reply states it). Caveat: in the traced run the agent made a SECOND, unprompted call, summarize_funding_by_topic {"fiscal_years":[2020],"activity_codes":["R01"],"application_types":[2],"funding_basis":"whole_award"}, to add a dollar figure ($555,774,505). So that answer took 2 calls. That dollar figure is agent-reported and was not independently checked.
+5. Fixture: CRISPR sickle cell FY2024 whole_award $19,790,134.00 [running-process-verified: production MCP tool at the tag]. The notebook "live" stage called summarize_funding_by_topic on a local server built from the pushed tag: 38 raw records, 37 included, 1 excluded subproject (orphan 10992993). The frozen-fixture stage independently recomputed the same total. All 7 RUN_MANIFEST fixture hash rows match the tag.
+
+NOTEBOOK POST-TAG RESULT
+Clean workspace notebook-merged (code cells identical to the tag's notebooks/notebook-merged.ipynb), run 20261022T161611Z-f527689f. It ran on the DEFAULT identity path: parent_check_source = "RUN_MANIFEST section 1 at the tag", repository https://github.com/conroyriodss/nih-reporter-mcp.git, evaluated_sha 6e51002, parent d481fcb. Stages: inventory, fixtures, live, ci and smoke (12/12 notebook-defined live checks) PASS. Model stages NOT_RUN (disabled in the shipped config). Final gate: "Required core checks passed in this execution."
+
+RELEASE PROCESS
+Tree sweep CLEAN 64/64 before commit; fresh-clone re-sweep of the pushed tag CLEAN 64/64. The tag content equals the swept tree (same git tree hash). main and the tag were pushed separately, and each was confirmed on origin. Deploy source synced byte-identical to git ls-files at the tag (89 files). The deployment snapshot matches on 88 files; the 89th is the notebook's platform source-export conversion.

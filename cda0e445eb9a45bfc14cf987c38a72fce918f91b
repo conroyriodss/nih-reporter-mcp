@@ -1,0 +1,52 @@
+v0.14.9 deploy + live verification (2026-10-23)
+
+Commit cda0e445eb9a45bfc14cf987c38a72fce918f91b
+Tag object 5c126c34c92f8ae8648d60b45b7ad2d0f3828abe
+
+DEPLOY
+Source folder: /Workspace/Users/conroyri@nih.gov/mcp-nih-reporter
+Not deployed from nih-reporter-mcp-git, whose exact commit was unconfirmed and which shipped .git/.
+Deployment 01f1cf04e979136ab5739abeb06ff0d0: created 17:12:22Z, SUCCEEDED 17:13:18Z.
+Replaces 01f1cee52966105492d10dcccc7a2435 (unconfirmed source).
+
+PRE-DEPLOY MATCH AGAINST v0.14.9^{tree}
+- Same 91 paths as the tag; nothing extra, nothing missing.
+- 90/91 git blob hashes byte-identical to the tag.
+- No .git/, .assistant/, .conversations/ or .db_internal/.
+  .github/ and .gitignore are tracked files in the tag.
+- Deployed snapshot: 91 files, no workspace metadata; 90 byte-identical.
+  __version__ and server.json both read 0.14.9.
+
+NOTEBOOK EXCEPTION (accepted)
+- File: notebooks/notebook-merged.ipynb
+- The workspace stores it as a notebook object, so the export is not
+  byte-identical (workspace blob e8ac9060, tag blob 8e76e9a7).
+- All 40 cells have the same type and source as the tag.
+- The snapshot stores it as notebooks/notebook-merged (no extension).
+- Not loaded at runtime. Same exception as v0.14.8.
+
+LIVE CHECKS (Ask UI, user browser)
+1. /mcp-server/version
+   {"server":"nih-reporter-mcp","version":"0.14.9","tools":14,"prompts":9,"resources":3,"spending_categories":39,"upstream_api":"https://api.reporter.nih.gov/v2"}
+   PASS
+2. Largest award FY2020-2025: $448,283,318, OT2HL161847, FY2021, NYU, NHLBI.
+   3 calls:
+   - search_funded_projects(sort_by_award)  OK
+   - search_funded_projects(25 agencies)    ERROR, 20-agency input limit
+   - get_project_by_id(10373725)            OK
+   Figure matches LF-7. PASS
+   Deviation: v0.14.8 needed 1 call.
+3. R01 FY2020 competitive renewals: 1,089 / 29,560 = 3.68%.
+   1 call: search_funded_projects(group_by=application_type), 9.43s. PASS
+   A second paste (9.39s) is not confirmed to be from this deployment.
+4. Orphan exclusion, "CRISPR sickle cell" FY2024:
+   $19,790,134 (38 matched / 37 counted / 1 excluded subproject).
+   1 call: summarize_funding_by_topic, 0.54s.
+   Orphan caveat and keyword caveat both present; not described as double-counting.
+   Matches LF-EV. PASS
+5. Unsupported question, "longest-running R01": declined with supported alternatives.
+   PASS
+6. Keyword vs RCDC, "CRISPR" FY2023:
+   $2,233,513,072 (5,134 matched / 4,533 counted / 391 orphans / 45 with no amount).
+   1 call, 10.87s. Keyword-not-RCDC caveat present. PASS
+   Not comparable to LF-2a ($836,981,580), which is the topic "CRISPR gene editing".

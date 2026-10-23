@@ -62,10 +62,12 @@ def register(mcp: FastMCP) -> None:
     ) -> EvidenceBundle:
         """Produce an inspectable evidence bundle for a funding claim.
 
-        Runs the same aggregation as summarize_funding_by_topic but always
-        includes full provenance (query criteria, source record IDs, timing)
-        and a reproduction note. Use this when the audience needs to verify
-        or audit a specific dollar figure.
+        Runs the same aggregation as summarize_funding_by_topic and always
+        attaches a provenance record (query criteria, record counts, up to 500
+        contributing record IDs, timing) and a reproduction note. Use this when
+        the audience needs to verify or audit a specific dollar figure. It does
+        not include the raw records, and it does not recover the award family
+        of excluded orphan subprojects.
         """
         if not topic and not spending_category:
             raise ValueError("Provide at least one of topic or spending_category.")

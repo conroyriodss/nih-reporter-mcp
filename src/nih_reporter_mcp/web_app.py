@@ -113,8 +113,8 @@ def _get_token() -> str:
 
 import logging as _logging
 log = _logging.getLogger("nih_reporter_mcp.web_app")
-log.info("STARTUP: DB_HOST=%s, _ws=%s, token_len=%d",
-         DB_HOST, "OK" if _ws else "NONE", len(_get_token()))
+log.info("STARTUP: DB_HOST=%s, _ws=%s, token_present=%s",
+         DB_HOST, "OK" if _ws else "NONE", bool(_get_token()))
 
 # ── FastAPI app ──────────────────────────────────────────────────────────────
 mcp_starlette = mcp.http_app()
@@ -132,8 +132,6 @@ async def debug_config():
         "db_host": DB_HOST or "(empty)",
         "ws_client": "OK" if _ws else "NONE",
         "token_present": bool(token),
-        "token_len": len(token),
-        "token_prefix": token[:8] + "..." if len(token) > 8 else "(short)",
         "env_DATABRICKS_HOST": os.environ.get("DATABRICKS_HOST", "(not set)"),
         "env_DATABRICKS_TOKEN_set": "DATABRICKS_TOKEN" in os.environ,
         "env_DATABRICKS_APP_PORT": os.environ.get("DATABRICKS_APP_PORT", "(not set)"),
@@ -193,8 +191,12 @@ def _to_openai(tool):
             "parameters":tool.input_schema or {"type":"object","properties":{}}}}
 
 async def _run_agent(question: str, model: str) -> dict:
+    """Ask loop. The interpretation boundaries are carried twice: in the system
+    message the model receives, and by agent_boundaries.enforce on the final
+    answer, which checks the question and the full tool results the loop saw."""
     from openai import OpenAI
     from fastmcp import Client
+    from nih_reporter_mcp.agent_boundaries import SYSTEM_MESSAGE, enforce
     token = _get_token()
     if not token:
         return {"answer": "Error: no authentication token available. "
@@ -203,9 +205,14 @@ async def _run_agent(question: str, model: str) -> dict:
                 "trace": []}
     llm = OpenAI(api_key=token, base_url=DB_HOST.rstrip("/")+"/serving-endpoints/")
     trace = []
+    results = []  # full (untruncated) tool outputs, for boundary enforcement
+
+    def _final(answer: str) -> dict:
+        return {**enforce(question, answer, results), "trace": trace}
+
     async with Client(MCP_URL) as mc:
         tools = [_to_openai(t) for t in await mc.list_tools()]
-        msgs = [{"role":"system","content":"You are a research funding analyst with live NIH RePORTER tools. Use tools for all funding questions. Cite concrete numbers."},
+        msgs = [{"role":"system","content":SYSTEM_MESSAGE},
                 {"role":"user","content":question}]
         for rnd in range(1, MAX_TOOL_ROUNDS+1):
             try:
@@ -214,7 +221,7 @@ async def _run_agent(question: str, model: str) -> dict:
                 return {"answer":f"LLM error: {e}","trace":trace}
             msg = resp.choices[0].message
             if not msg.tool_calls:
-                return {"answer":msg.content or "","trace":trace}
+                return _final(msg.content or "")
             msgs.append({"role":"assistant","content":msg.content,
                          "tool_calls":[{"id":tc.id,"type":"function",
                                         "function":{"name":tc.function.name,"arguments":tc.function.arguments}}
@@ -230,12 +237,13 @@ async def _run_agent(question: str, model: str) -> dict:
                     r = await mc.call_tool(name, args)
                     p = _extract_data(r)
                     rs = _truncate_tool_result(p)
+                    results.append({"tool": name, "args": args, "payload": p})
                     trace.append({"tool":name,"args":args,"latency_s":round(time.monotonic()-t0,2),"ok":True})
                 except Exception as e:
                     rs = json.dumps({"error":str(e)})
                     trace.append({"tool":name,"args":args,"latency_s":round(time.monotonic()-t0,2),"ok":False,"error":str(e)[:200]})
                 msgs.append({"role":"tool","tool_call_id":tc.id,"content":rs})
-    return {"answer":"Hit max tool rounds.","trace":trace}
+    return _final("Hit max tool rounds.")
 
 @app.post("/ask")
 async def ask(req: AskRequest):

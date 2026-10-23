@@ -19,8 +19,8 @@ def register(mcp: FastMCP) -> None:
         return (
             f"Produce a structured NIH funding overview for \"{topic}\" "
             f"in FY{fiscal_year}. Follow these steps:\n\n"
-            f"1. Use summarize_funding_by_topic to get the exact total "
-            f"   investment and project count for \"{topic}\" in "
+            f"1. Use summarize_funding_by_topic to get the total "
+            f"   investment (state whether the result is complete) and project count for \"{topic}\" in "
             f"   fiscal_years=[{fiscal_year}].\n"
             f"2. Use search_funded_projects to find the 10 largest awards "
             f"   for the same topic and year (sort_by_award=true, limit=10).\n"

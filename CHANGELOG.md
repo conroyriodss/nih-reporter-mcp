@@ -5,7 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.8] - 2026-10-22
+## [0.14.9] - 2026-10-22
+
+### Fixed
+- The hosted Ask loop now carries the interpretation boundaries into its answers instead of leaving them in documents and prompts it never loaded. `web_app._run_agent` sends the rules in `agent_boundaries.SYSTEM_MESSAGE` as its system message, and `agent_boundaries.enforce` checks every final answer against the question and the full tool results: it adds any missing orphan-exclusion, incomplete-retrieval or keyword-versus-RCDC caveat under a "Scope and limits" note, and replaces an answer to an unsupported question (duration ranking, trainee/workforce outcomes, government-wide spending share) with a decline, keeping the model's draft as `withheld_draft`. The `/ask` response lists the boundaries that fired.
+- Server instructions (`app.py`), the `summarize_funding_by_topic` and `export_evidence_bundle` descriptions, three prompts and the spending-categories resource no longer promise an "exact total-investment figure", "congressionally-mandated totals" or "full provenance". They now state when a total is exact, that a topic is a keyword cohort, and what the provenance record contains.
+- `/debug` no longer returns the token length or its first eight characters, and the startup log records only whether a token is present.
+- README: `uv run python main.py` starts on stdio; the quickstart and the smoke-test instructions now set `PORT=8000`, which the smoke client expects.
+
+### Added
+- `tests/test_agent_boundaries.py` (12 tests, in CI): drives the real Ask loop with a scripted model that omits every caveat and the real MCP server on frozen or synthetic records. Written before the fix: against the 0.14.8 loop, 8 failed and the 4 controls passed. CI is now 167 passed + 2 xfailed (215 collected).
+
+### Changed
+- Notebook instrument: the CI stage read its expected baseline from a constant inside the worker (155 + 2); it now reads `EXPECTED_CI` from the run configuration (instrument revision `ci-baseline-config-2026-10-22`).
+- Notebook, evaluation (new section 3.6), manifest, slides and version stamps target v0.14.9. `ci.yml` installs `requirements.txt` and runs the new test. Aggregation logic, upstream requests and tool outputs are unchanged.
+
+## [0.14.8] - 2026-10-22 (superseded by 0.14.9: the Ask loop did not carry the interpretation boundaries)
 
 ### Added
 - `docs/evaluation.md` now has the four sections the deliverables specification requires. Section 3 is titled "Testing methodology" and opens with a summary of the test layers. Section 3.5 is "Performance metrics and behavioral cases" and adds a measured-figures table with an evidence tier on every row; the statement that no p50/p95 benchmark exists is kept. New section 9, "Security considerations", gathers the section 5.1 controls and SECURITY.md content with their boundaries. New section 10, "Lessons learned and recommendations", groups the section 7 repairs by goal. No existing section was renumbered.

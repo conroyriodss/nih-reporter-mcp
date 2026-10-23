@@ -3,7 +3,7 @@
 **Project:** NIH RePORTER MCP Server  
 **Team:** Rich Conroy, NIH/OD/ODSS  
 **Hackathon:** GSA MCP Server and AI Agent Government Hackathon  
-**Submission freeze:** `v0.14.8`  
+**Submission freeze:** `v0.14.9`  
 **Evaluation revision:** October 22, 2026  
 **Repository:** https://github.com/conroyriodss/nih-reporter-mcp  
 **Run history:** [RUN_MANIFEST.md](demonstration_fixture/RUN_MANIFEST.md) and [EVAL_VERDICTS.md](demonstration_fixture/EVAL_VERDICTS.md)
@@ -14,9 +14,11 @@
 
 > **Required sections:** Testing methodology is section 3 (with the reproduction procedure in section 6). Performance metrics are section 3.5. Security considerations are section 9. Lessons learned and recommendations are section 10.
 
+> **What v0.14.9 changes:** the hosted Ask loop now carries four interpretation boundaries itself: excluded orphan subprojects, incomplete retrieval, keyword-versus-RCDC scope, and unsupported questions. The rules are in the system message the model receives, and a check on the final answer adds any boundary the model left out, or withholds an answer to an unsupported question (section 3.6). The server instructions, tool descriptions and prompts no longer promise an exact or congressionally mandated total, and `/debug` no longer returns token details. Aggregation logic, upstream requests and tool outputs are unchanged.
+
 ## 1. Evidence standard and review scope
 
-This revision reconciles the supplied documentation and fixture files with directly inspected source files at `v0.14.8`. It retains historical results with their actual run identities instead of relabeling earlier executions as runs at the submission tag.
+This revision reconciles the supplied documentation and fixture files with directly inspected source files at `v0.14.9`. It retains historical results with their actual run identities instead of relabeling earlier executions as runs at the submission tag.
 
 ### 1.1 Four evidence tiers
 
@@ -32,7 +34,7 @@ Execution status is separate: **PASS**, **FAIL**, **NOT RUN**, or **BLOCKED**. �
 ### 1.2 What was checked for this revision
 
 - **Verified — artifact reconciliation:** SHA-256 checks of both raw snapshots; independent decimal sums; row-by-row ledger decisions and amounts; the primary fixture's stored total, counts, query criteria, and complete contributing-ID list.
-- **Verified — schema validation:** the supplied `tool_output.json`'s `summary` and `provenance` validate against the `v0.14.8` `FundingSummary` and `Provenance` classes, loaded in isolation with Pydantic 2.14.0. This is not a server or transport execution.
+- **Verified — schema validation:** the supplied `tool_output.json`'s `summary` and `provenance` validate against the `v0.14.9` `FundingSummary` and `Provenance` classes, loaded in isolation with Pydantic 2.14.0. This is not a server or transport execution.
 - **Verified — source inspection:** aggregation, evidence export, Pydantic models, input/cache handling, server startup and diagnostic routes, the CI workflow, and the cited test implementations.
 - **NOT RUN for this revision:** the project's CI suite, live MCP/API suites, Databricks model evaluations, deployed app, and GitHub Actions execution. Their historical pass figures remain repository-reported.
 
@@ -43,7 +45,8 @@ The verified fixture checks apply to the **supplied artifact bytes**. They do no
 | Claim | Result retained | Evidence and scope |
 |---|---|---|
 | Submission inventory | **14 tools, 9 prompts, 3 resources** | Repository-reported freeze inventory. Source inspection confirms that `/version` reads the live registries; the runtime inventory recipe below verifies the actual counts. |
-| Model-free CI | **155 passed + 2 xfailed** | Repository-reported at `v0.14.8`. The exact CI selectors and two Python versions are verified in the workflow. Not independently rerun here. |
+| Model-free CI | **167 passed + 2 xfailed** | Repository-reported at `v0.14.9`. The exact CI selectors and two Python versions are verified in the workflow. Not independently rerun here. |
+| Ask-loop boundaries | **4 boundaries carried by the agent loop; 12 model-free tests** | Repository-reported: `tests/test_agent_boundaries.py` drives the real Ask loop with a scripted model that omits every caveat (section 3.6). It shows the loop's check works on those cases, not that a live model's answers are correct. |
 | Standalone smoke | **17/17 passed** | Repository-reported at `v0.14.0`. The 17 cases are t1–t8 and t10–t18; t9 is excluded. |
 | Live correctness | **8 tests; reported 8/8 passed** | Eight test functions verified in source; historical passing execution is repository-reported. They do not provide eight independent dollar-level reconciliations. |
 | Frozen primary total | **$19,790,134; 38 raw / 37 contributing / 1 excluded subproject** | Verified by offline reconciliation of the supplied snapshot, ledger, and stored output. |
@@ -76,7 +79,7 @@ Source: [query.json](demonstration_fixture/query.json). The raw snapshot records
 
 ### 2.2 Whole-award algorithm
 
-Verified by inspection of [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/src/nih_reporter_mcp/utils.py), `aggregate_funding`:
+Verified by inspection of [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.9/src/nih_reporter_mcp/utils.py), `aggregate_funding`:
 
 1. Deduplicate non-null `appl_id` values in retrieval order. The first occurrence wins; later occurrences with conflicting amount, fiscal year, or subproject ID are flagged.
 2. For `whole_award`, exclude every remaining record whose `subproject_id` is **non-null**. This is not an activity-code-prefix rule.
@@ -112,7 +115,7 @@ The stored response correctly has `complete=true` and an orphan warning in `note
 
 The raw projection supports the funding reconciliation. It does **not** contain organization or administering-IC fields, so it cannot independently substantiate the stored `distinct_organizations=29` or `distinct_administering_ics=10`. Inspection of `evidence_bundle.py` also shows those two counts are calculated over retrieved records, including records excluded from the dollar sum.
 
-The manifest reports a live comparison on October 19 at `v0.13.0`. That is historical, repository-reported evidence; the October 15 snapshot is not relabeled as a live retrieval at `v0.14.8`.
+The manifest reports a live comparison on October 19 at `v0.13.0`. That is historical, repository-reported evidence; the October 15 snapshot is not relabeled as a live retrieval at `v0.14.9`.
 
 ### 2.4 Separate double-counting proof
 
@@ -129,7 +132,7 @@ There are no orphan children in this fixture. It directly demonstrates the paren
 
 ### 2.5 What “inspectable” means at this release
 
-[Evidence export](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/src/nih_reporter_mcp/tools/evidence_bundle.py) returns an `EvidenceBundle` with `label`, `summary`, `provenance`, and `reproduction_note`. The model definitions are in [models.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/src/nih_reporter_mcp/models.py).
+[Evidence export](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.9/src/nih_reporter_mcp/tools/evidence_bundle.py) returns an `EvidenceBundle` with `label`, `summary`, `provenance`, and `reproduction_note`. The model definitions are in [models.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.9/src/nih_reporter_mcp/models.py).
 
 **source_record_ids lists up to 500 of N contributing IDs (capped for payload size); records_aggregated gives the true count.**
 
@@ -159,6 +162,7 @@ Testing is layered. Each claim is checked by the least expensive method that can
 
 - **Offline arithmetic reconciliation** (sections 2.3, 2.4 and 6.3): frozen raw records, a SHA-256 check, an independent Decimal sum and a row-by-row decision ledger. No network access or running server is needed.
 - **Model-free CI** (section 3.1): the selected pytest suites on Python 3.11 and 3.12, including mocked upstream failures. No live API or model endpoint is called.
+- **Agent-boundary contract** (section 3.6): the real Ask loop with a scripted model and the real MCP server on frozen or synthetic records. It checks the answer the user sees, not the model's choice of tool.
 - **Live checks** (sections 3.2 and 3.3): the standalone smoke suite and eight correctness tests against the public upstream APIs. Their results depend on upstream data at run time.
 - **Agent evaluation** (sections 3.4 and 3.5): model endpoints choose tools and arguments. These runs are gated separately and never counted in CI totals.
 - **Release identity** (section 6.1 and the notebook's identity cell): the evaluated commit must be the one the tag resolves to, and its parent must match RUN_MANIFEST section 1.
@@ -167,9 +171,9 @@ Each result carries an evidence tier from section 1.1 and a separate execution s
 
 ### 3.1 Model-free CI
 
-**Repository-reported result at `v0.14.8`: 155 passed + 2 xfailed.**
+**Repository-reported result at `v0.14.9`: 167 passed + 2 xfailed.**
 
-The [CI workflow](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/.github/workflows/ci.yml) selects the following suites on **Python 3.11 and 3.12**:
+The [CI workflow](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.9/.github/workflows/ci.yml) selects the following suites on **Python 3.11 and 3.12**:
 
 | Selector | Reported result | Scope |
 |---|---:|---|
@@ -178,12 +182,13 @@ The [CI workflow](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/
 | `tests/test_prompt_contracts.py` | 29 passed | Prompt references and parameter contracts. |
 | `tests/test_clinical_trials.py` | 23 passed | ClinicalTrials.gov parsing, evidence-class and boundary behavior. |
 | `tests/test_version_contract.py` | 1 passed | `/version` counts equal the actual nonempty MCP registries. |
+| `tests/test_agent_boundaries.py` | 12 passed | The Ask loop's final answer carries the four interpretation boundaries (section 3.6). |
 | `tests/test_robustness.py::TestPartC_MockedUpstreamFailures` | 11 passed | Mocked upstream errors and response handling. |
-| **Total** | **155 passed + 2 xfailed** | Part C is included once. |
+| **Total** | **167 passed + 2 xfailed** | Part C is included once. |
 
-The version-contract test is necessary to reconcile the total: omitting it yields 154 passes. It checks registry equality, not a hardcoded release inventory; use the release-inventory check in section 6 for 14/9/3.
+The version-contract test is necessary to reconcile the total: omitting it yields 166 passes. It checks registry equality, not a hardcoded release inventory; use the release-inventory check in section 6 for 14/9/3.
 
-The two expected failures in [test_counting.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/tests/test_counting.py) identify **IC-level attribution not yet implemented** and **publication-to-funding-year joining not supported**. They are not both established upstream-service defects.
+The two expected failures in [test_counting.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.9/tests/test_counting.py) identify **IC-level attribution not yet implemented** and **publication-to-funding-year joining not supported**. They are not both established upstream-service defects.
 
 **Test count is not coverage quality.** In that same file, `TestExcludeSubprojectsFaceting.test_r_series_not_affected` and `test_p_series_significantly_affected` contain `pass` without assertions. Other checks assert locally written constants or reimplement a calculation instead of invoking production behavior, including parts of the year-clamp and P41 examples. Their passing status is not independent verification of the claimed API behavior. Strengthening these checks is planned; this document does not subtract them from the actual reported pytest total.
 
@@ -191,7 +196,7 @@ A blanket `pytest tests/` invocation is **not** the offline CI command: it also 
 
 ### 3.2 Standalone live smoke
 
-**Repository-reported: 17/17 at `v0.14.0`.** Source: [smoke_tests.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/eval/smoke_tests.py) and the run history.
+**Repository-reported: 17/17 at `v0.14.0`.** Source: [smoke_tests.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.9/eval/smoke_tests.py) and the run history.
 
 The standalone suite contains **t1–t8 and t10–t18**. The former t9 efficiency metric is excluded, not a missing eighteenth pass.
 
@@ -208,7 +213,7 @@ The standalone suite contains **t1–t8 and t10–t18**. The former t9 efficienc
 
 ### 3.3 Eight live-correctness tests
 
-Source: [test_correctness.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/tests/test_correctness.py). Use **pytest on the file**: its standalone `main()` runner invokes only six tests.
+Source: [test_correctness.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.9/tests/test_correctness.py). Use **pytest on the file**: its standalone `main()` runner invokes only six tests.
 
 | Test purpose | Actual method and limit |
 |---|---|
@@ -240,7 +245,7 @@ The displayed question matrix implies **7/8 unanimously correct**, while the sup
 
 The reported **24/24 argument-validity** result is distinct from correct tool selection and correct final answers. State the validator used, semantic constraints checked, and whether calls were actually executed when publishing its traces. The reported **3/3 stable** result means three questions repeated five times on GPT-5-5; it does not guarantee determinism on other prompts, settings, or endpoint revisions.
 
-The eight-question set predates coverage of `group_by`, application-type filtering, spending-category routing, and `clinical_trials_lookup`. It does not validate the complete v0.14.8 tool surface, end-to-end scientific interpretation, or reliable abstention.
+The eight-question set predates coverage of `group_by`, application-type filtering, spending-category routing, and `clinical_trials_lookup`. It does not validate the complete v0.14.9 tool surface, end-to-end scientific interpretation, or reliable abstention.
 
 ### 3.5 Performance metrics and behavioral cases
 
@@ -255,7 +260,7 @@ Historical examples support useful workflows but are not a controlled benchmark:
 
 | Metric | Value | Tier and method |
 |---|---|---|
-| Model-free CI | 155 passed + 2 xfailed of 203 collected, on Python 3.11 and 3.12 | Repository-reported: the selected suites in section 3.1. |
+| Model-free CI | 167 passed + 2 xfailed of 215 collected, on Python 3.11 and 3.12 | Repository-reported: the selected suites in section 3.1. |
 | First-tool selection | 22/24 = 91.7% across three models | Repository-reported at `v0.13.0` (claim register, section 1.3). It scores the first tool chosen, not the final answer. |
 | Tool calls per answer in the deployed Ask demo | Largest-award question: 1 call. FY2020 R01 competing-renewal count: 1 call produced the count, and the agent then made an unrequested second call for a dollar figure, so that answer took 2 calls. | Team-reported: Ask-page tool traces on the deployed app, October 22, 2026. One observation per question. |
 | Per-call latency shown in those traces | 0.03 s for each `search_funded_projects` call; 2.6 s for the `summarize_funding_by_topic` call | Team-reported, same traces. Cache state was not recorded, so these values do not distinguish cache hits from upstream requests. |
@@ -264,6 +269,27 @@ Historical examples support useful workflows but are not a controlled benchmark:
 | Courtesy rate limits | Minimum interval between requests: 1.0 s RePORTER, 0.34 s E-utilities, 0.5 s MedlinePlus and ClinicalTrials.gov | Verified: source inspection. These intervals cap throughput by design; throughput itself was not measured. |
 
 **Planned:** publish matched agent traces and a benchmark protocol with fixed questions, scoring rules, endpoint identifiers, decoding settings, cache state, request counts, and failures.
+
+### 3.6 Agent-boundary contract (new in v0.14.9)
+
+Before v0.14.9 the hosted Ask loop sent the model a one-line system message. The boundaries in section 5.2 lived in this document, the prompts and the tool notes, and nothing required the loop to carry them into an answer. `tests/test_agent_boundaries.py` closes that gap and is part of the CI selection.
+
+Each test runs the real `_run_agent` loop end to end. A scripted model stands in for the endpoint and deliberately leaves out every caveat. The real MCP server runs in-process, with RePORTER replaced at the raw-fetch boundary by the frozen CRISPR fixture or by synthetic records, so no network is used. The test then checks the answer the user would see.
+
+| Case | Input | The final answer must |
+|---|---|---|
+| Rules reach the model | any question | have a system message that states all four boundaries |
+| Orphan exclusion | frozen CRISPR fixture through `summarize_funding_by_topic` | keep $19,790,134 and state that 1 excluded subproject's parent was absent, so award-family investment may be missing |
+| Incomplete retrieval | 14,000 synthetic matches | state that only 10,000 of 14,000 records were aggregated and that the figure is a lower bound |
+| Keyword scope | topic query on a complete cohort | state that it is a keyword cohort, not an RCDC spending-category total, and add no other caveat |
+| Unsupported questions | duration ranking, trainee outcomes, federal spending share | withhold the model's fabricated answer and say the question is not supported |
+| Controls | a clean answer, the two benchmark questions, an answer that already states its caveats | be returned byte-for-byte unchanged |
+
+The tests were written before the v0.14.9 fix: run against the earlier v0.14.8 Ask loop, 8 of the 12 failed (the system-message test, the three caveat cases, the three unsupported questions and the boundary report) and the 4 controls passed; with the fix all 12 pass.
+
+The fix has two layers. The rules are in the system message on every request, and `agent_boundaries.enforce` checks the final answer against the question and the full tool results the loop received. A missing caveat is appended under a plain "Scope and limits" note built from the tool output. An unsupported question gets a decline instead of the model's draft, which is kept in the response as `withheld_draft`. The response also lists which boundaries fired and whether the check added them.
+
+**Limits.** Unsupported questions are recognized by question patterns for the three documented classes, so a differently worded question can reach the model unguarded, and the system message is then the only defence. The caveat checks look for wording, not meaning. How a particular live model behaves on these cases is a deployed-app observation; it is recorded after deployment in the release notes, because a commit cannot contain results produced after it.
 
 ## 4. Historical live figures
 
@@ -286,7 +312,7 @@ For CRISPR FY2023 the manifest reports 1,739 matches, 226 excluded subprojects, 
 
 ### 5.1 Implementation controls
 
-Verified in [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/src/nih_reporter_mcp/utils.py):
+Verified in [utils.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.9/src/nih_reporter_mcp/utils.py):
 
 - Outbound host allowlist: `api.reporter.nih.gov`, `eutils.ncbi.nlm.nih.gov`, `wsearch.nlm.nih.gov`, and `clinicaltrials.gov`.
 - Topic/string length limit: **500 characters** in the relevant validator; fiscal-year array limit: **20**.
@@ -310,6 +336,8 @@ The existence of these controls is verified by inspection. Mocked error-path exe
 | Unsupported questions | No workforce/career-outcome integration or duration-sort capability is demonstrated. The documented USAspending stub is not a functioning integration and is outside the 14-tool capability claim. |
 | Topic/program membership | A keyword occurrence does not establish membership in a named program, even when every returned match was retrieved. |
 
+From v0.14.9 the Ask loop carries four of these boundaries into every answer itself: orphan exclusion and incomplete retrieval under portfolio funding, keyword-versus-RCDC scope under topic/program membership, and unsupported questions (section 3.6). The others still depend on the model following the tool notes.
+
 These limits support both missions: **oversight**, through reviewable portfolio and counting decisions, and **service delivery**, through accessible explanations that preserve uncertainty. Plain language must not remove evidence or imply stronger certainty.
 
 ### 5.3 Deployed app and notebook
@@ -332,22 +360,22 @@ The following recipes target a new local **Bash + Python 3.12** environment. The
 
 ### 6.1 Pin source and capture the resolved environment
 
-`requirements.txt` contains **minimum version ranges**, not a dependency lock. [pyproject.toml](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/pyproject.toml) also reports distribution version `0.1.0`, while the source module version is `0.14.8`. Use the resolved Git commit and source module version for identity; do not treat package metadata alone as proof of the release.
+`requirements.txt` contains **minimum version ranges**, not a dependency lock. [pyproject.toml](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.9/pyproject.toml) also reports distribution version `0.1.0`, while the source module version is `0.14.9`. Use the resolved Git commit and source module version for identity; do not treat package metadata alone as proof of the release.
 
 This procedure pins source and records a fresh dependency resolution. It does **not** reproduce the historical dependency environment bit-for-bit.
 
 ```bash
 set -eu
 RUN_ROOT="$(mktemp -d)"
-git clone --branch v0.14.8 --single-branch \
+git clone --branch v0.14.9 --single-branch \
   https://github.com/conroyriodss/nih-reporter-mcp.git "$RUN_ROOT/repo"
 cd "$RUN_ROOT/repo"
-git checkout --detach v0.14.8
+git checkout --detach v0.14.9
 
 export EVIDENCE="$RUN_ROOT/evidence"
 mkdir -p "$EVIDENCE"
 git rev-parse HEAD > "$EVIDENCE/source-commit.txt"
-git rev-parse 'v0.14.8^{commit}' > "$EVIDENCE/tag-commit.txt"
+git rev-parse 'v0.14.9^{commit}' > "$EVIDENCE/tag-commit.txt"
 diff "$EVIDENCE/source-commit.txt" "$EVIDENCE/tag-commit.txt"
 git status --porcelain > "$EVIDENCE/working-tree-before.txt"
 test ! -s "$EVIDENCE/working-tree-before.txt"
@@ -385,6 +413,7 @@ python -m pytest \
   tests/test_prompt_contracts.py \
   tests/test_clinical_trials.py \
   tests/test_version_contract.py \
+  tests/test_agent_boundaries.py \
   tests/test_robustness.py::TestPartC_MockedUpstreamFailures \
   -v --tb=short -p no:cacheprovider \
   --junitxml="$EVIDENCE/ci.junit.xml" \
@@ -395,7 +424,7 @@ printf '%s\n' "$ci_status" > "$EVIDENCE/ci.exit-code.txt"
 cat "$EVIDENCE/ci.stdout.txt"
 ```
 
-**Historical expected output:** 155 passed, 2 xfailed; exit status 0. Report the actual run, including failures, errors, skips, and unexpected passes. JUnit often represents expected failures as skipped test cases with a reason; retain the pytest output rather than counting every XML “skipped” as an ordinary skip. A collect-only count is not a pass count.
+**Expected output at v0.14.9:** 167 passed, 2 xfailed; exit status 0. Report the actual run, including failures, errors, skips, and unexpected passes. JUnit often represents expected failures as skipped test cases with a reason; retain the pytest output rather than counting every XML “skipped” as an ordinary skip. A collect-only count is not a pass count.
 
 Run separately under Python 3.11 to reproduce that matrix leg. Do not infer both legs passed from one local execution.
 
@@ -549,7 +578,7 @@ async def main():
         resources = await client.list_resources()
     actual = {"tools": len(tools), "prompts": len(prompts), "resources": len(resources)}
     assert actual == {"tools": 14, "prompts": 9, "resources": 3}, actual
-    assert version["version"] == "0.14.8", version
+    assert version["version"] == "0.14.9", version
     assert all(version[k] == value for k, value in actual.items()), version
     print(json.dumps({"version": version, "actual_counts": actual,
                       "tool_names": sorted(t.name for t in tools)}, indent=2))
@@ -615,8 +644,8 @@ Updating this file does not repair the companion files listed below.
 | Resolved in v0.14.5 | Manifest artifact hash mismatch | At v0.14.5, RUN_MANIFEST A4 recorded the then-shipped `demonstration_fixture/independent_total.md` (3,926 bytes, SHA-256 `edca15031e947a8dc8a0e7d111e506de7a3901392d5c2d9eaa25a741e44657dc`). The earlier row (3,971 bytes) predated the v0.14.2 edit that removed a commit SHA from that file. At v0.14.7 the file's verdict line was relabelled from "AT HEAD" to "at v0.13.0" (3,942 bytes); RUN_MANIFEST A4 records the current hash. |
 | High | Dependency-lock claim | The inspected requirements file contains ranges. Correct the manifest's “pip-freeze / lock” description or publish a real pinned environment artifact. |
 | High | Provenance freshness and replay | Export a true upstream retrieval timestamp/cache indicator, request ordering, and full record evidence where complete historical replay is claimed. Until then, retain section 2.5's limitations. |
-| High | Agent-facing certainty exceeds this document's boundary | The server instructions in [app.py](https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/src/nih_reporter_mcp/app.py) advertise an “exact total-investment figure” and “curated, congressionally-mandated totals.” Qualify those instructions with query scope, completeness, and the distinction between RePORTER category-filtered sums and published RCDC totals. Updating this evaluation does not change what the agent receives. |
-| High | Run identity and accessible logs | Historical A1–A5 and STEP 1–3 runs belong to v0.13.0, not v0.14.8. Replace ambiguous “at HEAD” statements with run identities; publish JUnit/log/trace artifacts currently referenced only by ephemeral or private paths. |
+| Resolved in v0.14.9 | Agent-facing certainty exceeded this document's boundary | Up to v0.14.8 the server instructions advertised an “exact total-investment figure” and “curated, congressionally-mandated totals,” and the Ask loop carried no boundary into its answers. v0.14.9 qualifies the instructions, tool descriptions and prompts with completeness and keyword-versus-RCDC scope, and the Ask loop now enforces four boundaries (section 3.6). |
+| High | Run identity and accessible logs | Historical A1–A5 and STEP 1–3 runs belong to v0.13.0, not v0.14.9. Replace ambiguous “at HEAD” statements with run identities; publish JUnit/log/trace artifacts currently referenced only by ephemeral or private paths. |
 | High | Model-result contradiction | Reconcile the unanimity figure with the per-question matrix and raw traces. Do not mix the earlier GPT/Llama Q5 misses with the later GPT/Claude misses. |
 | Medium | Method-order drift | `ground_truth_methodology.md` and parts of the manifest describe subproject exclusion before deduplication. The production loop and stored reproduction note deduplicate first. Align procedural documentation. |
 | Medium | Weak or vacuous assertions | Replace no-op/constant-only “regression” checks with calls to production behavior; make absent live preconditions explicit; test capped provenance, missing IDs, cached timestamps, and full payload replay. |
@@ -671,7 +700,7 @@ This section gathers the security controls from section 5.1 and [SECURITY.md](..
 - This revision does not certify the absence of secrets across repository history.
 - The requirements file uses version ranges, so dependency versions are resolved at install time (section 7, dependency-lock claim).
 - Unhandled web-app errors return JSON containing the exception message, truncated to 500 characters, rather than a stack trace.
-- The web app's `/debug` diagnostic route returns configuration status to signed-in users, including the length and first eight characters of the app's current access token. Those characters are the start of the token's public header, not its secret portion, but the route still exposes more than a diagnostic needs (section 10.2).
+- The web app's `/debug` diagnostic route returns configuration status to signed-in users. Up to v0.14.8 it also returned the length and first eight characters of the app's current access token; v0.14.9 removed both, and the route now reports only whether a token is present.
 
 ## 10. Lessons learned and recommendations
 
@@ -687,6 +716,7 @@ This section gathers the security controls from section 5.1 and [SECURITY.md](..
 
 - A published figure needs its run identity beside it. Earlier documents presented historical runs as current; the evidence tiers in section 1.1 and the dated run records in RUN_MANIFEST replaced that practice.
 - Test counts are not test strength. Some passing tests assert constants or contain no assertion (section 3.1), so a count shows what ran, not what was verified.
+- A boundary written down is not a boundary enforced (fixed in v0.14.9). Up to v0.14.8 this document, the prompts and the tool notes stated the interpretation limits, but the Ask loop sent the model a one-line system message and returned whatever it wrote. The loop now carries the limits, backed by tests that fail when they are missing (section 3.6).
 - Agent behavior needs traces, not summaries. In one deployed run the agent answered the requested count with one call and then made an unrequested second call (section 3.5); only the trace showed it.
 
 **Release integrity.**
@@ -699,8 +729,8 @@ This section gathers the security controls from section 5.1 and [SECURITY.md](..
 
 Section 7 is the prioritized list of repairs. These recommendations group it by goal instead of repeating it.
 
-1. **Align agent-facing text with this document's boundary.** Qualify the certainty in the server instructions (section 7, High) before wider use.
+1. **Align agent-facing text with this document's boundary.** Done in v0.14.9 for the server instructions, tool descriptions, prompts and the Ask loop (section 3.6). Next, extend the boundary tests to more question wordings and score live models on them with the protocol in section 6.6.
 2. **Publish reproducible evidence.** Release a locked environment, JUnit and trace artifacts, and the benchmark protocol planned in section 3.5, so that repository-reported results can become verified ones.
 3. **Strengthen the tests that are counted.** Replace no-op and constant-only checks with calls to production behavior (section 7, Medium).
-4. **Tighten the hosted app.** Remove token details from `/debug` or restrict the route, and publish a dated Ask status beside the control (section 5.3).
+4. **Tighten the hosted app.** v0.14.9 removed the token details from `/debug`. Restrict the route further, and publish a dated Ask status beside the control (section 5.3).
 5. **Keep companion documents current.** Align SECURITY.md with this section: it counts three upstream APIs where four are contacted, and describes dependencies as pinned where the requirements file uses ranges. Reconcile the architecture and roadmap counts as well (section 7, Medium).

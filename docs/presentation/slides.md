@@ -1,5 +1,5 @@
 <!-- Proposed seven-slide copy, including the cover. Speaker notes and source
-references are not slide text. Submission identity is v0.14.8. Historical runs
+references are not slide text. Submission identity is v0.14.9. Historical runs
 retain their actual versions and dates. This rewrite does not report new CI,
 live API, or model execution results. -->
 
@@ -15,7 +15,7 @@ Rich Conroy, NIH/OD/ODSS
 
 GSA MCP Server and AI Agent Government Hackathon
 
-Submission freeze: **v0.14.8**
+Submission freeze: **v0.14.9**
 
 <!-- Speaker notes
 Opening: “An NIH funding answer should include enough evidence for someone else
@@ -133,7 +133,7 @@ supplies the parent-plus-children proof.
 Raw acquisition: 2026-10-15T20:31:43.117032+00:00. Stored tool response:
 2026-10-18T19:07:59.647418+00:00. The repository reports a subsequent comparison
 at v0.13.0 on October 19. Preserve those dates instead of relabeling them as a
-new v0.14.8 execution.
+new v0.14.9 execution.
 
 All 37 contributing IDs are present in this small fixture. More generally,
 source_record_ids lists up to 500 of N contributing IDs (capped for payload
@@ -218,7 +218,9 @@ docs/demonstration_fixture/RUN_MANIFEST.md, A5 LF-2, LF-3, LF-4, LF-7, LF-10.
 
 USAspending comparison remains an **unregistered stub, outside the 14 active tools**.
 
-Documented examples show abstention. Reliable behavior on every formulation remains unproven.
+**New in v0.14.9:** the Ask loop enforces these limits itself. Its system message states them, and a check on the final answer withholds an unsupported answer or adds a missing caveat.
+
+Twelve model-free tests prove the check on fixed cases. Other wordings remain unproven.
 
 <!-- Speaker notes
 Suggested boundary language, not a verbatim historical model quotation:
@@ -235,7 +237,14 @@ Evidence scope: EVAL_VERDICTS BC-3 records a zero-call abstention after the
 v0.14.0 description changes, using Claude Sonnet 4-5. BC-3b records trainee-
 outcomes abstention at v0.13.0 using GPT-5-5. BC-3c records a partial answer plus
 decline of cross-agency comparison at v0.13.0. These are documented historical
-cases, not a general abstention accuracy rate. The older 7/7 in-scope + 3/3
+cases, not a general abstention accuracy rate.
+
+v0.14.9 (replacing the v0.14.8 loop, which carried no boundary): tests/test_agent_boundaries.py
+drives the real Ask loop with a scripted model that omits every caveat. Run
+against the earlier loop, 8 of 12 tests failed; at v0.14.9 all 12 pass. The check
+recognizes the three unsupported classes by question pattern, so other wordings
+still depend on the system message. It also adds the orphan, incomplete-retrieval
+and keyword-scope caveats when a model leaves them out. The older 7/7 in-scope + 3/3
 abstention battery was explicitly demoted and should not become a new headline.
 
 Sources: docs/demonstration_fixture/EVAL_VERDICTS.md, BC-3, BC-3b, BC-3c and
@@ -250,7 +259,7 @@ STEP 4; docs/roadmap.md, “Stubbed, not implemented.”
 
 | Evidence | What it supports |
 |---|---|
-| Release CI: **155 passed + 2 xfailed** | Selected model-free checks with explicit expected failures |
+| Release CI: **167 passed + 2 xfailed** | Selected model-free checks with explicit expected failures |
 | Two frozen fixtures | Funding arithmetic, record decisions, and a parent-component double-counting example |
 | Documented first-tool evaluation: **22/24** | Eight questions across three models, covering the original question set |
 
@@ -259,10 +268,11 @@ STEP 4; docs/roadmap.md, “Stubbed, not implemented.”
 Inspectable portfolio analysis supports oversight. Clear scope and explanations support public access.
 
 <!-- Speaker notes
-The canonical release CI baseline is 155 passed + 2 xfailed. This deck rewrite
+The canonical release CI baseline is 167 passed + 2 xfailed. This deck rewrite
 does not claim a new CI run. Keep the GitHub Actions run on the tagged commit
-available for inspection. docs/evaluation.md section 3.1 lists the six CI
-selections, including tests/test_version_contract.py, and sums to 155 + 2.
+available for inspection. docs/evaluation.md section 3.1 lists the seven CI
+selections, including tests/test_version_contract.py and
+tests/test_agent_boundaries.py, and sums to 167 + 2.
 
 Model evaluation: 22/24=91.67%, rounded to 92%, measures the first selected tool
 in the eight-question legacy slice. It does not measure end-to-end answer
@@ -292,9 +302,9 @@ If unavailable at presentation time, display a prominent status message and
 use the public frozen artifacts. Do not promise that an upstream-dependent
 Evidence Bundle request “always works.”
 
-Repository: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.8
-Manifest: https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.8/docs/demonstration_fixture/RUN_MANIFEST.md
-Fixtures: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.8/docs/demonstration_fixture
+Repository: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.9
+Manifest: https://github.com/conroyriodss/nih-reporter-mcp/blob/v0.14.9/docs/demonstration_fixture/RUN_MANIFEST.md
+Fixtures: https://github.com/conroyriodss/nih-reporter-mcp/tree/v0.14.9/docs/demonstration_fixture
 
 Sources: docs/evaluation.md, sections 1 and 3.5;
 docs/demonstration_fixture/RUN_MANIFEST.md;

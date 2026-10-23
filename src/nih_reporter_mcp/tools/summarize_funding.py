@@ -1,4 +1,4 @@
-"""summarize_funding_by_topic — exact total investment via full pagination."""
+"""summarize_funding_by_topic — total recorded award amounts via full pagination (up to 10,000 records)."""
 
 from __future__ import annotations
 
@@ -34,10 +34,13 @@ def register(mcp: FastMCP) -> None:
         spending_category: Annotated[str | int | None, Field(description="NIH RCDC spending category -- name (e.g. 'Alzheimer's Disease', 'Cancer', 'Long COVID') or numeric ID. Aggregates live RePORTER data tagged with this category; note this may differ from NIH's frozen published RCDC totals, which are point-in-time snapshots.")] = None,
         active_only: Annotated[bool | None, Field(description="If true, active projects only (client-side filtered). If false, inactive only. Omit for all.")] = None,
         funding_basis: Annotated[str, Field(description="'whole_award' (default, excludes subproject records to avoid double-counting) or 'all_records' (legacy, sums every record including subprojects).")] = "whole_award",
-        include_provenance: Annotated[bool, Field(description="If true, attach a full Provenance audit trail (heavier payload).")] = False,
+        include_provenance: Annotated[bool, Field(description="If true, attach the Provenance record: query criteria, record counts and up to 500 contributing record IDs (heavier payload).")] = False,
     ) -> FundingSummary:
         """Quantify total NIH/HHS investment in a research topic (oversight view).
-        Paginates through ALL matching projects (up to 10,000) for an exact total."""
+        Paginates through all matching projects up to RePORTER's 10,000-record
+        ceiling. The total is exact only when complete=true and the note reports
+        no excluded orphan subprojects. A topic is a keyword cohort, not an
+        official RCDC spending-category total."""
         if not topic and not spending_category and not activity_codes and not fiscal_years:
             raise ValueError("Provide at least one of topic, spending_category, activity_codes, or fiscal_years.")
         if topic:

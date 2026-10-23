@@ -21,7 +21,7 @@ def register(mcp: FastMCP) -> None:
         fiscal_years: Annotated[list[int] | None, Field(description="Restrict to these fiscal years.")] = None,
         exact_match: Annotated[bool, Field(description="If true (default), exact name match to avoid combining similarly-named institutions.")] = True,
         funding_basis: Annotated[str, Field(description="'whole_award' (default) or 'all_records'.")] = "whole_award",
-        include_provenance: Annotated[bool, Field(description="If true, attach a full Provenance audit trail.")] = False,
+        include_provenance: Annotated[bool, Field(description="If true, attach the Provenance record: query criteria, record counts and up to 500 contributing record IDs.")] = False,
     ) -> OrgProfile:
         """Build a funding profile for a named institution."""
         organization_name = validate_topic(organization_name)

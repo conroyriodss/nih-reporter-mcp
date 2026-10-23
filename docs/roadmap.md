@@ -2,7 +2,7 @@
 
 ## Done
 
-- **14 tools**: 9 RePORTER-native (search, exact-total summarization with opt-in provenance, year-over-year trends, org profiles with opt-in provenance, investigator portfolios, investigator overlap/duplication check, funded-project distribution by study section, recent awards tracking, direct ID lookup) + 1 cross-API (PubMed citation resolution via NCBI E-utilities) + 1 hybrid (publication linking) + 1 audit (evidence bundle export with full provenance, source record IDs, and reproduction note) + 1 consumer health (plain-language health-topic explanations from MedlinePlus in English/Spanish via NLM Web Search) + 1 clinical trials (ClinicalTrials.gov v2 API lookup connecting funded projects to registered trials)
+- **14 tools**: 9 RePORTER-native (search, reconciled-total summarization (exact only when complete) with opt-in provenance, year-over-year trends, org profiles with opt-in provenance, investigator portfolios, investigator overlap/duplication check, funded-project distribution by study section, recent awards tracking, direct ID lookup) + 1 cross-API (PubMed citation resolution via NCBI E-utilities) + 1 hybrid (publication linking) + 1 audit (evidence bundle export with full provenance, source record IDs, and reproduction note) + 1 consumer health (plain-language health-topic explanations from MedlinePlus in English/Spanish via NLM Web Search) + 1 clinical trials (ClinicalTrials.gov v2 API lookup connecting funded projects to registered trials)
 - **9 prompts** across 3 audiences (general/analyst, program officer, citizen scientist): `funding_overview`, `institution_report`, `compare_rcdc_vs_freetext`, `research_landscape_summary`, `portfolio_brief`, `other_support_review` (public funded-award screening), `investment_to_outputs`, `explain_funding_landscape`, `follow_the_evidence` — reusable prompt templates that compose the same tools with audience-appropriate framing and boundary language
 - **3 resources**: `nih-reporter://spending-categories` (browsable RCDC category lookup table), `nih-reporter://server-info` (version, constraints, upstream API metadata), `nih-reporter://response-guidelines` (behavioral guidelines for agent responses)
 - **2 custom HTTP routes**: `/health` (liveness probe for load balancers / Databricks Apps) and `/version` (capability report with tool/prompt/resource counts)
@@ -18,7 +18,7 @@
   framing and boundary language
 - 17-assertion standalone smoke suite against live data + t9 LLM agent-efficiency (notebook-only), with hard invariants and drift-tolerant thresholds correctly distinguished
 - 8 correctness-against-ground-truth tests (`tests/test_correctness.py`) proving funding arithmetic matches independently hand-computed reference values to the dollar
-- 203 pytest tests across 7 files: 155 pass + 2 xfail offline (CI), 8 live-integration pass, 38 server-robustness pass
+- 215 pytest tests across 8 files: 167 pass + 2 xfail offline (CI), 8 live-integration pass, 38 server-robustness pass
 - Measured, regression-guarded LLM agent tool-selection accuracy (100% across 8 held-out questions) and tool-call efficiency (mean 1.0 calls/question after a documented tool-description fix)
 - Reasoning-vs-chat-completion model endpoint compatibility documented and handled
 

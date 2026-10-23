@@ -43,7 +43,7 @@ def register(mcp: FastMCP) -> None:
             f"3. Call **export_evidence_bundle** with "
             f'   topic="{topic}", fiscal_years=[{fy_param}], and '
             f'   label="{topic} FY{fy_list[0]} portfolio brief" to get the '
-            f"   full provenance and source record IDs.\n\n"
+            f"   provenance (query criteria, record counts, contributing record IDs).\n\n"
             f"Present the results as a cohort brief with:\n"
             f"- **Framing comparison**: free-text total vs live RCDC-category "
             f"  aggregation (if available), with a note on why they differ "

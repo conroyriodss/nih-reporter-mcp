@@ -27,7 +27,7 @@ Rather than wrapping RePORTER's raw REST endpoints 1:1, every tool here is desig
 | `check_investigator_overlap` | Screens an investigator's publicly funded NIH awards for candidate overlap as input to Other Support review (pending, non-NIH, and unpublished support are not visible), with explicit project exclusion so the application under review is omitted |
 | `funded_projects_by_study_section` | Distribution of funded projects across the peer-review study sections that evaluated them — shows funded outcomes only (unfunded/pending applications are not in RePORTER), useful for seeing which panels handle funded projects in a given research area |
 | `search_recent_awards` | Most recently added award records sorted by date added to RePORTER — useful for program officers tracking what's newly funded. Honestly notes that database recency can lag actual award notice dates |
-| `export_evidence_bundle` | Inspectable audit trail for any funding claim: returns the summary, full provenance (query criteria, source record IDs, timing), counting-unit disclaimer, and a reproduction note |
+| `export_evidence_bundle` | Inspectable audit trail for any funding claim: returns the summary, provenance (query criteria, record counts, up to 500 contributing record IDs, timing), counting-unit disclaimer, and a reproduction note |
 | `explain_health_topic` | Plain-language health-topic explanation from MedlinePlus (NIH/NLM consumer health service), in English or Spanish. Gives non-expert audiences authoritative background on a condition alongside funding data |
 | `get_project_by_id` | Direct lookup by application ID or core project number |
 | `list_publications_for_project` | PubMed IDs linked to a project |
@@ -70,10 +70,11 @@ See [`docs/findings.md`](docs/findings.md) for documented data-quality discoveri
 git clone <this-repo>
 cd nih-reporter-mcp
 uv sync
-uv run python main.py
+uv run python main.py            # stdio, for MCP clients such as Claude Desktop or MCP Inspector
+PORT=8000 uv run python main.py  # Streamable HTTP at http://localhost:8000/mcp
 ```
 
-Server starts on stdio by default (for local MCP client testing, e.g. Claude Desktop or MCP Inspector). Set `PORT` or `DATABRICKS_APP_PORT` to serve Streamable HTTP instead. For Databricks Apps deployment, see [`app.yaml`](app.yaml).
+`main.py` starts on **stdio** unless `PORT` (or `DATABRICKS_APP_PORT`) is set, in which case it serves Streamable HTTP on that port at `/mcp`. The smoke tests below connect to `http://localhost:8000/mcp` by default (override with `MCP_URL`), so start the server with `PORT=8000` for them. For Databricks Apps deployment, see [`app.yaml`](app.yaml).
 
 No API key or authentication is required for the underlying NIH RePORTER or NCBI E-utilities APIs.
 
@@ -81,9 +82,9 @@ No API key or authentication is required for the underlying NIH RePORTER or NCBI
 
 Three test tiers, each runnable independently:
 
-**Model-free CI (GitHub Actions, every push/PR):** 155 pytest pass + 2 xfail across `test_counting` (67p + 2xf: synthetic aggregate_funding unit tests including pagination clamping, server-side faceting, PI group-by), `test_security` (24p: host-allowlist and input-size guards), `test_prompt_contracts` (29p: every prompt references only existing tools with correct parameter names), `test_clinical_trials` (23p: ClinicalTrials.gov v2 integration, evidence-class classification, NIH-vs-FDA disambiguation), `test_version_contract` (1p: `/version` counts equal the live `list_tools`/`list_prompts`/`list_resources` registries), and `test_robustness::TestPartC` (11p: mocked upstream failure handling: HTTP 500, 429 retry, timeout, oversized response, malformed JSON). No network, no server, no model access required.
+**Model-free CI (GitHub Actions, every push/PR):** 167 pytest pass + 2 xfail across `test_counting` (67p + 2xf: synthetic aggregate_funding unit tests including pagination clamping, server-side faceting, PI group-by), `test_security` (24p: host-allowlist and input-size guards), `test_prompt_contracts` (29p: every prompt references only existing tools with correct parameter names), `test_clinical_trials` (23p: ClinicalTrials.gov v2 integration, evidence-class classification, NIH-vs-FDA disambiguation), `test_version_contract` (1p: `/version` counts equal the live `list_tools`/`list_prompts`/`list_resources` registries), `test_agent_boundaries` (12p: the Ask loop's final answer carries the orphan-exclusion, incomplete-retrieval, keyword-versus-RCDC and unsupported-question boundaries even when the model omits them), and `test_robustness::TestPartC` (11p: mocked upstream failure handling: HTTP 500, 429 retry, timeout, oversized response, malformed JSON). No network, no server, no model access required.
 
-**Live-server integration (local, requires running MCP server):** 17 standalone smoke tests (`eval/smoke_tests.py`) against live RePORTER data (not mocked), covering exact-total correctness, the 10,000-record retrieval cap, organization-name disambiguation, RCDC-category-vs-free-text divergence, input validation, injection-style input handling, investigator overlap/exclusion logic, funded-project study-section distribution, recent-awards sort validation, provenance/counting-unit transparency, evidence-bundle export inspection, whole_award vs all_records dedup verification, cache correctness, and MedlinePlus health-topic lookup. A single tool-description clarification dramatically reduced redundant agent calls (BC-1: 32→1 calls; BC-2: 18→1 calls; real traces at v0.14.0). 8 additional correctness tests (`tests/test_correctness.py`) prove funding arithmetic against independently-derived ground truth. 49 robustness tests = 11 mocked (Part C, counted within the 155 CI figure) + 38 server-dependent (Parts A/B/D/E: 32 stable + 6 pass-with-retry) in `tests/test_robustness.py`; the server-dependent set exercises live-server error handling, rate-limit recovery, and boundary conditions (the 6 retries are transient upstream timeouts).
+**Live-server integration (local, requires running MCP server):** 17 standalone smoke tests (`eval/smoke_tests.py`) against live RePORTER data (not mocked), covering exact-total correctness, the 10,000-record retrieval cap, organization-name disambiguation, RCDC-category-vs-free-text divergence, input validation, injection-style input handling, investigator overlap/exclusion logic, funded-project study-section distribution, recent-awards sort validation, provenance/counting-unit transparency, evidence-bundle export inspection, whole_award vs all_records dedup verification, cache correctness, and MedlinePlus health-topic lookup. A single tool-description clarification dramatically reduced redundant agent calls (BC-1: 32→1 calls; BC-2: 18→1 calls; real traces at v0.14.0). 8 additional correctness tests (`tests/test_correctness.py`) prove funding arithmetic against independently-derived ground truth. 49 robustness tests = 11 mocked (Part C, counted within the 167 CI figure) + 38 server-dependent (Parts A/B/D/E: 32 stable + 6 pass-with-retry) in `tests/test_robustness.py`; the server-dependent set exercises live-server error handling, rate-limit recovery, and boundary conditions (the 6 retries are transient upstream timeouts).
 
 **Multi-model agent eval (Databricks notebook only):** Tool-selection accuracy across 3 model families (GPT-5-5, Claude Sonnet 4-6, Llama 3.3 70B): 22/24 (92%). Determinism: 3/3 stable over 5 repeats. Argument validity: 24/24 (100%). See `notebook-merged` §14.
 
@@ -93,12 +94,12 @@ See [`eval/README.md`](eval/README.md) for how to run each tier and [`docs/findi
 # Model-free CI tests (no server needed)
 PYTHONPATH=src pytest tests/test_counting.py tests/test_security.py \
   tests/test_prompt_contracts.py tests/test_clinical_trials.py \
-  tests/test_version_contract.py \
+  tests/test_version_contract.py tests/test_agent_boundaries.py \
   tests/test_robustness.py::TestPartC_MockedUpstreamFailures -v
-# All 155 tests pass (+ 2 xfail) in bare subprocess on Python 3.11/3.12 (no nest_asyncio needed).
+# All 167 tests pass (+ 2 xfail) in bare subprocess on Python 3.11/3.12 (no nest_asyncio needed).
 
-# Live-server smoke tests
-uv run python main.py &
+# Live-server smoke tests (the server must serve HTTP on port 8000)
+PORT=8000 uv run python main.py &
 sleep 5
 uv run python eval/smoke_tests.py               # full parallel (~60-90s)
 uv run python eval/smoke_tests.py --quick        # quick: 5 tests (~8s)

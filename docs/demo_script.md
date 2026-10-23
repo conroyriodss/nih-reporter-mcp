@@ -77,7 +77,7 @@ The agent calls `summarize_funding_by_topic` twice — once with
 A **4.5× divergence** — the official category captures a curated subset;
 the free-text search sweeps in every project mentioning the phrase.
 The agent explains this distinction because both numbers are returned
-with full provenance; neither is presented as "the" answer.
+with its provenance record; neither is presented as "the" answer.
 
 ## 0:55–1:10 — Citizen-scientist framing
 
@@ -122,6 +122,6 @@ aspirational.
 | 38 records, 37 included, 1 excluded | docs/demonstration_fixture/decision_ledger.csv | Frozen |
 | $199,600,750 (RCDC Long COVID) | smoke t4 | Live API |
 | $891,742,057 (free-text long covid) | smoke t4 | Live API |
-| 155 passed + 2 xfailed | CI selection in .github/workflows/ci.yml | Release CI |
+| 167 passed + 2 xfailed | CI selection in .github/workflows/ci.yml | Release CI |
 | 17/17 smoke tests | eval/smoke_tests.py | Latest run |
 | 8/8 correctness tests | tests/test_correctness.py | Live run (repository-reported) |

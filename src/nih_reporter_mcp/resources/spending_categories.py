@@ -17,8 +17,9 @@ def register(mcp: FastMCP) -> None:
             "Curated lookup table of NIH RCDC spending category names and "
             "their numeric IDs. Use these names or IDs with the "
             "spending_category parameter on summarize_funding_by_topic and "
-            "funding_trend_by_year for official, congressionally-mandated "
-            "funding totals."
+            "funding_trend_by_year for official RCDC category totals as tagged "
+            "in live RePORTER data (these can differ from NIH's published "
+            "point-in-time RCDC tables)."
         ),
     )
     def spending_categories() -> str:

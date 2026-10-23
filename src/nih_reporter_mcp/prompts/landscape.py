@@ -30,7 +30,7 @@ def register(mcp: FastMCP) -> None:
             f"({yb} years). Follow these steps:\n\n"
             f"1. Call **summarize_funding_by_topic** with "
             f'   topic="{topic}" and fiscal_years=[{fy_str}] to get the '
-            f"   exact total NIH/HHS investment and project count for the "
+            f"   total NIH/HHS investment (exact only if the result reports it is complete) and project count for the "
             f"   full period.\n"
             f"2. Call **funding_trend_by_year** with "
             f'   topic="{topic}", start_year={start_fy}, '

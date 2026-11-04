@@ -20,7 +20,7 @@ Rather than wrapping RePORTER's raw REST endpoints 1:1, every tool here is desig
 | Tool | Purpose |
 |---|---|
 | `search_funded_projects` | Find funded projects matching a topic, with filters (fiscal year, state, agency, active/inactive, `application_types`, `activity_codes`). Supports server-side `group_by` faceting (`application_type`, `organization`, `administering_ic`) for deduped award counts that bypass the 10,000-record pagination ceiling |
-| `summarize_funding_by_topic` | Exact total NIH/HHS investment in a topic, via full pagination (not a 500-record estimate). Accepts either free-text or an official NIH spending category |
+| `summarize_funding_by_topic` | Reconciled total of recorded award amounts for a topic or spending category. Interpret the total with the returned completeness flag, counting rules, and excluded-subproject information; a keyword cohort is not an official spending-category total. |
 | `funding_trend_by_year` | Year-by-year funding trend for a topic or spending category |
 | `organization_funding_profile` | Funding profile for a named institution, with exact-name matching by default to avoid silently combining similarly-named institutions |
 | `investigator_portfolio` | Funded portfolio for a named researcher |
@@ -67,16 +67,30 @@ See [`docs/findings.md`](docs/findings.md) for documented data-quality discoveri
 ## Quickstart
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/conroyriodss/nih-reporter-mcp.git
 cd nih-reporter-mcp
 uv sync
-uv run python main.py            # stdio, for MCP clients such as Claude Desktop or MCP Inspector
-PORT=8000 uv run python main.py  # Streamable HTTP at http://localhost:8000/mcp
+uv run python main.py
 ```
 
-`main.py` starts on **stdio** unless `PORT` (or `DATABRICKS_APP_PORT`) is set, in which case it serves Streamable HTTP on that port at `/mcp`. The smoke tests below connect to `http://localhost:8000/mcp` by default (override with `MCP_URL`), so start the server with `PORT=8000` for them. For Databricks Apps deployment, see [`app.yaml`](app.yaml).
+
+`main.py` starts on **stdio** unless `PORT` (or `DATABRICKS_APP_PORT`) is set, in which case:
+
+```bash
+PORT=8000 uv run python main.py
+```
+
+The HTTP command is for a POSIX shell; PowerShell users can set `$env:PORT="8000"` before running `uv run python main.py`. This corrects the placeholder clone URL; the commands were not executed during this documentation review.
+
+For Databricks Apps deployment, see [`app.yaml`](app.yaml).
 
 No API key or authentication is required for the underlying NIH RePORTER or NCBI E-utilities APIs.
+
+## Audit a funding answer
+
+Start with an explicit question: the fiscal year or years, the topic or official category, the agency scope, and the intended counting unit. A free-text search defines a keyword cohort; it is not interchangeable with a spending-category query.
+Inspect the tool response for retrieval completeness, excluded records, parent/subproject handling, and provenance before reporting a total. Use `export\_evidence\_bundle` for the available audit trail, and report any cap on the identifiers included in that bundle. A live API query can return different data later; preserve the actual response bytes and query if you need to reproduce a particular answer.
+Software tests, live-server integration tests, and agent evaluations provide different evidence. See \[evaluation instructions](eval/README.md), \[documented findings](docs/findings.md), and the \[demonstration fixture](docs/demonstration\_fixture/README.md). Identify a demonstration fixture as such; do not present it as a new live result.
 
 ## Evaluation
 
